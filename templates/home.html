@@ -25,18 +25,18 @@
                 <header>
                     <h1 class="font-medium">Friends' thoughts</h1>
                 </header>
-                <section class="flex flex-col gap-2 items-center" id="friends-thoughts" hx-get="{% url 'friends_thoughts' %}"
-                         hx-trigger="load, every 10s">
+                <section class="flex flex-col gap-2 items-center" id="friends-thoughts"
+                         hx-get="{% url 'friends_thoughts' %}"
+                         hx-trigger="load">
                     {% include "partials/friends_thoughts.html" %}
                 </section>
             </section>
             <section class="flex flex-col items-center">
                 <header><h1 class="font-medium">All public thoughts</h1></header>
                 <section class="flex flex-col gap-2" id="all-thoughts" hx-get="{% url 'all_thoughts' %}"
-                         hx-trigger="load, every 2s">
+                         hx-trigger="load">
                     {% include "partials/all_thoughts.html" %}
                 </section>
-                </se>
             </section>
         {% else %}
             <section class="flex flex-col items-center">
@@ -44,12 +44,19 @@
                     <h1 class="font-medium">All public thoughts</h1>
                 </header>
                 <section class="flex flex-col gap-2" id="all-thoughts" hx-get="{% url 'all_thoughts' %}"
-                         hx-trigger="load, every 2s">
+                         hx-trigger="load">
                     {% include "partials/all_thoughts.html" %}
                 </section>
             </section>
         {% endif %}
+        </section>
+        <section id="search-results"></section>
     </main>
+{% endblock %}
+{% block left_side %}
+    <section>
+    </section>
+    <div hx-get="{% url 'site_stats' %}" hx-trigger="load, every 5m"></div>
 {% endblock %}
 {% block right_side %}
     <h1 class="font-medium">Top public hashtags</h1>

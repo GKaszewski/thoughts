@@ -49,19 +49,17 @@ def friends_thoughts(request):
     friends = get_friends_from_friendship(user)
     thoughts = Thought.objects.filter(author__in=friends).order_by('-created_at')
 
-    paginator = Paginator(thoughts, 10)
+    paginator = Paginator(thoughts, 5)
     page_number = request.GET.get('page')
     thoughts = paginator.get_page(page_number)
-
     return render(request, 'partials/friends_thoughts.html', {'friends_thoughts': thoughts})
 
 
 def all_thoughts(request):
     thoughts = get_public_thoughts()
-    paginator = Paginator(thoughts, 10)
+    paginator = Paginator(thoughts, 5)
     page_number = request.GET.get('page')
     thoughts = paginator.get_page(page_number)
-
     return render(request, 'partials/all_thoughts.html', {'all_thoughts': thoughts})
 
 
@@ -179,3 +177,15 @@ def incoming_friend_requests(request, username):
 def thought_detail(request, thought_id):
     thought = get_object_or_404(Thought, id=thought_id)
     return render(request, 'thought_detail.html', {'thought': thought})
+
+
+def site_stats(request):
+    user_count = user_model.objects.count()
+    thought_count = Thought.objects.count()
+    return render(request, 'partials/stats.html', {'user_count': user_count, 'thought_count': thought_count})
+
+
+def search(request):
+    query = request.GET.get('q')
+    thoughts = Thought.objects.filter(content__icontains=query)
+    return render(request, 'partials/all_thoughts.html', {'all_thoughts': thoughts})

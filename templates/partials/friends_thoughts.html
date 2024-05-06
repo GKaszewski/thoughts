@@ -3,9 +3,8 @@
 {% empty %}
     <p>No thoughts from friends yet.</p>
 {% endfor %}
-<div hx-get="{% url 'index' %}" hx-trigger="click" hx-target="#friends-thoughts"
->
+<div>
     {% for i in friends_thoughts.paginator.page_range %}
-        <a href="?page={{ i }}" hx-trigger="load, every 10s">{{ i }}</a>
+        <button type="button" hx-get="{% url 'friends_thoughts' %}?page={{ i }}" hx-trigger="click" hx-target="#friends-thoughts">{{ i }}</button>
     {% endfor %}
 </div>
