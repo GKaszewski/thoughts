@@ -1,0 +1,11 @@
+{% for thought in friends_thoughts %}
+    {% include 'components/thought.html' with thought=thought %}
+{% empty %}
+    <p>No thoughts from friends yet.</p>
+{% endfor %}
+<div hx-get="{% url 'index' %}" hx-trigger="click" hx-target="#friends-thoughts"
+>
+    {% for i in friends_thoughts.paginator.page_range %}
+        <a href="?page={{ i }}" hx-trigger="load, every 10s">{{ i }}</a>
+    {% endfor %}
+</div>

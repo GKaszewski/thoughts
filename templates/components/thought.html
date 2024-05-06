@@ -1,0 +1,16 @@
+<article id="thought-{{ thought.id }}">
+    <h1><a href="{% url 'user_profile' thought.author.username %}">{{ thought.author.username }}</a>
+    </h1>
+    <p><a href="{% url 'thought_detail' thought.id %}">{{ thought.text }}</a></p>
+    <time datetime="{{ thought.created_at.isoformat }}">{{ thought.created_at }}</time>
+
+    {% if user.is_authenticated and user == thought.author %}
+        <button hx-delete="{% url 'delete_thought' thought.id %}"
+                hx-confirm="Are you sure you want to delete this thought?" hx-target="#thought-{{ thought.id }}"
+                hx-swap="outerHTML"
+                hx-indicator="#thought-{{ thought.id }} .htmx-indicator"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>Delete
+        </button>
+    {% endif %}
+    <span class="htmx-indicator">deleting...</span>
+</article>

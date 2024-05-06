@@ -1,0 +1,5 @@
+{% for thought in recent_thoughts %}
+    {% include 'components/thought.html' with thought=thought %}
+{% empty %}
+    <p>No thoughts yet.</p>
+{% endfor %}

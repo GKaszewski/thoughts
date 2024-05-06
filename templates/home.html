@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% load socialaccount %}
+{% load account %}
+{% block content %}
+    {% include "components/navbar.html" %}
+    <main>
+        {% if user.is_authenticated %}
+            <h1>Post your <strong>thought</strong></h1>
+            <h2>What's on your mind?</h2>
+            <form hx-post="{% url 'index' %}" hx-trigger="submit" hx-target="#recent-thoughts"
+                  hx-swap="innerHTML" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Post thought</button>
+            </form>
+
+            <h1>Friends' <strong>thoughts</strong></h1>
+            <section id="friends-thoughts" hx-get="{% url 'friends_thoughts' %}" hx-trigger="load, every 10s"
+                     hx-swap="outerHTML">
+                {% include "partials/friends_thoughts.html" %}
+            </section>
+        {% endif %}
+        <h1>Recent <strong>thoughts</strong></h1>
+        <div id="recent-thoughts" hx-get="{% url 'recent_thoughts' %}" hx-trigger="load, every 5s">
+            {% include "partials/recent_thoughts.html" %}
+        </div>
+        <h1>Top hashtags</h1>
+        <div id="top-hashtags" hx-get="{% url 'top_hashtags' %}" hx-trigger="load, every 5s">
+            {% include "partials/top_hashtags.html" %}
+        </div>
+
+        <h1>All <strong>thoughts</strong></h1>
+        <section id="all-thoughts" hx-get="{% url 'all_thoughts' %}" hx-trigger="load, every 10s" hx-swap="outerHTML">
+            {% include "partials/all_thoughts.html" %}
+        </section>
+    </main>
+{% endblock %}

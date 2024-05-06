@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+    <style>
+        {{ user.userprofile.custom_css }}
+    </style>
+    {% include "components/navbar.html" %}
+    <main>
+        <h1>{{ user.username }}'s Profile</h1>
+        <div id="about">{% if user.userprofile.about_html %}
+            {{ user.userprofile.about_html | safe }}
+        {% else %}
+            <p>No about information.</p>
+        {% endif %}
+        </div>
+        <section id="profile">
+            <h2>Profile</h2>
+            <p>Joined: {{ user.date_joined }}</p>
+            <p>Email: {{ user.email }}</p>
+            <p>Location: {{ user.userprofile.location }}</p>
+            <p>Birthdate: {{ user.userprofile.birthdate }}</p>
+            <a href="{{ user.userprofile.website }}">Website: {{ user.userprofile.website }}</a>
+            <a href="{{ user.userprofile.github }}">GitHub: {{ user.userprofile.github }}</a>
+            <a href="{% url 'user_profile' user.username %}">View profile</a>
+        </section>
+        <h2>Edit Profile</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Update profile</button>
+        </form>
+        <h2>Thoughts</h2>
+        {% for thought in thoughts %}
+            {% include 'components/thought.html' with thought=thought %}
+        {% empty %}
+            <p>No thoughts yet.</p>
+        {% endfor %}
+        <section hx-get="{% url 'incoming_friend_requests' user.username %}" hx-trigger="load, every 15s"
+                 hx-target="#incoming-friend-requests" hx-swap="outerHTML">
+            <div id="incoming-friend-requests">
+                {% include 'partials/incoming_friend_requests.html' %}
+            </div>
+        </section>
+        <section id="friends" hx-get="{% url 'friend_list' user.username %}" hx-trigger="load, every 15s"
+                 hx-target="#friends-list">
+            <h2>Friends</h2>
+            <div id="friends-list"></div>
+        </section>
+    </main>
+
+{% endblock %}

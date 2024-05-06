@@ -1,0 +1,7 @@
+<ul>
+    {% for friend in friends %}
+        <li><a href="{% url 'user_profile' friend.username %}">{{ friend.username }}</a></li>
+        {% empty %}
+        <li>No friends yet</li>
+    {% endfor %}
+</ul>

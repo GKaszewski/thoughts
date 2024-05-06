@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% include 'components/navbar.html' %}
+    <main>
+        {% include 'components/thought.html' %}
+        <a href="{% url 'index' %}">Back to home</a>
+    </main>
+{% endblock %}
