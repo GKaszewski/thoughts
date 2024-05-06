@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import ThoughtForm, UserProfileForm
 from .models import Thought, UserProfile, HashTag, Friendship
-from .utils import get_top_hashtags, get_friends_from_friendship
+from .utils import get_top_hashtags, get_friends_from_friendship, get_public_thoughts
 
 user_model = get_user_model()
 
@@ -28,7 +28,13 @@ def index(request):
 
 
 def recent_thoughts(request):
-    recent_thoughts_objects = Thought.objects.order_by('-created_at')[:5]
+    recent_thoughts_objects = (Thought.objects.exclude(
+        author__userprofile__visibility=UserProfile.VisibilityChoices.PRIVATE).exclude(
+        author__userprofile__visibility=UserProfile.VisibilityChoices.FRIENDS_ONLY).order_by(
+        '-created_at'))[:5]
+    user_thoughts = Thought.objects.filter(author=request.user).order_by('-created_at')
+    recent_thoughts_objects = list(recent_thoughts_objects) + list(user_thoughts)
+    recent_thoughts_objects.sort(key=lambda x: x.created_at, reverse=True)
     return render(request, 'partials/recent_thoughts.html', {'recent_thoughts': recent_thoughts_objects})
 
 
@@ -54,7 +60,7 @@ def friends_thoughts(request):
 
 
 def all_thoughts(request):
-    thoughts = Thought.objects.all().order_by('-created_at')
+    thoughts = get_public_thoughts()
     paginator = Paginator(thoughts, 10)
     page_number = request.GET.get('page')
     thoughts = paginator.get_page(page_number)

@@ -4,7 +4,7 @@ from .models import Thought, UserProfile
 
 class ThoughtForm(forms.ModelForm):
     lifespan_days = forms.IntegerField(min_value=1, initial=7, help_text="Number of days the thought will be alive",
-                                       label="Lifespan in days")
+                                       label="Lifespan in days", required=False)
 
     class Meta:
         model = Thought

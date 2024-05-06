@@ -21,16 +21,16 @@
                 {% include "partials/friends_thoughts.html" %}
             </section>
         {% endif %}
-        <h1>Recent <strong>thoughts</strong></h1>
+        <h1>Recent public <strong>thoughts</strong></h1>
         <div id="recent-thoughts" hx-get="{% url 'recent_thoughts' %}" hx-trigger="load, every 5s">
             {% include "partials/recent_thoughts.html" %}
         </div>
-        <h1>Top hashtags</h1>
+        <h1>Top public hashtags</h1>
         <div id="top-hashtags" hx-get="{% url 'top_hashtags' %}" hx-trigger="load, every 5s">
             {% include "partials/top_hashtags.html" %}
         </div>
 
-        <h1>All <strong>thoughts</strong></h1>
+        <h1>All public <strong>thoughts</strong></h1>
         <section id="all-thoughts" hx-get="{% url 'all_thoughts' %}" hx-trigger="load, every 10s" hx-swap="outerHTML">
             {% include "partials/all_thoughts.html" %}
         </section>

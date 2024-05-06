@@ -4,7 +4,7 @@
         {{ user.userprofile.custom_css }}
     </style>
     {% include "components/navbar.html" %}
-    <main>
+    <main id="profile">
         <h1>{{ user.username }}'s Profile</h1>
         <div id="about">{% if user.userprofile.about_html %}
             {{ user.userprofile.about_html | safe }}
