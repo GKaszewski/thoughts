@@ -3,36 +3,63 @@
 {% load socialaccount %}
 {% load account %}
 {% block content %}
-    {% include "components/navbar.html" %}
     <main>
         {% if user.is_authenticated %}
-            <h1>Post your <strong>thought</strong></h1>
-            <h2>What's on your mind?</h2>
-            <form hx-post="{% url 'index' %}" hx-trigger="submit" hx-target="#recent-thoughts"
-                  hx-swap="innerHTML" method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit">Post thought</button>
-            </form>
-
-            <h1>Friends' <strong>thoughts</strong></h1>
-            <section id="friends-thoughts" hx-get="{% url 'friends_thoughts' %}" hx-trigger="load, every 10s"
-                     hx-swap="outerHTML">
-                {% include "partials/friends_thoughts.html" %}
+            <section class="flex flex-col items-center">
+                <header class="w-[24rem] flex flex-col gap-1 py-2 px-1">
+                    <form class="flex flex-col gap-2" hx-post="{% url 'index' %}" hx-trigger="submit"
+                          hx-target="#recent-thoughts"
+                          hx-swap="innerHTML" method="post" hx-on::after-request="this.reset()">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button class="relative w-24 text-start place-self-end"
+                                type="submit"><span
+                                class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+                            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Post it!</span>
+                        </button>
+                    </form>
+                </header>
+            </section>
+            <section class="w-full grid grid-cols-2 items-start justify-between">
+            <section class="flex flex-col items-center">
+                <header>
+                    <h1 class="font-medium">Friends' thoughts</h1>
+                </header>
+                <section class="flex flex-col gap-2 items-center" id="friends-thoughts" hx-get="{% url 'friends_thoughts' %}"
+                         hx-trigger="load, every 10s">
+                    {% include "partials/friends_thoughts.html" %}
+                </section>
+            </section>
+            <section class="flex flex-col items-center">
+                <header><h1 class="font-medium">All public thoughts</h1></header>
+                <section class="flex flex-col gap-2" id="all-thoughts" hx-get="{% url 'all_thoughts' %}"
+                         hx-trigger="load, every 2s">
+                    {% include "partials/all_thoughts.html" %}
+                </section>
+                </se>
+            </section>
+        {% else %}
+            <section class="flex flex-col items-center">
+                <header>
+                    <h1 class="font-medium">All public thoughts</h1>
+                </header>
+                <section class="flex flex-col gap-2" id="all-thoughts" hx-get="{% url 'all_thoughts' %}"
+                         hx-trigger="load, every 2s">
+                    {% include "partials/all_thoughts.html" %}
+                </section>
             </section>
         {% endif %}
-        <h1>Recent public <strong>thoughts</strong></h1>
-        <div id="recent-thoughts" hx-get="{% url 'recent_thoughts' %}" hx-trigger="load, every 5s">
-            {% include "partials/recent_thoughts.html" %}
-        </div>
-        <h1>Top public hashtags</h1>
-        <div id="top-hashtags" hx-get="{% url 'top_hashtags' %}" hx-trigger="load, every 5s">
-            {% include "partials/top_hashtags.html" %}
-        </div>
-
-        <h1>All public <strong>thoughts</strong></h1>
-        <section id="all-thoughts" hx-get="{% url 'all_thoughts' %}" hx-trigger="load, every 10s" hx-swap="outerHTML">
-            {% include "partials/all_thoughts.html" %}
-        </section>
     </main>
+{% endblock %}
+{% block right_side %}
+    <h1 class="font-medium">Top public hashtags</h1>
+    <section class="flex flex-col gap-2" id="top-hashtags" hx-get="{% url 'top_hashtags' %}"
+             hx-trigger="load, every 5s">
+        {% include "partials/top_hashtags.html" %}
+    </section>
+    <h1 class="font-medium">Recent public thoughts</h1>
+    <section class="flex flex-col gap-2" id="recent-thoughts" hx-get="{% url 'recent_thoughts' %}"
+             hx-trigger="load, every 5s">
+        {% include "partials/recent_thoughts.html" %}
+    </section>
 {% endblock %}

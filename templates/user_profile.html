@@ -3,9 +3,7 @@
     <style>
         {{ profile_user.userprofile.custom_css }}
     </style>
-    {% include "components/navbar.html" %}
-    <main id="profile">
-        <h1>{{ profile_user.username }}'s Profile</h1>
+    <main id="profile-page">
         <div id="about">
             {% if profile_user.userprofile.about_html %}
                 {{ profile_user.userprofile.about_html | safe }}
@@ -13,35 +11,45 @@
                 <p>No about information.</p>
             {% endif %}
         </div>
-        <section id="profile">
-            <h2>Profile</h2>
-            <p>Joined: {{ profile_user.date_joined }}</p>
-            <p>Email: {{ profile_user.email }}</p>
-            <p>Location: {{ profile_user.userprofile.location }}</p>
-            <p>Birthdate: {{ profile_user.userprofile.birthdate }}</p>
-            <a href="{{ profile_user.userprofile.website }}">Website: {{ profile_user.userprofile.website }}</a>
-            <a href="{{ profile_user.userprofile.github }}">GitHub: {{ profile_user.userprofile.github }}</a>
-            {% if user.is_authenticated and can_add_friend %}
-                <a href="{% url 'send_friend_request' profile_user.username %}">Add friend</a> {% endif %}
-        </section>
-        <h2>Thoughts</h2>
-        {% for thought in thoughts %}
-            {% include 'components/thought.html' with thought=thought %}
-        {% empty %}
-            <p>No thoughts yet.</p>
-        {% endfor %}
-        {% if profile_user == request.user %}
-            <section hx-get="{% url 'incoming_friend_requests' profile_user.username %}" hx-trigger="load, every 15s"
-                     hx-target="#incoming-friend-requests" hx-swap="outerHTML">
-                <div id="incoming-friend-requests">
-                    {% include 'partials/incoming_friend_requests.html' %}
-                </div>
-            </section>
-        {% endif %}
-        <section id="friends" hx-get="{% url 'friend_list' profile_user.username %}" hx-trigger="load, every 15s"
-                 hx-target="#friends-list">
-            <h2>Friends</h2>
-            <div id="friends-list"></div>
+        <section class="flex flex-col w-full items-center gap-2">
+            <h2 class="font-medium">Thoughts</h2>
+            {% for thought in thoughts %}
+                {% include 'components/thought.html' with thought=thought %}
+            {% empty %}
+                <p>No thoughts yet.</p>
+            {% endfor %}
         </section>
     </main>
+{% endblock %}
+{% block left_side %}
+    {% if profile_user == request.user %}
+        <section hx-get="{% url 'incoming_friend_requests' profile_user.username %}" hx-trigger="load, every 15s"
+                 hx-target="#incoming-friend-requests">
+            <div id="incoming-friend-requests">
+                {% include 'partials/incoming_friend_requests.html' %}
+            </div>
+        </section>
+    {% endif %}
+    <section id="friends" hx-get="{% url 'friend_list' profile_user.username %}" hx-trigger="load, every 15s"
+             hx-target="#friends-list">
+        <h2 class="font-medium">Friends</h2>
+        <div id="friends-list"></div>
+    </section>
+{% endblock %}
+{% block right_side %}
+    <div class="flex flex-col gap-2 w-full">
+        <section class="flex flex-col gap-1 justify-center" id="profile">
+            <h2 class="font-medium">{{ profile_user.username }}'s Profile</h2>
+            <p><span class="font-medium">Joined</span>: {{ profile_user.date_joined }}</p>
+            <p><span class="font-medium">Email</span>: {{ profile_user.email }}</p>
+            {% if profile_user.userprofile.location %}
+                <p><span class="font-medium">Location</span>: {{ profile_user.userprofile.location }}</p> {% endif %}
+            {% if profile_user.userprofile.birthdate %}
+                <p><span class="font-medium">Birthdate</span>: {{ profile_user.userprofile.birthdate }}</p>{% endif %}
+            {% if profile_user.userprofile.website %}<a href="{{ profile_user.userprofile.website }}"><span
+                    class="font-medium">Website</span>: {{ profile_user.userprofile.website }}</a>{% endif %}
+            {% if profile_user.userprofile.github %}<a href="{{ profile_user.userprofile.github }}"><span
+                    class="font-medium">GitHub</span>: {{ profile_user.userprofile.github }}</a>{% endif %}
+        </section>
+    </div>
 {% endblock %}

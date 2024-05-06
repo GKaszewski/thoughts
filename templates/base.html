@@ -1,13 +1,32 @@
+{% load compress %}
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Thoughts</title>
-    {% load static %}
+    {% compress css %}
+        <link rel="stylesheet" href="{% static 'src/output.css' %}">
+    {% endcompress %}
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
 </head>
 <body>
-{% block content %}
-{% endblock %}
+{% include 'components/navbar.html' %}
+<main class="grid grid-cols-6 w-full min-h-screen bg-slate-50">
+    <section class="flex flex-col bg-slate-100 col-span-1">
+        {% block left_side %}
+        {% endblock %}
+    </section>
+    <section class="col-span-4">
+        {% block content %}
+        {% endblock %}
+    </section>
+    <section class="flex flex-col bg-slate-100 col-span-1">
+        {% block right_side %}
+        {% endblock %}
+    </section>
+</main>
+
 </body>
 </html>

@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-    {% include 'components/navbar.html' %}
-    <main>
-    <h1>Thoughts tagged with #{{ hashtag.name }}</h1>
-    {% for thought in thoughts %}
+    <main class="flex flex-col items-center gap-2">
+        <h1 class="font-medium">Thoughts tagged with <span class="text-indigo-400 visited:text-indigo-500 visited:underline">#{{ hashtag.name }}</span></h1>
+        {% for thought in thoughts %}
             {% include 'components/thought.html' with thought=thought %}
-            {% empty %}
+        {% empty %}
             <p>No thoughts yet.</p>
         {% endfor %}
     </main>

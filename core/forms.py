@@ -3,14 +3,21 @@ from .models import Thought, UserProfile
 
 
 class ThoughtForm(forms.ModelForm):
-    lifespan_days = forms.IntegerField(min_value=1, initial=7, help_text="Number of days the thought will be alive",
-                                       label="Lifespan in days", required=False)
+    lifespan_days = forms.IntegerField(min_value=1, max_value=14,
+                                       label="Lifespan in days", required=False,
+                                       widget=forms.NumberInput(attrs={
+                                           'class': "w-16 bg-slate-200 appearance-none outline-none p-2 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none",
+                                           'max': "14"}))
+
+    text = forms.CharField(
+        widget=forms.Textarea(
+            attrs={'rows': 4, 'placeholder': "What's on your mind?",
+                   'class': "bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none"}),
+        label="")
 
     class Meta:
         model = Thought
         fields = ['text', 'lifespan_days']
-        labels = {'text': 'Thought'}
-        widgets = {'text': forms.Textarea(attrs={'rows': 3})}
 
     def __init__(self, *args, **kwargs):
         self.author = kwargs.pop('author', None)
@@ -28,6 +35,19 @@ class ThoughtForm(forms.ModelForm):
 
 
 class UserProfileForm(forms.ModelForm):
+    custom_css = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={'rows': 5,
+                   'class': "bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none"}),
+    )
+    about_html = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={'rows': 5,
+                   'class': "bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none"}),
+    )
+
     class Meta:
         model = UserProfile
         fields = ['custom_css', 'about_html', 'website', 'location', 'birthdate', 'github', 'visibility']
@@ -41,10 +61,13 @@ class UserProfileForm(forms.ModelForm):
             'visibility': 'Visibility',
         }
         widgets = {
-            'custom_css': forms.Textarea(attrs={'rows': 5}),
-            'about_html': forms.Textarea(attrs={'rows': 5}),
-            'birthdate': forms.DateInput(attrs={'type': 'date'}),
-            'website': forms.URLInput(attrs={'placeholder': 'https://example.com'}),
-            'github': forms.URLInput(attrs={'placeholder': 'https://github.com/username'}),
-            'visibility': forms.Select(attrs={'class': 'form-select'}),
+            'location': forms.TextInput(attrs={
+                'class': 'bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none'}),
+            'birthdate': forms.DateInput(attrs={'type': 'date',
+                                                'class': 'bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none'}),
+            'website': forms.URLInput(attrs={'placeholder': 'https://example.com',
+                                             'class': 'bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none'}),
+            'github': forms.URLInput(attrs={'placeholder': 'https://github.com/username',
+                                            'class': 'bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none'}),
+            'visibility': forms.Select(),
         }

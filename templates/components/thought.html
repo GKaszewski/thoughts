@@ -1,15 +1,21 @@
-<article id="thought-{{ thought.id }}">
-    <h1><a href="{% url 'user_profile' thought.author.username %}">{{ thought.author.username }}</a>
+<article
+        class="flex flex-col gap-1 bg-white shadow border border-slate-100 w-[15rem] max-w-[20rem] text-pretty break-words justify-start px-2"
+        id="thought-{{ thought.id }}">
+    <h1 class="font-semibold underline"><a
+            href="{% url 'user_profile' thought.author.username %}">{{ thought.author.username }}</a>
     </h1>
     <p><a href="{% url 'thought_detail' thought.id %}">{{ thought.text }}</a></p>
     <time datetime="{{ thought.created_at.isoformat }}">{{ thought.created_at }}</time>
 
     {% if user.is_authenticated and user == thought.author %}
-        <button hx-delete="{% url 'delete_thought' thought.id %}"
+        <button type="button" class="relative w-20 mt-5 text-start" hx-delete="{% url 'delete_thought' thought.id %}"
                 hx-confirm="Are you sure you want to delete this thought?" hx-target="#thought-{{ thought.id }}"
                 hx-swap="outerHTML"
                 hx-indicator="#thought-{{ thought.id }} .htmx-indicator"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>Delete
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'><span
+                class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-red-500 px-3 py-1 text-base font-bold text-white transition duration-100 hover:bg-white hover:text-black">Delete</span>
+
         </button>
     {% endif %}
     <span class="htmx-indicator">deleting...</span>

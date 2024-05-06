@@ -32,9 +32,6 @@ def recent_thoughts(request):
         author__userprofile__visibility=UserProfile.VisibilityChoices.PRIVATE).exclude(
         author__userprofile__visibility=UserProfile.VisibilityChoices.FRIENDS_ONLY).order_by(
         '-created_at'))[:5]
-    user_thoughts = Thought.objects.filter(author=request.user).order_by('-created_at')
-    recent_thoughts_objects = list(recent_thoughts_objects) + list(user_thoughts)
-    recent_thoughts_objects.sort(key=lambda x: x.created_at, reverse=True)
     return render(request, 'partials/recent_thoughts.html', {'recent_thoughts': recent_thoughts_objects})
 
 
@@ -125,22 +122,23 @@ def user_profile(request, username):
             return HttpResponse("This profile is only visible to friends", status=403)
 
     thoughts = Thought.objects.filter(author=user).order_by('-created_at')
-    friendship = Friendship.objects.filter(
-        Q(creator=request.user, friend=user) |
-        Q(creator=user, friend=request.user),
-        accepted=True
-    ).first()
-    pending_request = Friendship.objects.filter(
-        Q(creator=request.user, friend=user, accepted=False) |
-        Q(creator=user, friend=request.user, accepted=False)
-    ).exists()
-    can_add_friend = not friendship and not pending_request and user != request.user
+    if request.user.is_authenticated:
+        friendship = Friendship.objects.filter(
+            Q(creator=request.user, friend=user) |
+            Q(creator=user, friend=request.user),
+            accepted=True
+        ).first()
+        pending_request = Friendship.objects.filter(
+            Q(creator=request.user, friend=user, accepted=False) |
+            Q(creator=user, friend=request.user, accepted=False)
+        ).exists()
+        can_add_friend = not friendship and not pending_request and user != request.user
     incoming_requests = None
     if request.user == user:
         incoming_requests = Friendship.objects.filter(friend=user, accepted=False)
     return render(request, 'user_profile.html',
                   {'profile_user': user, 'thoughts': thoughts, 'incoming_requests': incoming_requests,
-                   'can_add_friend': can_add_friend})
+                   'can_add_friend': can_add_friend if request.user.is_authenticated else False})
 
 
 @login_required()

@@ -1,50 +1,75 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
     <style>
         {{ user.userprofile.custom_css }}
     </style>
-    {% include "components/navbar.html" %}
-    <main id="profile">
-        <h1>{{ user.username }}'s Profile</h1>
+    <script src="{% static 'js/profile.js' %}" defer></script>
+    <main class="flex flex-col gap-2" id="profile-page">
         <div id="about">{% if user.userprofile.about_html %}
             {{ user.userprofile.about_html | safe }}
         {% else %}
             <p>No about information.</p>
         {% endif %}
         </div>
-        <section id="profile">
-            <h2>Profile</h2>
-            <p>Joined: {{ user.date_joined }}</p>
-            <p>Email: {{ user.email }}</p>
-            <p>Location: {{ user.userprofile.location }}</p>
-            <p>Birthdate: {{ user.userprofile.birthdate }}</p>
-            <a href="{{ user.userprofile.website }}">Website: {{ user.userprofile.website }}</a>
-            <a href="{{ user.userprofile.github }}">GitHub: {{ user.userprofile.github }}</a>
-            <a href="{% url 'user_profile' user.username %}">View profile</a>
-        </section>
-        <h2>Edit Profile</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Update profile</button>
-        </form>
-        <h2>Thoughts</h2>
-        {% for thought in thoughts %}
-            {% include 'components/thought.html' with thought=thought %}
-        {% empty %}
-            <p>No thoughts yet.</p>
-        {% endfor %}
-        <section hx-get="{% url 'incoming_friend_requests' user.username %}" hx-trigger="load, every 15s"
-                 hx-target="#incoming-friend-requests" hx-swap="outerHTML">
-            <div id="incoming-friend-requests">
-                {% include 'partials/incoming_friend_requests.html' %}
-            </div>
-        </section>
-        <section id="friends" hx-get="{% url 'friend_list' user.username %}" hx-trigger="load, every 15s"
-                 hx-target="#friends-list">
-            <h2>Friends</h2>
-            <div id="friends-list"></div>
+        <div id="edit-profile">
+            <h2 class="font-medium">Edit Profile</h2>
+            <form method="post" class="flex flex-col gap-1 w-[40rem]">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="relative text-start w-36 mt-2"
+                        type="submit"><span
+                        class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+                    <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Update profile</span>
+                </button>
+            </form>
+        </div>
+        <section class="flex flex-col w-full items-center gap-2">
+            <h2 class="font-medium">Thoughts</h2>
+            {% for thought in thoughts %}
+                {% include 'components/thought.html' with thought=thought %}
+            {% empty %}
+                <p>No thoughts yet.</p>
+            {% endfor %}
         </section>
     </main>
-
+{% endblock %}
+{% block left_side %}
+    <section hx-get="{% url 'incoming_friend_requests' user.username %}" hx-trigger="load, every 15s"
+             hx-target="#incoming-friend-requests">
+        <div id="incoming-friend-requests">
+            {% include 'partials/incoming_friend_requests.html' %}
+        </div>
+    </section>
+    <section id="friends" hx-get="{% url 'friend_list' user.username %}" hx-trigger="load, every 15s"
+             hx-target="#friends-list">
+        <h2 class="font-medium">Friends</h2>
+        <div id="friends-list"></div>
+    </section>
+{% endblock %}
+{% block right_side %}
+    <div class="flex flex-col gap-2 w-full">
+        <section class="flex flex-col gap-1 justify-center" id="profile">
+            <h2 class="font-medium">Profile</h2>
+            <p><span class="font-medium">Joined</span>: {{ user.date_joined }}</p>
+            <p><span class="font-medium">Email</span>: {{ user.email }}</p>
+            {% if user.userprofile.location %}
+                <p><span class="font-medium">Location</span>: {{ user.userprofile.location }}</p> {% endif %}
+            {% if user.userprofile.birthdate %}
+                <p><span class="font-medium">Birthdate</span>: {{ user.userprofile.birthdate }}</p>{% endif %}
+            {% if user.userprofile.website %}<a href="{{ user.userprofile.website }}"><span
+                    class="font-medium">Website</span>: {{ user.userprofile.website }}</a>{% endif %}
+            {% if user.userprofile.github %}<a href="{{ user.userprofile.github }}"><span
+                    class="font-medium">GitHub</span>: {{ user.userprofile.github }}</a>{% endif %}
+        </section>
+        <button id="edit-profile-button" class="relative text-start w-32"
+                type="button"><span
+                class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Edit profile</span>
+        </button>
+        <a class="relative w-32" href="{% url 'user_profile' user.username %}"><span
+                class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">View profile</span>
+        </a>
+    </div>
 {% endblock %}

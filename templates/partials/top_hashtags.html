@@ -1,6 +1,6 @@
 <ul>
     {% for hashtag in top_hashtags %}
-        <li><a href="{% url 'hashtag_thoughts' hashtag.name %}">#{{ hashtag.name }}</a></li>
+        <li><a class="text-indigo-400 visited:text-indigo-500 visited:underline" href="{% url 'hashtag_thoughts' hashtag.name %}">#{{ hashtag.name }}</a></li>
     {% empty %}
         <p>No hashtags yet!</p>
     {% endfor %}

@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    {% include 'components/navbar.html' %}
-    <main>
+    <main class="flex flex-col items-center gap-2 mt-4">
         {% include 'components/thought.html' %}
-        <a href="{% url 'index' %}">Back to home</a>
+        <a class="relative w-32" href="{% url 'index' %}"><span
+                class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">View profile</span>
+        </a>
     </main>
 {% endblock %}
