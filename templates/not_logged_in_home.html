@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <main class="flex flex-col justify-center items-center w-full">
+    <header>
+        <h1 class="text-4xl font-medium">Welcome to <span class="font-semibold">Thoughts!</span></h1>
+    </header>
+    <section>
+        <p class="text-lg">Thoughts is a simple social media platform where you can share your thoughts with the world.</p>
+        <p class="text-lg">You can follow other users and see their thoughts on your feed.</p>
+        <p class="text-lg">You can also see the most popular thoughts on the platform.</p>
+        <p class="text-lg">The best feature of this site is that you can PERSONALIZE your own profile!</p>
+        <p class="text-lg">What are you waiting for? Go on and join us!</p>
+    </section>
+    <a class="relative" href="{% url 'account_signup' %}">
+        <span class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+            <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Join us!</span>
+    </a>
+    </main>
+{% endblock %}
+{% block left_side %}
+    <div hx-get="{% url 'site_stats' %}" hx-trigger="load, every 5m"></div>
+{% endblock %}
+{% block right_side %}
+{% endblock %}

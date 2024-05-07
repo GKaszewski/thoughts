@@ -26,3 +26,6 @@ friends, and see each other's posts.
 - Add styling and better UX
 - Write tests
 - Write documentation
+
+# Useful tips
+- Rebuild tailwindcss: `npx tailwindcss -i ./static/src/input.css -o ./static/src/output.css --watch`

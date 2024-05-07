@@ -16,15 +16,20 @@ user_model = get_user_model()
 
 def index(request):
     if request.method == 'POST':
-        form = ThoughtForm(request.POST, author=request.user)
-        if form.is_valid():
-            form.save()
+        thought_form = ThoughtForm(request.POST, author=request.user)
+        if thought_form.is_valid():
+            thought_form.save()
+            user = request.user
+            UserProfile.objects.get_or_create(user=user)
             return redirect('recent_thoughts')
     else:
-        form = ThoughtForm()
+        thought_form = ThoughtForm()
 
-    return render(request, 'home.html',
-                  {'form': form})
+    user = request.user
+    if user.is_authenticated:
+        return render(request, 'home.html',
+                  {'thought_form': thought_form})
+    return render(request, 'not_logged_in_home.html')
 
 
 def recent_thoughts(request):
@@ -187,5 +192,5 @@ def site_stats(request):
 
 def search(request):
     query = request.GET.get('q')
-    thoughts = Thought.objects.filter(content__icontains=query)
-    return render(request, 'partials/all_thoughts.html', {'all_thoughts': thoughts})
+    thoughts = Thought.objects.filter(text__icontains=query)
+    return render(request, 'search_results.html', {'result_thoughts': thoughts})

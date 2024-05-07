@@ -3,15 +3,16 @@
 {% load socialaccount %}
 {% load account %}
 {% block content %}
+    <script src="{% static 'js/home.js' %}" defer></script>
     <main>
         {% if user.is_authenticated %}
             <section class="flex flex-col items-center">
                 <header class="w-[24rem] flex flex-col gap-1 py-2 px-1">
-                    <form class="flex flex-col gap-2" hx-post="{% url 'index' %}" hx-trigger="submit"
+                    <form id="thought-form" class="flex flex-col gap-2" hx-post="{% url 'index' %}" hx-trigger="submit"
                           hx-target="#recent-thoughts"
                           hx-swap="innerHTML" method="post" hx-on::after-request="this.reset()">
                         {% csrf_token %}
-                        {{ form.as_p }}
+                        {{ thought_form.as_p }}
                         <button class="relative w-24 text-start place-self-end"
                                 type="submit"><span
                                 class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
@@ -55,6 +56,17 @@
 {% endblock %}
 {% block left_side %}
     <section>
+        <form class="flex flex-col gap-1" action="{% url 'search' %}" method="get">
+            <label for="q" class="font-medium">Search for thoughts</label>
+            <input label="search"
+                   class="bg-white resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none"
+                   type="text" name="q" placeholder="Search for thoughts">
+            <button class="relative w-24 place-self-end" type="submit">
+            <span
+                    class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
+                <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Search</span>
+            </button>
+        </form>
     </section>
     <div hx-get="{% url 'site_stats' %}" hx-trigger="load, every 5m"></div>
 {% endblock %}
