@@ -8,3 +8,4 @@ django-htmx~=1.17.3
 nh3~=0.2.17
 django-compressor~=4.4
 django-browser-reload~=1.12.1
+django-allauth~=0.62.1
