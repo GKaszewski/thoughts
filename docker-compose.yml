@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    command: gunicorn thoughts.wsgi:application --bind 0.0.0.0:8000 --workers 4 --access-logfile - --error-logfile -
+    expose:
+      - "8000"
+    volumes:
+      - static_volume:/home/thoughts/web/static
+    depends_on:
+      - db
+    env_file:
+      - .env
+  db:
+    image: postgres:latest
+    env_file:
+      - .env.db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/thoughts/web/static
+    ports:
+      - "1338:80"
+    depends_on:
+      - web
+volumes:
+  db_data:
+  static_volume:

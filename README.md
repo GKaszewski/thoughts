@@ -11,6 +11,7 @@ friends, and see each other's posts.
 - User can decide who can see their profile
 - Thoughts can expire after a certain amount of time (if user provides an expiration date)
 - Social login (GitHub, Discord)
+- Blog for official announcements and tutorials
 
 # Tech Stack
 
@@ -23,7 +24,7 @@ friends, and see each other's posts.
 # Todo
 - Integrate Docker
 - Implement Cron for expiring thoughts
-- Add styling and better UX
+- Add styling and better UX (partially done)
 - Write tests
 - Write documentation
 

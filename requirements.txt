@@ -11,3 +11,4 @@ django-browser-reload~=1.12.1
 django-allauth~=0.62.1
 markdown~=3.6
 django-markdownify~=0.9.3
+gunicorn~=22.0.0
