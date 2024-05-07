@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_htmx',
     'compressor',
+    'markdownify',
 
     'allauth',
     'allauth.account',
@@ -25,6 +26,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.discord',
 
     'core.apps.CoreConfig',
+    'blog.apps.BlogConfig',
 ]
 
 MIDDLEWARE = [

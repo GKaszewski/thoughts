@@ -28,7 +28,7 @@ def index(request):
     user = request.user
     if user.is_authenticated:
         return render(request, 'home.html',
-                  {'thought_form': thought_form})
+                      {'thought_form': thought_form})
     return render(request, 'not_logged_in_home.html')
 
 
@@ -194,3 +194,7 @@ def search(request):
     query = request.GET.get('q')
     thoughts = Thought.objects.filter(text__icontains=query)
     return render(request, 'search_results.html', {'result_thoughts': thoughts})
+
+
+def about(request):
+    return render(request, 'about.html')

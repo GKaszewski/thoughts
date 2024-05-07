@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import index, recent_thoughts, profile_view, delete_thought, user_thoughts, top_hashtags, hashtag_view, \
     user_profile, send_friend_request, friend_list, accept_friend_request, incoming_friend_requests, thought_detail, \
-    friends_thoughts, all_thoughts, site_stats, search
+    friends_thoughts, all_thoughts, site_stats, search, about
 
 urlpatterns = [
     path('', index, name='index'),
@@ -22,4 +22,5 @@ urlpatterns = [
     path('all-thoughts/', all_thoughts, name='all_thoughts'),
     path('site-stats/', site_stats, name='site_stats'),
     path('search/', search, name='search'),
+    path('about/', about, name='about'),
 ]

@@ -18,6 +18,7 @@
                                 class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
                             <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Post it!</span>
                         </button>
+                        <audio id="submitSound" preload="auto" src="{% static 'sfx/publish.ogg' %}"></audio>
                     </form>
                 </header>
             </section>
@@ -51,7 +52,6 @@
             </section>
         {% endif %}
         </section>
-        <section id="search-results"></section>
     </main>
 {% endblock %}
 {% block left_side %}
@@ -67,6 +67,9 @@
                 <span class="fold-bold relative inline-block h-full w-full rounded border-2 border-black bg-white px-3 py-1 text-base font-bold text-black transition duration-100 hover:bg-indigo-500 hover:text-white">Search</span>
             </button>
         </form>
+    </section>
+    <section>
+    <p>Logged in as <span class="font-medium">{% user_display user %}</span></p>
     </section>
     <div hx-get="{% url 'site_stats' %}" hx-trigger="load, every 5m"></div>
 {% endblock %}

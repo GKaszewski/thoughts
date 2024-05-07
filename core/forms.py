@@ -12,6 +12,7 @@ class ThoughtForm(forms.ModelForm):
     text = forms.CharField(
         widget=forms.Textarea(
             attrs={'rows': 4, 'placeholder': "What's on your mind?",
+                   'maxlength': '128',
                    'class': "bg-slate-200 resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none"}),
         label="")
 

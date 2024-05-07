@@ -5,7 +5,7 @@
             href="{% url 'user_profile' thought.author.username %}">{{ thought.author.username }}</a>
     </h1>
     <p><a href="{% url 'thought_detail' thought.id %}">{{ thought.text }}</a></p>
-    <time datetime="{{ thought.created_at.isoformat }}">{{ thought.created_at }}</time>
+    <time class="text-sm" datetime="{{ thought.created_at.isoformat }}">{{ thought.created_at }}</time>
 
     {% if user.is_authenticated and user == thought.author %}
         <button type="button" class="relative w-20 mt-5 text-start" hx-delete="{% url 'delete_thought' thought.id %}"
