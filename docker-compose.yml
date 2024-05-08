@@ -5,7 +5,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - static_volume:/home/thoughts/web/static
+      - static_volume:/home/thoughts/web/staticfiles
     depends_on:
       - db
     env_file:
@@ -19,7 +19,7 @@ services:
   nginx:
     build: ./nginx
     volumes:
-      - static_volume:/home/thoughts/web/static
+      - static_volume:/home/thoughts/web/staticfiles
     ports:
       - "1338:80"
     depends_on:

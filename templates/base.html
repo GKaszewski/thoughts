@@ -14,9 +14,7 @@
     {% compress css %}
         <link rel="stylesheet" href="{% static 'css/my_main.css' %}">
     {% endcompress %}
-    {% compress css %}
-        <link rel="stylesheet" href="{% static 'css/output.min.css' %}">
-    {% endcompress %}
+    <link rel="stylesheet" href="{% static 'css/output.min.css' %}">
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
 </head>
 <body>

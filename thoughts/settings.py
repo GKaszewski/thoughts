@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django_htmx',
     'compressor',
     'markdownify',
+    'corsheaders',
 
     'allauth',
     'allauth.account',
@@ -36,6 +37,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -98,9 +100,14 @@ TIME_ZONE = os.getenv('TIME_ZONE', 'UTC')
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_FINDERS = ('compressor.finders.CompressorFinder',)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -121,7 +128,7 @@ else:
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     EMAIL_PORT = os.getenv('EMAIL_PORT')
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS').lower() == 'true'
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS').lower() == 'true' if 'EMAIL_USE_TLS' in os.environ else False
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -134,3 +141,5 @@ LOGIN_REDIRECT_URL = '/'
 COMPRESS_ROOT = BASE_DIR / 'static'
 COMPRESS_ENABLED = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if 'CSRF_TRUSTED_ORIGINS' in os.environ else []
+CORS_ORIGIN_WHITELIST = CSRF_TRUSTED_ORIGINS
