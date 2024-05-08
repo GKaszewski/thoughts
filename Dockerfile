@@ -1,21 +1,18 @@
-FROM python:3.12-slim-buster AS builder
+FROM python:3.12-alpine AS builder
 
 WORKDIR /usr/src/thoughts
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc
-
 # install requirements
 COPY requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/szwindel/wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/thoughts/wheels -r requirements.txt
 
-FROM python:3.12-slim-buster
+FROM python:3.12-alpine
 RUN mkdir -p /home/thoughts
 
-RUN addgroup --system szwindel && adduser --system --group szwindel
+RUN addgroup -S thoughts && adduser -S thoughts -G thoughts
 
 # create the appropriate directories
 ENV HOME=/home/thoughts
@@ -25,8 +22,6 @@ RUN mkdir $APP_HOME/static
 RUN mkdir $APP_HOME/media
 WORKDIR $APP_HOME
 
-# install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends netcat binutils libproj-dev
 COPY --from=builder /usr/src/thoughts/wheels /wheels
 COPY --from=builder /usr/src/thoughts/requirements.txt .
 RUN pip install --upgrade pip
