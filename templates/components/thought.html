@@ -8,7 +8,7 @@
     <time class="text-sm" datetime="{{ thought.created_at.isoformat }}">{{ thought.created_at }}</time>
 
     {% if user.is_authenticated and user == thought.author %}
-        <button type="button" class="relative w-20 mt-5 text-start" hx-delete="{% url 'delete_thought' thought.id %}"
+        <button type="button" class="relative w-24 mt-5 text-start" hx-delete="{% url 'delete_thought' thought.id %}"
                 hx-confirm="Are you sure you want to delete this thought?" hx-target="#thought-{{ thought.id }}"
                 hx-swap="outerHTML"
                 hx-indicator="#thought-{{ thought.id }} .htmx-indicator"

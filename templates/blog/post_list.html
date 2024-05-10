@@ -1,16 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Blog</title>
-</head>
-<body>
-    <h1>Posts</h1>
-    <ul>
-        {% for post in posts %}
-        <li>
-            <a href="{% url 'post_detail' id=post.id %}">{{ post.title }}</a> - {{ post.created_at }}
-        </li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+    <main class="flex flex-col justify-center items-center w-full">
+        <header>
+            <h1 class="text-4xl font-medium">Posts</h1>
+        </header>
+        <ul>
+            {% for post in posts %}
+                <li>
+                    <a href="{% url 'post_detail' id=post.id %}">{{ post.title }}</a> - {{ post.created_at }}
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+{% endblock %}
