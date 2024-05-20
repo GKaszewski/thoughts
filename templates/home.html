@@ -2,6 +2,7 @@
 {% load static %}
 {% load socialaccount %}
 {% load account %}
+{% load form_tags %}
 {% block content %}
     <script src="{% static 'js/home.js' %}" defer></script>
     <main>
@@ -12,7 +13,12 @@
                           hx-target="#recent-thoughts"
                           hx-swap="innerHTML" method="post" hx-on::after-request="this.reset()">
                         {% csrf_token %}
-                        {{ thought_form.as_p }}
+                        {% for field in thought_form %}
+                            <div class="mb-4">
+                            {{ field.label_tag }}
+                            {{ field|add_class:"bg-white resize-none appearance-none outline-none placeholder:text-black py-3 px-4 block w-full border-gray-200 text-sm text-black focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none" }}
+                            </div>
+                        {% endfor %}
                         <button class="relative w-24 text-start place-self-end"
                                 type="submit"><span
                                 class="absolute top-0 left-0 mt-1 ml-1 h-full w-full rounded bg-black"></span>
