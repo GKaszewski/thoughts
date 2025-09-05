@@ -12,7 +12,7 @@ use models::schemas::{
 #[openapi(
     paths(
         users_get,
-        users_id_get,
+        get_user_by_param,
         user_thoughts_get,
         user_follow_post,
         user_follow_delete

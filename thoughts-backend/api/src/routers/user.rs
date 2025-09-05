@@ -1,10 +1,11 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
+use serde_json::json;
 
 use app::persistence::{
     follow,
@@ -42,28 +43,6 @@ async fn users_get(
         .await
         .map_err(ApiError::from)?;
     Ok(Json(UserListSchema::from(users)))
-}
-
-#[utoipa::path(
-    get,
-    path = "/{id}",
-    params(
-        ("id" = i32, Path, description = "User id")
-    ),
-    responses(
-        (status = 200, description = "Get user", body = UserSchema),
-        (status = 404, description = "Not found", body = ApiErrorResponse),
-        (status = 500, description = "Internal server error", body = ApiErrorResponse),
-    )
-)]
-async fn users_id_get(
-    state: State<AppState>,
-    Path(id): Path<i32>,
-) -> Result<impl IntoResponse, ApiError> {
-    let user = get_user(&state.conn, id).await.map_err(ApiError::from)?;
-
-    user.map(|user| Json(UserSchema::from(user)))
-        .ok_or_else(|| UserError::NotFound.into())
 }
 
 #[utoipa::path(
@@ -165,10 +144,84 @@ async fn user_follow_delete(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    get,
+    path = "/{param}",
+    params(
+        ("param" = String, Path, description = "User ID or username")
+    ),
+    responses(
+        (status = 200, description = "User profile or ActivityPub actor", body = UserSchema, content_type = "application/json"),
+        (status = 200, description = "ActivityPub actor", body = Object, content_type = "application/activity+json"),
+        (status = 404, description = "User not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
+    ),
+    security(
+        ("api_key" = []),
+        ("bearer_auth" = [])
+    )
+)]
+async fn get_user_by_param(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    Path(param): Path<String>,
+) -> Response {
+    // First, try to handle it as a numeric ID.
+    if let Ok(id) = param.parse::<i32>() {
+        return match get_user(&state.conn, id).await {
+            Ok(Some(user)) => Json(UserSchema::from(user)).into_response(),
+            Ok(None) => ApiError::from(UserError::NotFound).into_response(),
+            Err(db_err) => ApiError::from(db_err).into_response(),
+        };
+    }
+
+    // If it's not a number, treat it as a username and perform content negotiation.
+    let username = param;
+    let is_activitypub_request = headers
+        .get(axum::http::header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map_or(false, |s| s.contains("application/activity+json"));
+
+    if is_activitypub_request {
+        // This is the logic from `user_actor_get`.
+        match get_user_by_username(&state.conn, &username).await {
+            Ok(Some(user)) => {
+                let base_url = "http://localhost:3000";
+                let user_url = format!("{}/users/{}", base_url, user.username);
+                let actor = json!({
+                    "@context": [
+                        "https://www.w3.org/ns/activitystreams",
+                        "https://w3id.org/security/v1"
+                    ],
+                    "id": user_url,
+                    "type": "Person",
+                    "preferredUsername": user.username,
+                    "inbox": format!("{}/inbox", user_url),
+                    "outbox": format!("{}/outbox", user_url),
+                });
+                let mut headers = axum::http::HeaderMap::new();
+                headers.insert(
+                    axum::http::header::CONTENT_TYPE,
+                    "application/activity+json".parse().unwrap(),
+                );
+                (headers, Json(actor)).into_response()
+            }
+            Ok(None) => ApiError::from(UserError::NotFound).into_response(),
+            Err(e) => ApiError::from(e).into_response(),
+        }
+    } else {
+        match get_user_by_username(&state.conn, &username).await {
+            Ok(Some(user)) => Json(UserSchema::from(user)).into_response(),
+            Ok(None) => ApiError::from(UserError::NotFound).into_response(),
+            Err(e) => ApiError::from(e).into_response(),
+        }
+    }
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
-        .route("/{id}", get(users_id_get))
+        .route("/{param}", get(get_user_by_param))
         .route("/{username}/thoughts", get(user_thoughts_get))
         .route(
             "/{username}/follow",

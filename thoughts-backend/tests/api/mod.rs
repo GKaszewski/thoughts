@@ -1,3 +1,4 @@
+mod activitypub;
 mod auth;
 mod feed;
 mod follow;
