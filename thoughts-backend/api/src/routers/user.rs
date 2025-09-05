@@ -5,18 +5,22 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use sea_orm::TryIntoModel;
+use sea_orm::{DbErr, TryIntoModel};
 
-use app::error::UserError;
-use app::persistence::user::{create_user, get_user, search_users};
+use app::persistence::{
+    follow,
+    thought::get_thoughts_by_user,
+    user::{create_user, get_user, search_users},
+};
 use app::state::AppState;
-use models::params::user::CreateUserParams;
-use models::queries::user::UserQuery;
+use app::{error::UserError, persistence::user::get_user_by_username};
 use models::schemas::user::{UserListSchema, UserSchema};
+use models::{params::user::CreateUserParams, schemas::thought::ThoughtListSchema};
+use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
-use crate::error::ApiError;
 use crate::extractor::{Json, Valid};
 use crate::models::{ApiErrorResponse, ParamsErrorResponse};
+use crate::{error::ApiError, extractor::AuthUser};
 
 #[utoipa::path(
     post,
@@ -25,6 +29,7 @@ use crate::models::{ApiErrorResponse, ParamsErrorResponse};
     responses(
         (status = 201, description = "User created", body = UserSchema),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 409, description = "Username already exists", body = ApiErrorResponse),
         (status = 422, description = "Validation error", body = ParamsErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
@@ -86,8 +91,104 @@ async fn users_id_get(
         .ok_or_else(|| UserError::NotFound.into())
 }
 
+#[utoipa::path(
+    get,
+    path = "/{username}/thoughts",
+    params(
+        ("username" = String, Path, description = "Username")
+    ),
+    responses(
+        (status = 200, description = "List of user's thoughts", body = ThoughtListSchema),
+        (status = 404, description = "User not found", body = ApiErrorResponse)
+    )
+)]
+async fn user_thoughts_get(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let thoughts_with_authors = get_thoughts_by_user(&state.conn, user.id).await?;
+    let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
+        .into_iter()
+        .map(ThoughtSchema::from)
+        .collect();
+
+    Ok(Json(ThoughtListSchema::from(thoughts_schema)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/{username}/follow",
+    params(
+        ("username" = String, Path, description = "Username to follow")
+    ),
+    responses(
+        (status = 204, description = "User followed successfully"),
+        (status = 404, description = "User not found", body = ApiErrorResponse),
+        (status = 409, description = "Already following", body = ApiErrorResponse)
+    ),
+    security(
+        ("api_key" = []),
+        ("bearer_auth" = [])
+    )
+)]
+async fn user_follow_post(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user_to_follow = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let result = follow::follow_user(&state.conn, auth_user.id, user_to_follow.id).await;
+
+    match result {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(DbErr::UnpackInsertId) => Err(UserError::AlreadyFollowing.into()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[utoipa::path(
+    delete,
+    path = "/{username}/follow",
+    params(
+        ("username" = String, Path, description = "Username to unfollow")
+    ),
+    responses(
+        (status = 204, description = "User unfollowed successfully"),
+        (status = 404, description = "User not found or not being followed", body = ApiErrorResponse)
+    ),
+    security(
+        ("api_key" = []),
+        ("bearer_auth" = [])
+    )
+)]
+async fn user_follow_delete(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user_to_unfollow = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    follow::unfollow_user(&state.conn, auth_user.id, user_to_unfollow.id).await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", post(users_post).get(users_get))
         .route("/{id}", get(users_id_get))
+        .route("/{username}/thoughts", get(user_thoughts_get))
+        .route(
+            "/{username}/follow",
+            post(user_follow_post).delete(user_follow_delete),
+        )
 }

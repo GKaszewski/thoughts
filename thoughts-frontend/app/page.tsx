@@ -1,103 +1,158 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, FormEvent } from "react";
+
+interface Thought {
+  id: number;
+  author_id: number;
+  content: string;
+  created_at: string;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // State to store the list of thoughts for the feed
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
+  // State for the content of the new thought being typed
+  const [newThoughtContent, setNewThoughtContent] = useState("");
+  // State to manage loading status
+  const [isLoading, setIsLoading] = useState(true);
+  // State to hold any potential errors during API calls
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Function to fetch the feed from the backend API
+  const fetchFeed = async () => {
+    try {
+      setError(null);
+      const response = await fetch("http://localhost:8000/api/feed");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      // The API returns { thoughts: [...] }, so we access the nested array
+      setThoughts(data.thoughts || []);
+    } catch (e: unknown) {
+      console.error("Failed to fetch feed:", e);
+      setError(
+        "Could not load the feed. The backend might be busy. Please try refreshing."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // useEffect hook to fetch the feed when the component first loads
+  useEffect(() => {
+    fetchFeed();
+  }, []);
+
+  // Handler for submitting the new thought form
+  const handleSubmitThought = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!newThoughtContent.trim()) return; // Prevent empty posts
+
+    try {
+      const response = await fetch("http://localhost:8000/api/thoughts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // We are hardcoding author_id: 1 as we don't have auth yet
+        body: JSON.stringify({ content: newThoughtContent, author_id: 1 }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Clear the input box
+      setNewThoughtContent("");
+      // Refresh the feed to show the new post
+      fetchFeed();
+    } catch (e: unknown) {
+      console.error("Failed to post thought:", e);
+      setError("Failed to post your thought. Please try again.");
+    }
+  };
+
+  return (
+    <div className="font-sans bg-gradient-to-br from-sky-200 via-teal-100 to-green-200 min-h-screen text-gray-800">
+      <div className="container mx-auto max-w-2xl p-4 sm:p-6">
+        {/* Header */}
+        <header className="text-center my-6">
+          <h1
+            className="text-5xl font-bold text-white"
+            style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.2)" }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            Thoughts
+          </h1>
+          <p className="text-white/80 mt-2">
+            Your space on the decentralized web.
+          </p>
+        </header>
+
+        {/* New Thought Form */}
+        <div className="bg-white/70 backdrop-blur-lg rounded-xl shadow-lg p-5 mb-8">
+          <form onSubmit={handleSubmitThought}>
+            <textarea
+              value={newThoughtContent}
+              onChange={(e) => setNewThoughtContent(e.target.value)}
+              className="w-full h-24 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-400 focus:outline-none resize-none transition-shadow"
+              placeholder="What's on your mind?"
+              maxLength={128}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <div className="flex justify-between items-center mt-3">
+              <span className="text-sm text-gray-500">
+                {128 - newThoughtContent.length} characters remaining
+              </span>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-sky-500 text-white font-semibold rounded-full shadow-md hover:bg-sky-600 active:scale-95 transition-all duration-150 ease-in-out disabled:bg-gray-400"
+                disabled={!newThoughtContent.trim()}
+              >
+                Post
+              </button>
+            </div>
+          </form>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Feed Section */}
+        <main>
+          {isLoading ? (
+            <p className="text-center text-gray-600">Loading feed...</p>
+          ) : error ? (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center">
+              <p>{error}</p>
+            </div>
+          ) : thoughts.length === 0 ? (
+            <p className="text-center text-gray-600">
+              The feed is empty. Follow some users to see their thoughts!
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {thoughts.map((thought) => (
+                <div
+                  key={thought.id}
+                  className="bg-white/80 backdrop-blur-lg rounded-xl shadow-lg p-4 transition-transform hover:scale-[1.02]"
+                >
+                  <div className="flex items-center mb-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-300 to-sky-400 flex items-center justify-center font-bold text-white mr-3">
+                      {/* Placeholder for avatar */}
+                      {thought.author_id}
+                    </div>
+                    <div>
+                      <p className="font-bold">User {thought.author_id}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(thought.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-gray-800 break-words">{thought.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

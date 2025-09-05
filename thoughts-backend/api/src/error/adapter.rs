@@ -27,6 +27,11 @@ impl HTTPError for UserError {
     fn to_status_code(&self) -> StatusCode {
         match self {
             UserError::NotFound => StatusCode::NOT_FOUND,
+            UserError::NotFollowing => StatusCode::BAD_REQUEST,
+            UserError::Forbidden => StatusCode::FORBIDDEN,
+            UserError::UsernameTaken => StatusCode::BAD_REQUEST,
+            UserError::AlreadyFollowing => StatusCode::BAD_REQUEST,
+            UserError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

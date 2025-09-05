@@ -26,3 +26,13 @@ pub async fn search_users(db: &DbConn, query: UserQuery) -> Result<Vec<user::Mod
 pub async fn get_user(db: &DbConn, id: i32) -> Result<Option<user::Model>, DbErr> {
     user::Entity::find_by_id(id).one(db).await
 }
+
+pub async fn get_user_by_username(
+    db: &DbConn,
+    username: &str,
+) -> Result<Option<user::Model>, DbErr> {
+    user::Entity::find()
+        .filter(user::Column::Username.eq(username))
+        .one(db)
+        .await
+}

@@ -5,14 +5,14 @@ use crate::domains::user;
 
 #[derive(Serialize, ToSchema)]
 pub struct UserSchema {
-    pub id: u32,
+    pub id: i32,
     pub username: String,
 }
 
 impl From<user::Model> for UserSchema {
     fn from(user: user::Model) -> Self {
         Self {
-            id: user.id as u32,
+            id: user.id,
             username: user.username,
         }
     }

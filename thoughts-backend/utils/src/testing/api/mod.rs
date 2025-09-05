@@ -19,3 +19,15 @@ pub async fn make_post_request(app: Router, url: &str, body: String) -> Response
     .await
     .unwrap()
 }
+
+pub async fn make_delete_request(app: Router, url: &str) -> Response {
+    app.oneshot(
+        Request::builder()
+            .method("DELETE")
+            .uri(url)
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await
+    .unwrap()
+}

@@ -642,6 +642,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "sea-orm",
+ "sea-query",
  "serde",
  "utoipa",
 ]
