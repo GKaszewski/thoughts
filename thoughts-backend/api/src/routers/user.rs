@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 use app::persistence::{
     follow,
@@ -145,6 +145,40 @@ async fn user_follow_delete(
 }
 
 #[utoipa::path(
+    post,
+    path = "/{username}/inbox",
+    request_body = Object,
+    description = "The ActivityPub inbox for receiving activities.",
+    responses(
+        (status = 202, description = "Activity accepted"),
+        (status = 400, description = "Bad Request"),
+        (status = 404, description = "User not found")
+    )
+)]
+async fn user_inbox_post(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+    Json(activity): Json<Value>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let activity_type = activity["type"].as_str().unwrap_or_default();
+    let actor_id = activity["actor"].as_str().unwrap_or_default();
+
+    tracing::debug!(target: "activitypub", "Received activity '{}' from actor '{}' in {}'s inbox", activity_type, actor_id, username);
+
+    // For now, we only handle the "Follow" activity
+    if activity_type == "Follow" {
+        follow::add_follower(&state.conn, user.id, actor_id).await?;
+    }
+
+    // Per the ActivityPub spec, we should return a 202 Accepted status
+    Ok(StatusCode::ACCEPTED)
+}
+
+#[utoipa::path(
     get,
     path = "/{param}",
     params(
@@ -227,4 +261,5 @@ pub fn create_user_router() -> Router<AppState> {
             "/{username}/follow",
             post(user_follow_post).delete(user_follow_delete),
         )
+        .route("/{username}/inbox", post(user_inbox_post))
 }

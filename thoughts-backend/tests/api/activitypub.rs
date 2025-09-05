@@ -1,8 +1,8 @@
 use crate::api::main::{create_user_with_password, setup};
 use axum::http::{header, StatusCode};
 use http_body_util::BodyExt;
-use serde_json::Value;
-use utils::testing::{make_get_request, make_request_with_headers};
+use serde_json::{json, Value};
+use utils::testing::{make_get_request, make_post_request, make_request_with_headers};
 
 #[tokio::test]
 async fn test_webfinger_discovery() {
@@ -56,4 +56,48 @@ async fn test_user_actor_endpoint() {
     assert_eq!(v["type"], "Person");
     assert_eq!(v["preferredUsername"], "testuser");
     assert_eq!(v["id"], "http://localhost:3000/users/testuser");
+}
+
+#[tokio::test]
+async fn test_user_inbox_follow() {
+    let app = setup().await;
+    // user1 will be followed
+    create_user_with_password(&app.db, "user1", "password123").await;
+    // user2 will be the follower
+    create_user_with_password(&app.db, "user2", "password123").await;
+
+    // Construct a follow activity from user2, targeting user1
+    let follow_activity = json!({
+      "@context": "https://www.w3.org/ns/activitystreams",
+      "id": "http://localhost:3000/some-unique-id",
+      "type": "Follow",
+      "actor": "http://localhost:3000/users/user2", // The actor is user2
+      "object": "http://localhost:3000/users/user1"
+    })
+    .to_string();
+
+    // POST the activity to user1's inbox
+    let response = make_post_request(
+        app.router.clone(),
+        "/users/user1/inbox",
+        follow_activity,
+        None,
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::ACCEPTED);
+
+    // Verify that user2 is now following user1 in the database
+    let followers = app::persistence::follow::get_followed_ids(&app.db, 2)
+        .await
+        .unwrap();
+    assert!(followers.contains(&1), "User2 should be following user1");
+
+    let following = app::persistence::follow::get_followed_ids(&app.db, 1)
+        .await
+        .unwrap();
+    assert!(
+        !following.contains(&2),
+        "User1 should now be followed by user2"
+    );
 }

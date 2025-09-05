@@ -1,7 +1,29 @@
 use sea_orm::{ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, Set};
 
-use crate::error::UserError;
+use crate::{error::UserError, persistence::user::get_user_by_username};
 use models::domains::follow;
+
+pub async fn add_follower(
+    db: &DbConn,
+    followed_id: i32,
+    follower_actor_id: &str,
+) -> Result<(), UserError> {
+    let follower_username = follower_actor_id
+        .split('/')
+        .last()
+        .ok_or_else(|| UserError::Internal("Invalid follower actor ID".to_string()))?;
+
+    let follower = get_user_by_username(db, follower_username)
+        .await
+        .map_err(|e| UserError::Internal(e.to_string()))?
+        .ok_or(UserError::NotFound)?;
+
+    follow_user(db, follower.id, followed_id)
+        .await
+        .map_err(|e| UserError::Internal(e.to_string()))?;
+
+    Ok(())
+}
 
 pub async fn follow_user(db: &DbConn, follower_id: i32, followed_id: i32) -> Result<(), DbErr> {
     if follower_id == followed_id {
