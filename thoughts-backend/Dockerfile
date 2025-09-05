@@ -1,0 +1,40 @@
+FROM rust:1.89-slim AS builder
+RUN cargo install cargo-chef --locked
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY api/Cargo.toml ./api/
+COPY app/Cargo.toml ./app/
+COPY doc/Cargo.toml ./doc/
+COPY migration/Cargo.toml ./migration/
+COPY models/Cargo.toml ./models/
+COPY utils/Cargo.toml ./utils/
+
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+RUN cargo chef cook --release --recipe-path recipe.json
+
+COPY . .
+
+RUN cargo build --release --bin thoughts-backend
+
+FROM debian:13-slim AS runtime
+
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup appuser
+
+WORKDIR /app
+
+COPY --from=builder /app/target/release/thoughts-backend .
+
+COPY .env.example .env
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["./thoughts-backend"]

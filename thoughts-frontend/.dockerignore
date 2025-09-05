@@ -1,0 +1,8 @@
+# Ignore node modules, we install them in the container
+node_modules
+# Ignore build output
+.next/
+# Ignore git directory
+.git/
+# Ignore local environment files
+.env*.local

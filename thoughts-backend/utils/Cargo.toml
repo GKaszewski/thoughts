@@ -1,0 +1,16 @@
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "utils"
+path = "src/lib.rs"
+
+[dependencies]
+migration = { path = "../migration" }
+
+axum = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+sea-orm = { workspace = true, features = ["sqlx-sqlite", "sqlx-postgres"] }

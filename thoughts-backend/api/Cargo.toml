@@ -1,0 +1,33 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "api"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { workspace = true, features = ["macros", "query"] }
+serde = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+validator = { workspace = true, features = ["derive"] }
+
+tower-http = { version = "0.6.6", features = ["fs"] }
+tower-cookies = "0.11.0"
+anyhow = "1.0.98"
+dotenvy = "0.15.7"
+
+# db
+sea-orm = { workspace = true }
+
+# doc
+utoipa = { workspace = true }
+
+# local dependencies
+app = { path = "../app" }
+models = { path = "../models" }
+
+[dev-dependencies]

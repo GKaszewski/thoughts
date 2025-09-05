@@ -1,0 +1,23 @@
+[package]
+name = "doc"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "doc"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { workspace = true }
+utoipa = { workspace = true, features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = [
+    "axum",
+    "vendored",
+], default-features = false }
+utoipa-scalar = { version = "0.3.0", features = [
+    "axum",
+], default-features = false }
+
+api = { path = "../api" }
+models = { path = "../models" }
