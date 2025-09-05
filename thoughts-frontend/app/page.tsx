@@ -23,7 +23,7 @@ export default function Home() {
   const fetchFeed = async () => {
     try {
       setError(null);
-      const response = await fetch("http://localhost:8000/api/feed");
+      const response = await fetch("http://localhost:8000/feed");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -51,7 +51,7 @@ export default function Home() {
     if (!newThoughtContent.trim()) return; // Prevent empty posts
 
     try {
-      const response = await fetch("http://localhost:8000/api/thoughts", {
+      const response = await fetch("http://localhost:8000/thoughts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

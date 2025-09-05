@@ -10,7 +10,7 @@ use crate::{error::ApiError, extractor::AuthUser};
 
 #[utoipa::path(
     get,
-    path = "/feed",
+    path = "/",
     responses(
         (status = 200, description = "Authenticated user's feed", body = ThoughtListSchema)
     ),
@@ -24,7 +24,10 @@ async fn feed_get(
     auth_user: AuthUser,
 ) -> Result<impl IntoResponse, ApiError> {
     let followed_ids = get_followed_ids(&state.conn, auth_user.id).await?;
-    let thoughts_with_authors = get_feed_for_user(&state.conn, followed_ids).await?;
+    let mut thoughts_with_authors = get_feed_for_user(&state.conn, followed_ids).await?;
+
+    let own_thoughts = get_feed_for_user(&state.conn, vec![auth_user.id]).await?;
+    thoughts_with_authors.extend(own_thoughts);
 
     let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
         .into_iter()

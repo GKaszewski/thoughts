@@ -7,15 +7,19 @@ pub mod user;
 
 use app::state::AppState;
 use root::create_root_router;
+use tower_http::cors::CorsLayer;
 use user::create_user_router;
 
 use crate::routers::{feed::create_feed_router, thought::create_thought_router};
 
 pub fn create_router(state: AppState) -> Router {
+    let cors = CorsLayer::permissive();
+
     Router::new()
         .merge(create_root_router())
         .nest("/users", create_user_router())
         .nest("/thoughts", create_thought_router())
         .nest("/feed", create_feed_router())
         .with_state(state)
+        .layer(cors)
 }
