@@ -15,7 +15,7 @@ impl FromRequestParts<AppState> for AuthUser {
     type Rejection = (StatusCode, &'static str);
 
     async fn from_request_parts(
-        _parts: &mut Parts,
+        parts: &mut Parts,
         _state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         // For now, we'll just return a hardcoded user.
@@ -24,6 +24,12 @@ impl FromRequestParts<AppState> for AuthUser {
         // 2. Validate the JWT.
         // 3. Extract the user ID from the token claims.
         // 4. Return an error if the token is invalid or missing.
-        Ok(AuthUser { id: 1 }) // Assume user with ID 1 is always authenticated.
+        if let Some(user_id_header) = parts.headers.get("x-test-user-id") {
+            let user_id_str = user_id_header.to_str().unwrap_or("1");
+            let user_id = user_id_str.parse::<i32>().unwrap_or(1);
+            return Ok(AuthUser { id: user_id });
+        } else {
+            return Ok(AuthUser { id: 1 });
+        }
     }
 }

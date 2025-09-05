@@ -12,7 +12,7 @@ async fn test_thought_endpoints() {
 
     // 1. Post a new thought as user 1
     let body = json!({ "content": "My first thought!" }).to_string();
-    let response = make_post_request(app.router.clone(), "/thoughts", body).await;
+    let response = make_post_request(app.router.clone(), "/thoughts", body, Some(1)).await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
@@ -22,15 +22,20 @@ async fn test_thought_endpoints() {
 
     // 2. Post a thought with invalid content
     let body = json!({ "content": "" }).to_string(); // Too short
-    let response = make_post_request(app.router.clone(), "/thoughts", body).await;
+    let response = make_post_request(app.router.clone(), "/thoughts", body, Some(1)).await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 3. Attempt to delete another user's thought (user1 tries to delete a non-existent thought, but let's pretend it's user2's)
-    let response = make_delete_request(app.router.clone(), &format!("/thoughts/999")).await;
+    let response =
+        make_delete_request(app.router.clone(), &format!("/thoughts/999"), Some(1)).await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // 4. Delete the thought created in step 1
-    let response =
-        make_delete_request(app.router.clone(), &format!("/thoughts/{}", thought_id)).await;
+    let response = make_delete_request(
+        app.router.clone(),
+        &format!("/thoughts/{}", thought_id),
+        Some(1),
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }

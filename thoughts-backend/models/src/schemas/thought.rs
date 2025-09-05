@@ -4,7 +4,7 @@ use sea_orm::FromQueryResult;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema, FromQueryResult)]
+#[derive(Serialize, ToSchema, FromQueryResult, Debug)]
 pub struct ThoughtSchema {
     pub id: i32,
     #[schema(example = "frutiger")]

@@ -18,6 +18,9 @@ impl HTTPError for DbErr {
     fn to_status_code(&self) -> StatusCode {
         match self {
             DbErr::ConnectionAcquire(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            DbErr::UnpackInsertId => StatusCode::CONFLICT,
+            DbErr::RecordNotFound(_) => StatusCode::NOT_FOUND,
+            DbErr::Custom(s) if s == "Users cannot follow themselves" => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR, // TODO:: more granularity
         }
     }
@@ -27,7 +30,7 @@ impl HTTPError for UserError {
     fn to_status_code(&self) -> StatusCode {
         match self {
             UserError::NotFound => StatusCode::NOT_FOUND,
-            UserError::NotFollowing => StatusCode::BAD_REQUEST,
+            UserError::NotFollowing => StatusCode::NOT_FOUND,
             UserError::Forbidden => StatusCode::FORBIDDEN,
             UserError::UsernameTaken => StatusCode::BAD_REQUEST,
             UserError::AlreadyFollowing => StatusCode::BAD_REQUEST,

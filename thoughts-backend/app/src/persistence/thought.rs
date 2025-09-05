@@ -39,8 +39,13 @@ pub async fn get_thoughts_by_user(
     user_id: i32,
 ) -> Result<Vec<ThoughtWithAuthor>, DbErr> {
     thought::Entity::find()
+        .select_only()
+        .column(thought::Column::Id)
+        .column(thought::Column::Content)
+        .column(thought::Column::CreatedAt)
+        .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
-        .join(JoinType::InnerJoin, thought::Relation::User.def().rev())
+        .join(JoinType::InnerJoin, thought::Relation::User.def())
         .filter(thought::Column::AuthorId.eq(user_id))
         .order_by_desc(thought::Column::CreatedAt)
         .into_model::<ThoughtWithAuthor>()
@@ -55,9 +60,15 @@ pub async fn get_feed_for_user(
     if followed_ids.is_empty() {
         return Ok(vec![]);
     }
+
     thought::Entity::find()
+        .select_only()
+        .column(thought::Column::Id)
+        .column(thought::Column::Content)
+        .column(thought::Column::CreatedAt)
+        .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
-        .join(JoinType::InnerJoin, thought::Relation::User.def().rev())
+        .join(JoinType::InnerJoin, thought::Relation::User.def())
         .filter(thought::Column::AuthorId.is_in(followed_ids))
         .order_by_desc(thought::Column::CreatedAt)
         .into_model::<ThoughtWithAuthor>()

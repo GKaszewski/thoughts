@@ -1,19 +1,37 @@
-use axum::{http::StatusCode, Router};
+use axum::http::StatusCode;
 use http_body_util::BodyExt;
 use serde_json::Value;
 
 use utils::testing::{make_get_request, make_post_request};
 
-pub(super) async fn test_post_users(app: Router) {
-    let response = make_post_request(app, "/users", r#"{"username": "test"}"#.to_owned()).await;
+use crate::api::main::setup;
+
+#[tokio::test]
+async fn test_post_users() {
+    let app = setup().await;
+    let response = make_post_request(
+        app.router,
+        "/users",
+        r#"{"username": "test"}"#.to_owned(),
+        None,
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
     assert_eq!(&body[..], br#"{"id":1,"username":"test"}"#);
 }
 
-pub(super) async fn test_post_users_error(app: Router) {
-    let response = make_post_request(app, "/users", r#"{"username": "1"}"#.to_owned()).await;
+#[tokio::test]
+pub(super) async fn test_post_users_error() {
+    let app = setup().await;
+    let response = make_post_request(
+        app.router,
+        "/users",
+        r#"{"username": "1"}"#.to_owned(),
+        None,
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
@@ -27,8 +45,18 @@ pub(super) async fn test_post_users_error(app: Router) {
     )
 }
 
-pub(super) async fn test_get_users(app: Router) {
-    let response = make_get_request(app, "/users").await;
+#[tokio::test]
+pub async fn test_get_users() {
+    let app = setup().await;
+    make_post_request(
+        app.router.clone(),
+        "/users",
+        r#"{"username": "test"}"#.to_owned(),
+        None,
+    )
+    .await;
+
+    let response = make_get_request(app.router, "/users", None).await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();

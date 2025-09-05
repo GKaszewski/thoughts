@@ -38,12 +38,15 @@ async fn users_post(
     state: State<AppState>,
     Valid(Json(params)): Valid<Json<CreateUserParams>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let user = create_user(&state.conn, params)
-        .await
-        .map_err(ApiError::from)?;
-
-    let user = user.try_into_model().unwrap();
-    Ok((StatusCode::CREATED, Json(UserSchema::from(user))))
+    let result = create_user(&state.conn, params).await;
+    match result {
+        Ok(user) => {
+            let user = user.try_into_model().unwrap();
+            Ok((StatusCode::CREATED, Json(UserSchema::from(user))))
+        }
+        Err(DbErr::UnpackInsertId) => Err(UserError::UsernameTaken.into()),
+        Err(e) => Err(e.into()),
+    }
 }
 
 #[utoipa::path(
@@ -111,6 +114,7 @@ async fn user_thoughts_get(
         .ok_or(UserError::NotFound)?;
 
     let thoughts_with_authors = get_thoughts_by_user(&state.conn, user.id).await?;
+
     let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
         .into_iter()
         .map(ThoughtSchema::from)
@@ -148,7 +152,14 @@ async fn user_follow_post(
 
     match result {
         Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(DbErr::UnpackInsertId) => Err(UserError::AlreadyFollowing.into()),
+        Err(e)
+            if matches!(
+                e.sql_err(),
+                Some(sea_orm::SqlErr::UniqueConstraintViolation { .. })
+            ) =>
+        {
+            Err(UserError::AlreadyFollowing.into())
+        }
         Err(e) => Err(e.into()),
     }
 }

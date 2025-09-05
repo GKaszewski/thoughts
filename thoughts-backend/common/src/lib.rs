@@ -5,7 +5,7 @@ use sea_query::ValueTypeErr;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, ToSchema, Debug)]
 #[schema(example = "2025-09-05T12:34:56Z")]
 pub struct DateTimeWithTimeZoneWrapper(String);
 

@@ -3,28 +3,28 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFi
 use crate::error::UserError;
 use models::domains::follow;
 
-pub async fn follow_user(db: &DbConn, follower_id: i32, followee_id: i32) -> Result<(), DbErr> {
-    if follower_id == followee_id {
+pub async fn follow_user(db: &DbConn, follower_id: i32, followed_id: i32) -> Result<(), DbErr> {
+    if follower_id == followed_id {
         return Err(DbErr::Custom("Users cannot follow themselves".to_string()));
     }
 
     let follow = follow::ActiveModel {
         follower_id: Set(follower_id),
-        followed_id: Set(followee_id),
+        followed_id: Set(followed_id),
     };
 
-    follow.save(db).await?;
+    follow.insert(db).await?;
     Ok(())
 }
 
 pub async fn unfollow_user(
     db: &DbConn,
     follower_id: i32,
-    followee_id: i32,
+    followed_id: i32,
 ) -> Result<(), UserError> {
     let deleted_result = follow::Entity::delete_many()
         .filter(follow::Column::FollowerId.eq(follower_id))
-        .filter(follow::Column::FollowedId.eq(followee_id))
+        .filter(follow::Column::FollowedId.eq(followed_id))
         .exec(db)
         .await
         .map_err(|e| UserError::Internal(e.to_string()))?;
