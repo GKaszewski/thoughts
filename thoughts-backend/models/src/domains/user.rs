@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i32,
     #[sea_orm(unique)]
     pub username: String,
+    pub password_hash: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

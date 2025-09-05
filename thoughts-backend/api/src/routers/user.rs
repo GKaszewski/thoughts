@@ -5,49 +5,21 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use sea_orm::{DbErr, TryIntoModel};
 
 use app::persistence::{
     follow,
     thought::get_thoughts_by_user,
-    user::{create_user, get_user, search_users},
+    user::{get_user, search_users},
 };
 use app::state::AppState;
 use app::{error::UserError, persistence::user::get_user_by_username};
+use models::schemas::thought::ThoughtListSchema;
 use models::schemas::user::{UserListSchema, UserSchema};
-use models::{params::user::CreateUserParams, schemas::thought::ThoughtListSchema};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
-use crate::extractor::{Json, Valid};
-use crate::models::{ApiErrorResponse, ParamsErrorResponse};
+use crate::extractor::Json;
+use crate::models::ApiErrorResponse;
 use crate::{error::ApiError, extractor::AuthUser};
-
-#[utoipa::path(
-    post,
-    path = "",
-    request_body = CreateUserParams,
-    responses(
-        (status = 201, description = "User created", body = UserSchema),
-        (status = 400, description = "Bad request", body = ApiErrorResponse),
-        (status = 409, description = "Username already exists", body = ApiErrorResponse),
-        (status = 422, description = "Validation error", body = ParamsErrorResponse),
-        (status = 500, description = "Internal server error", body = ApiErrorResponse),
-    )
-)]
-async fn users_post(
-    state: State<AppState>,
-    Valid(Json(params)): Valid<Json<CreateUserParams>>,
-) -> Result<impl IntoResponse, ApiError> {
-    let result = create_user(&state.conn, params).await;
-    match result {
-        Ok(user) => {
-            let user = user.try_into_model().unwrap();
-            Ok((StatusCode::CREATED, Json(UserSchema::from(user))))
-        }
-        Err(DbErr::UnpackInsertId) => Err(UserError::UsernameTaken.into()),
-        Err(e) => Err(e.into()),
-    }
-}
 
 #[utoipa::path(
     get,
@@ -195,7 +167,7 @@ async fn user_follow_delete(
 
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
-        .route("/", post(users_post).get(users_get))
+        .route("/", get(users_get))
         .route("/{id}", get(users_id_get))
         .route("/{username}/thoughts", get(user_thoughts_get))
         .route(

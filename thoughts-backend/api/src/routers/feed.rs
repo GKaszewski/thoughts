@@ -10,7 +10,7 @@ use crate::{error::ApiError, extractor::AuthUser};
 
 #[utoipa::path(
     get,
-    path = "/",
+    path = "",
     responses(
         (status = 200, description = "Authenticated user's feed", body = ThoughtListSchema)
     ),

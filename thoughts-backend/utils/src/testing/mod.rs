@@ -1,5 +1,5 @@
 mod api;
 mod db;
 
-pub use api::{make_delete_request, make_get_request, make_post_request};
+pub use api::{make_delete_request, make_get_request, make_jwt_request, make_post_request};
 pub use db::setup_test_db;

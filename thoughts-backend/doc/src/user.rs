@@ -13,7 +13,6 @@ use models::schemas::{
     paths(
         users_get,
         users_id_get,
-        users_post,
         user_thoughts_get,
         user_follow_post,
         user_follow_delete

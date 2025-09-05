@@ -1,8 +1,12 @@
 use axum::Router;
-use utoipa::OpenApi;
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, Http, SecurityScheme},
+    Modify, OpenApi,
+};
 use utoipa_scalar::{Scalar, Servable as ScalarServable};
 use utoipa_swagger_ui::SwaggerUi;
 
+mod auth;
 mod feed;
 mod root;
 mod thought;
@@ -12,18 +16,36 @@ mod user;
 #[openapi(
     nest(
         (path = "/", api = root::RootApi),
+        (path = "/auth", api = auth::AuthApi),
         (path = "/users", api = user::UserApi),
         (path = "/thoughts", api = thought::ThoughtApi),
         (path = "/feed", api = feed::FeedApi),
     ),
     tags(
         (name = "root", description = "Root API"),
+        (name = "auth", description = "Authentication API"),
         (name = "user", description = "User & Social API"),
         (name = "thought", description = "Thoughts API"),
         (name = "feed", description = "Feed API"),
     ),
+    modifiers(&SecurityAddon),
 )]
 struct _ApiDoc;
+
+struct SecurityAddon;
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let components = openapi.components.get_or_insert_with(Default::default);
+        components.add_security_scheme(
+            "bearer_auth",
+            SecurityScheme::Http(Http::new(utoipa::openapi::security::HttpAuthScheme::Bearer)),
+        );
+        components.add_security_scheme(
+            "api_key",
+            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
+        );
+    }
+}
 
 pub trait ApiDoc {
     fn attach_doc(self) -> Self;

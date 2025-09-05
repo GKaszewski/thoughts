@@ -5,6 +5,7 @@ pub enum UserError {
     Forbidden,
     UsernameTaken,
     AlreadyFollowing,
+    Validation(String), // Added Validation variant
     Internal(String),
 }
 
@@ -16,6 +17,7 @@ impl std::fmt::Display for UserError {
             UserError::Forbidden => write!(f, "You do not have permission to perform this action"),
             UserError::UsernameTaken => write!(f, "Username is already taken"),
             UserError::AlreadyFollowing => write!(f, "You are already following this user"),
+            UserError::Validation(msg) => write!(f, "Validation error: {}", msg),
             UserError::Internal(msg) => write!(f, "Internal server error: {}", msg),
         }
     }

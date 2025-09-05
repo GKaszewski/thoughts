@@ -6,4 +6,6 @@ use validator::Validate;
 pub struct CreateUserParams {
     #[validate(length(min = 2))]
     pub username: String,
+    #[validate(length(min = 6))]
+    pub password: String,
 }

@@ -3,6 +3,7 @@ pub struct Config {
     pub host: String,
     pub port: u32,
     pub prefork: bool,
+    pub auth_secret: String,
 }
 
 impl Config {
@@ -15,6 +16,7 @@ impl Config {
                 .parse()
                 .expect("PORT is not a number"),
             prefork: std::env::var("PREFORK").is_ok_and(|v| v == "1"),
+            auth_secret: std::env::var("AUTH_SECRET").unwrap_or_else(|_| "secret".into()),
         }
     }
 

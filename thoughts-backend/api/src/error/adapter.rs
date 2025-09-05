@@ -34,6 +34,7 @@ impl HTTPError for UserError {
             UserError::Forbidden => StatusCode::FORBIDDEN,
             UserError::UsernameTaken => StatusCode::BAD_REQUEST,
             UserError::AlreadyFollowing => StatusCode::BAD_REQUEST,
+            UserError::Validation(_) => StatusCode::UNPROCESSABLE_ENTITY,
             UserError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

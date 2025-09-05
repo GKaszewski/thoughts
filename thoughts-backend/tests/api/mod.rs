@@ -1,3 +1,4 @@
+mod auth;
 mod feed;
 mod follow;
 mod main;

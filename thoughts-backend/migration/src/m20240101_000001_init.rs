@@ -24,6 +24,8 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .unique_key(),
                     )
+                    .to_owned()
+                    .col(ColumnDef::new(User::PasswordHash).string())
                     .to_owned(),
             )
             .await
@@ -41,4 +43,5 @@ pub(super) enum User {
     Table,
     Id,
     Username,
+    PasswordHash,
 }

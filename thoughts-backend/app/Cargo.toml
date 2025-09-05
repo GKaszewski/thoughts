@@ -9,6 +9,8 @@ name = "app"
 path = "src/lib.rs"
 
 [dependencies]
+bcrypt = "0.17.1"
 models = { path = "../models" }
+validator = "0.20"
 
 sea-orm = { workspace = true }

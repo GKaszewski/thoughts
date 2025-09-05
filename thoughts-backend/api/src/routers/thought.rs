@@ -21,7 +21,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/thoughts",
+    path = "",
     request_body = CreateThoughtParams,
     responses(
         (status = 201, description = "Thought created", body = ThoughtSchema),
@@ -49,7 +49,7 @@ async fn thoughts_post(
 
 #[utoipa::path(
     delete,
-    path = "/thoughts/{id}",
+    path = "/{id}",
     params(
         ("id" = i32, Path, description = "Thought ID")
     ),
