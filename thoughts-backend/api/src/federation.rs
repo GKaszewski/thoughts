@@ -25,9 +25,8 @@ pub async fn federate_thought(
         return;
     }
 
-    let base_url = "http://localhost:3000"; // Replace in production
-    let thought_url = format!("{}/thoughts/{}", base_url, thought.id);
-    let author_url = format!("{}/users/{}", base_url, author.username);
+    let thought_url = format!("{}/thoughts/{}", &state.base_url, thought.id);
+    let author_url = format!("{}/users/{}", &state.base_url, author.username);
 
     // Construct the "Create" activity containing the "Note" object
     let activity = json!({
@@ -59,7 +58,7 @@ pub async fn federate_thought(
 
     let client = reqwest::Client::new();
     for follower in followers {
-        let inbox_url = format!("{}/users/{}/inbox", base_url, follower.username);
+        let inbox_url = format!("{}/users/{}/inbox", &state.base_url, follower.username);
         tracing::info!("Federating post {} to {}", thought.id, inbox_url);
 
         let res = client.post(&inbox_url).json(&activity).send().await;

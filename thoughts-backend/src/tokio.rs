@@ -11,7 +11,9 @@ async fn worker(child_num: u32, db_url: &str, prefork: bool, listener: std::net:
         migrate(&conn).await.expect("Migration failed!");
     }
 
-    let router = setup_router(conn).attach_doc();
+    let config = setup_config();
+
+    let router = setup_router(conn, &config).attach_doc();
 
     let listener = tokio::net::TcpListener::from_std(listener).expect("bind to port");
     axum::serve(listener, router).await.expect("start server");

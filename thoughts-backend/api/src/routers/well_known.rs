@@ -45,8 +45,7 @@ pub async fn webfinger(
             _ => return Err((axum::http::StatusCode::NOT_FOUND, "User not found")),
         };
 
-        let base_url = "http://localhost:3000";
-        let user_url = Url::parse(&format!("{}/users/{}", base_url, user.username)).unwrap();
+        let user_url = Url::parse(&format!("{}/users/{}", &state.base_url, user.username)).unwrap();
 
         let response = WebFingerResponse {
             subject: query.resource,

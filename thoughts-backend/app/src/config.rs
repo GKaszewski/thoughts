@@ -4,6 +4,7 @@ pub struct Config {
     pub port: u32,
     pub prefork: bool,
     pub auth_secret: String,
+    pub base_url: String,
 }
 
 impl Config {
@@ -16,7 +17,8 @@ impl Config {
                 .parse()
                 .expect("PORT is not a number"),
             prefork: std::env::var("PREFORK").is_ok_and(|v| v == "1"),
-            auth_secret: std::env::var("AUTH_SECRET").unwrap_or_else(|_| "secret".into()),
+            auth_secret: std::env::var("AUTH_SECRET").expect("AUTH_SECRET is not set in .env file"),
+            base_url: std::env::var("BASE_URL").expect("BASE_URL is not set in .env file"),
         }
     }
 

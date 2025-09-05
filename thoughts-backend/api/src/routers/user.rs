@@ -220,8 +220,7 @@ async fn get_user_by_param(
         // This is the logic from `user_actor_get`.
         match get_user_by_username(&state.conn, &username).await {
             Ok(Some(user)) => {
-                let base_url = "http://localhost:3000";
-                let user_url = format!("{}/users/{}", base_url, user.username);
+                let user_url = format!("{}/users/{}", &state.base_url, user.username);
                 let actor = json!({
                     "@context": [
                         "https://www.w3.org/ns/activitystreams",
@@ -272,13 +271,12 @@ async fn user_outbox_get(
     let thoughts = get_thoughts_by_user(&state.conn, user.id).await?;
 
     // Format the outbox as an ActivityPub OrderedCollection
-    let base_url = "http://localhost:3000";
-    let outbox_url = format!("{}/users/{}/outbox", base_url, username);
+    let outbox_url = format!("{}/users/{}/outbox", &state.base_url, username);
     let items: Vec<Value> = thoughts
         .into_iter()
         .map(|thought| {
-            let thought_url = format!("{}/thoughts/{}", base_url, thought.id);
-            let author_url = format!("{}/users/{}", base_url, thought.author_username);
+            let thought_url = format!("{}/thoughts/{}", &state.base_url, thought.id);
+            let author_url = format!("{}/users/{}", &state.base_url, thought.author_username);
             json!({
                 "id": format!("{}/activity", thought_url),
                 "type": "Create",

@@ -13,10 +13,17 @@ pub struct TestApp {
 }
 
 pub async fn setup() -> TestApp {
+    std::env::set_var("DATABASE_URL", "sqlite::memory:");
+    std::env::set_var("AUTH_SECRET", "test_secret");
+    std::env::set_var("BASE_URL", "http://localhost:3000");
+    std::env::set_var("HOST", "localhost");
+    std::env::set_var("PORT", "3000");
+    std::env::set_var("LOG_LEVEL", "debug");
+
     let db = setup_test_db("sqlite::memory:")
         .await
         .expect("Failed to set up test db");
-    let router = setup_router(db.clone());
+    let router = setup_router(db.clone(), &app::config::Config::from_env());
     TestApp { router, db }
 }
 
