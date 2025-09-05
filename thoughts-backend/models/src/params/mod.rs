@@ -1,2 +1,2 @@
-pub mod blog;
+pub mod thought;
 pub mod user;

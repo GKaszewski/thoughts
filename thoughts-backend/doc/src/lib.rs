@@ -3,7 +3,6 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable as ScalarServable};
 use utoipa_swagger_ui::SwaggerUi;
 
-mod blog;
 mod root;
 mod user;
 
@@ -12,13 +11,10 @@ mod user;
     nest(
         (path = "/", api = root::RootApi),
         (path = "/users", api = user::UserApi),
-        (path = "/blogs", api = blog::BlogApi),
     ),
     tags(
         (name = "root", description = "Root API"),
         (name = "user", description = "User API"),
-        (name = "blog", description = "Blog API"),
-
     )
 )]
 struct _ApiDoc;

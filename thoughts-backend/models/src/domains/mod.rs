@@ -2,5 +2,6 @@
 
 pub mod prelude;
 
-pub mod blog;
+pub mod follow;
+pub mod thought;
 pub mod user;
