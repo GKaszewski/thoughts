@@ -17,6 +17,7 @@ use models::schemas::{
         user_follow_post,
         user_follow_delete,
         user_inbox_post,
+        user_outbox_get,
     ),
     components(schemas(
         CreateUserParams,

@@ -252,6 +252,67 @@ async fn get_user_by_param(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/{username}/outbox",
+    description = "The ActivityPub outbox for sending activities.",
+    responses(
+        (status = 200, description = "Activity collection", body = Object),
+        (status = 404, description = "User not found")
+    )
+)]
+async fn user_outbox_get(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let thoughts = get_thoughts_by_user(&state.conn, user.id).await?;
+
+    // Format the outbox as an ActivityPub OrderedCollection
+    let base_url = "http://localhost:3000";
+    let outbox_url = format!("{}/users/{}/outbox", base_url, username);
+    let items: Vec<Value> = thoughts
+        .into_iter()
+        .map(|thought| {
+            let thought_url = format!("{}/thoughts/{}", base_url, thought.id);
+            let author_url = format!("{}/users/{}", base_url, thought.author_username);
+            json!({
+                "id": format!("{}/activity", thought_url),
+                "type": "Create",
+                "actor": author_url,
+                "published": thought.created_at,
+                "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                "object": {
+                    "id": thought_url,
+                    "type": "Note",
+                    "attributedTo": author_url,
+                    "content": thought.content,
+                    "published": thought.created_at,
+                }
+            })
+        })
+        .collect();
+
+    let outbox = json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": outbox_url,
+        "type": "OrderedCollection",
+        "totalItems": items.len(),
+        "orderedItems": items,
+    });
+
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        "application/activity+json".parse().unwrap(),
+    );
+
+    Ok((headers, Json(outbox)))
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
@@ -262,4 +323,5 @@ pub fn create_user_router() -> Router<AppState> {
             post(user_follow_post).delete(user_follow_delete),
         )
         .route("/{username}/inbox", post(user_inbox_post))
+        .route("/{username}/outbox", get(user_outbox_get))
 }

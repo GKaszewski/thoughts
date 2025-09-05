@@ -16,6 +16,7 @@ use models::{params::thought::CreateThoughtParams, schemas::thought::ThoughtSche
 use crate::{
     error::ApiError,
     extractor::{AuthUser, Json, Valid},
+    federation,
     models::{ApiErrorResponse, ParamsErrorResponse},
 };
 
@@ -42,6 +43,13 @@ async fn thoughts_post(
     let author = app::persistence::user::get_user(&state.conn, auth_user.id)
         .await?
         .ok_or(UserError::NotFound)?; // Should not happen if auth is valid
+
+    // Spawn a background task to handle federation without blocking the response
+    tokio::spawn(federation::federate_thought(
+        state.clone(),
+        thought.clone(),
+        author.clone(),
+    ));
 
     let schema = ThoughtSchema::from_models(&thought, &author);
     Ok((StatusCode::CREATED, Json(schema)))

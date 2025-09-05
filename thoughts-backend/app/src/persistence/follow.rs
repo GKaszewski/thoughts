@@ -66,3 +66,11 @@ pub async fn get_followed_ids(db: &DbConn, user_id: i32) -> Result<Vec<i32>, DbE
 
     Ok(followed_users.into_iter().map(|f| f.followed_id).collect())
 }
+
+pub async fn get_follower_ids(db: &DbConn, user_id: i32) -> Result<Vec<i32>, DbErr> {
+    let followers = follow::Entity::find()
+        .filter(follow::Column::FollowedId.eq(user_id))
+        .all(db)
+        .await?;
+    Ok(followers.into_iter().map(|f| f.follower_id).collect())
+}

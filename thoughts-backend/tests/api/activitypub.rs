@@ -2,7 +2,9 @@ use crate::api::main::{create_user_with_password, setup};
 use axum::http::{header, StatusCode};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
-use utils::testing::{make_get_request, make_post_request, make_request_with_headers};
+use utils::testing::{
+    make_get_request, make_jwt_request, make_post_request, make_request_with_headers,
+};
 
 #[tokio::test]
 async fn test_webfinger_discovery() {
@@ -99,5 +101,46 @@ async fn test_user_inbox_follow() {
     assert!(
         !following.contains(&2),
         "User1 should now be followed by user2"
+    );
+    assert!(following.is_empty(), "User1 should not be following anyone");
+}
+
+#[tokio::test]
+async fn test_user_outbox_get() {
+    let app = setup().await;
+    create_user_with_password(&app.db, "testuser", "password123").await;
+    let token = super::main::login_user(app.router.clone(), "testuser", "password123").await;
+
+    // Create a thought first
+    let thought_body = json!({ "content": "This is a federated thought!" }).to_string();
+    make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(thought_body),
+        &token,
+    )
+    .await;
+
+    // Now, fetch the outbox
+    let response = make_request_with_headers(
+        app.router.clone(),
+        "/users/testuser/outbox",
+        "GET",
+        None,
+        vec![(header::ACCEPT, "application/activity+json")],
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(v["type"], "OrderedCollection");
+    assert_eq!(v["totalItems"], 1);
+    assert_eq!(v["orderedItems"][0]["type"], "Create");
+    assert_eq!(
+        v["orderedItems"][0]["object"]["content"],
+        "This is a federated thought!"
     );
 }

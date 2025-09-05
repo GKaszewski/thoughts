@@ -36,3 +36,10 @@ pub async fn get_user_by_username(
         .one(db)
         .await
 }
+
+pub async fn get_users_by_ids(db: &DbConn, ids: Vec<i32>) -> Result<Vec<user::Model>, DbErr> {
+    user::Entity::find()
+        .filter(user::Column::Id.is_in(ids))
+        .all(db)
+        .await
+}
