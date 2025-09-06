@@ -12,6 +12,19 @@ export const UserSchema = z.object({
   joinedAt: z.coerce.date(),
 });
 
+export const MeSchema = z.object({
+  id: z.uuid(),
+  username: z.string(),
+  displayName: z.string().nullable(),
+  bio: z.string().nullable(),
+  avatarUrl: z.url().nullable(),
+  headerUrl: z.url().nullable(),
+  customCss: z.string().nullable(),
+  topFriends: z.array(z.string()),
+  joinedAt: z.coerce.date(),
+  following: z.array(UserSchema),
+});
+
 export const ThoughtSchema = z.object({
   id: z.uuid(),
   authorUsername: z.string(),
@@ -39,6 +52,7 @@ export const CreateThoughtSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type Login = z.infer<typeof LoginSchema>;
@@ -122,3 +136,22 @@ export const createThought = (
     ThoughtSchema,
     token
   );
+
+  export const followUser = (username: string, token: string) =>
+  apiFetch(
+    `/users/${username}/follow`,
+    { method: "POST" },
+    z.null(), // Expect a 204 No Content response, which we treat as null
+    token
+  );
+
+export const unfollowUser = (username: string, token: string) =>
+  apiFetch(
+    `/users/${username}/follow`,
+    { method: "DELETE" },
+    z.null(), // Expect a 204 No Content response
+    token
+  );
+
+  export const getMe = (token: string) =>
+  apiFetch("/users/me", {}, MeSchema, token);

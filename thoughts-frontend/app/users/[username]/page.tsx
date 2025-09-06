@@ -1,10 +1,11 @@
-import { getUserProfile, getUserThoughts } from "@/lib/api";
+import { getMe, getUserProfile, getUserThoughts } from "@/lib/api";
 import { UserAvatar } from "@/components/user-avatar";
 import { ThoughtCard } from "@/components/thought-card";
 import { Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
+import { FollowButton } from "@/components/follow-button";
 
 interface ProfilePageProps {
   params: { username: string };
@@ -14,22 +15,34 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
-  // Fetch data directly on the server.
-  // The `loading.tsx` file will be shown to the user during this fetch.
-  const [userResult, thoughtsResult] = await Promise.allSettled([
-    getUserProfile(username, token),
-    getUserThoughts(username, token),
+  // Fetch data in parallel
+  const userProfilePromise = getUserProfile(username, token);
+  const thoughtsPromise = getUserThoughts(username, token);
+  // Fetch the logged-in user's data (if they exist)
+  const mePromise = token ? getMe(token) : Promise.resolve(null);
+
+  const [userResult, thoughtsResult, meResult] = await Promise.allSettled([
+    userProfilePromise,
+    thoughtsPromise,
+    mePromise,
   ]);
 
-  // Handle errors from the server-side fetch
   if (userResult.status === "rejected") {
-    // If the user isn't found, render the Next.js 404 page
     notFound();
   }
 
   const user = userResult.value;
   const thoughts =
     thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
+  const me = meResult.status === "fulfilled" ? meResult.value : null;
+
+  // *** SIMPLIFIED LOGIC ***
+  // The follow status is now directly available from the `me` object.
+  const isOwnProfile = me?.username === user.username;
+  const isFollowing =
+    me?.following?.some(
+      (followedUser) => followedUser.username === user.username
+    ) || false;
 
   return (
     <div>
@@ -47,19 +60,31 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       />
 
       <main className="container mx-auto max-w-3xl p-4 -mt-16">
-        {/* Profile Info */}
         <Card className="p-6 bg-card/80 backdrop-blur-lg">
-          <div className="flex items-end gap-4">
-            <div className="w-24 h-24 rounded-full border-4 border-background">
-              <UserAvatar src={user.avatarUrl} alt={user.displayName} />
+          <div className="flex justify-between items-start">
+            <div className="flex items-end gap-4">
+              <div className="w-24 h-24 rounded-full border-4 border-background shrink-0">
+                <UserAvatar src={user.avatarUrl} alt={user.displayName} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">
+                  {user.displayName || user.username}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  @{user.username}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">
-                {user.displayName || user.username}
-              </h1>
-              <p className="text-sm text-muted-foreground">@{user.username}</p>
-            </div>
+
+            {/* Render the FollowButton if it's not the user's own profile */}
+            {!isOwnProfile && token && (
+              <FollowButton
+                username={user.username}
+                isInitiallyFollowing={isFollowing}
+              />
+            )}
           </div>
+
           <p className="mt-4 whitespace-pre-wrap">{user.bio}</p>
           <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
