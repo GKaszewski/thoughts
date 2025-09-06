@@ -24,6 +24,7 @@ pub async fn create_thought(
     let new_thought = thought::ActiveModel {
         author_id: Set(author_id),
         content: Set(params.content.clone()),
+        reply_to_id: Set(params.reply_to_id),
         ..Default::default()
     }
     .insert(&txn)
@@ -56,6 +57,7 @@ pub async fn get_thoughts_by_user(
         .select_only()
         .column(thought::Column::Id)
         .column(thought::Column::Content)
+        .column(thought::Column::ReplyToId)
         .column(thought::Column::CreatedAt)
         .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
@@ -79,6 +81,7 @@ pub async fn get_feed_for_user(
         .select_only()
         .column(thought::Column::Id)
         .column(thought::Column::Content)
+        .column(thought::Column::ReplyToId)
         .column(thought::Column::CreatedAt)
         .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
@@ -99,6 +102,7 @@ pub async fn get_thoughts_by_tag_name(
         .select_only()
         .column(thought::Column::Id)
         .column(thought::Column::Content)
+        .column(thought::Column::ReplyToId)
         .column(thought::Column::CreatedAt)
         .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")

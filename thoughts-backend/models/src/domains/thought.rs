@@ -7,6 +7,7 @@ pub struct Model {
     pub id: Uuid,
     pub author_id: Uuid,
     pub content: String,
+    pub reply_to_id: Option<Uuid>,
     pub created_at: DateTimeWithTimeZone,
 }
 

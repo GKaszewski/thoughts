@@ -4,7 +4,7 @@ use super::main::setup;
 use axum::http::StatusCode;
 use http_body_util::BodyExt;
 use sea_orm::prelude::Uuid;
-use serde_json::json;
+use serde_json::{json, Value};
 use utils::testing::{make_delete_request, make_post_request};
 
 #[tokio::test]
@@ -47,4 +47,37 @@ async fn test_thought_endpoints() {
     )
     .await;
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn test_thought_replies() {
+    let app = setup().await;
+    let user1 =
+        create_user_with_password(&app.db, "user1", "password123", "user1@example.com").await;
+    let user2 =
+        create_user_with_password(&app.db, "user2", "password123", "user2@example.com").await;
+
+    // 1. User 1 posts an original thought
+    let body = json!({ "content": "This is the original post!" }).to_string();
+    let response = make_post_request(app.router.clone(), "/thoughts", body, Some(user1.id)).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let original_thought: Value = serde_json::from_slice(&body).unwrap();
+    let original_thought_id = original_thought["id"].as_str().unwrap();
+
+    // 2. User 2 replies to the original thought
+    let reply_body = json!({
+        "content": "This is a reply.",
+        "reply_to_id": original_thought_id
+    })
+    .to_string();
+    let response =
+        make_post_request(app.router.clone(), "/thoughts", reply_body, Some(user2.id)).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let reply_thought: Value = serde_json::from_slice(&body).unwrap();
+
+    // 3. Verify the reply is linked correctly
+    assert_eq!(reply_thought["reply_to_id"], original_thought_id);
+    assert_eq!(reply_thought["author_username"], "user2");
 }
