@@ -14,5 +14,6 @@ pub struct CreateThoughtParams {
     ))]
     pub content: String,
     pub visibility: Option<Visibility>,
+    #[serde(rename = "replyToId")]
     pub reply_to_id: Option<Uuid>,
 }
