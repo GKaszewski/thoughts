@@ -1,4 +1,11 @@
-import { getMe, getUserProfile, getUserThoughts, Me } from "@/lib/api";
+import {
+  getFollowersList,
+  getFollowingList,
+  getMe,
+  getUserProfile,
+  getUserThoughts,
+  Me,
+} from "@/lib/api";
 import { UserAvatar } from "@/components/user-avatar";
 import { Calendar, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -22,11 +29,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const userProfilePromise = getUserProfile(username, token);
   const thoughtsPromise = getUserThoughts(username, token);
   const mePromise = token ? getMe(token) : Promise.resolve(null);
+  const followersPromise = getFollowersList(username, token);
+  const followingPromise = getFollowingList(username, token);
 
-  const [userResult, thoughtsResult, meResult] = await Promise.allSettled([
+  const [
+    userResult,
+    thoughtsResult,
+    meResult,
+    followersResult,
+    followingResult,
+  ] = await Promise.allSettled([
     userProfilePromise,
     thoughtsPromise,
     mePromise,
+    followersPromise,
+    followingPromise,
   ]);
 
   if (userResult.status === "rejected") {
@@ -39,6 +56,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const thoughts =
     thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
   const { topLevelThoughts, repliesByParentId } = buildThoughtThreads(thoughts);
+
+  const followersCount =
+    followersResult.status === "fulfilled"
+      ? followersResult.value.users.length
+      : 0;
+  const followingCount =
+    followingResult.status === "fulfilled"
+      ? followingResult.value.users.length
+      : 0;
 
   const isOwnProfile = me?.username === user.username;
   const isFollowing =
@@ -101,6 +127,29 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
               <p className="mt-4 text-sm whitespace-pre-wrap">{user.bio}</p>
 
+              {isOwnProfile && (
+                <div className="flex items-center gap-4 mt-4 text-sm">
+                  <Link
+                    href={`/users/${user.username}/following`}
+                    className="hover:underline"
+                  >
+                    <span className="font-bold">{followingCount}</span>
+                    <span className="text-muted-foreground ml-1">
+                      Following
+                    </span>
+                  </Link>
+                  <Link
+                    href={`/users/${user.username}/followers`}
+                    className="hover:underline"
+                  >
+                    <span className="font-bold">{followersCount}</span>
+                    <span className="text-muted-foreground ml-1">
+                      Followers
+                    </span>
+                  </Link>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>
@@ -113,7 +162,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </aside>
 
-        {/* Main Content (Thoughts Feed) */}
         <div className="col-span-1 lg:col-span-3 space-y-4">
           {topLevelThoughts.map((thought) => (
             <ThoughtThread

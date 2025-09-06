@@ -209,3 +209,19 @@ export const getThoughtById = (thoughtId: string, token: string | null) =>
     ThoughtSchema, // Expect a single thought object
     token
   );
+
+  export const getFollowingList = (username: string, token: string | null) =>
+  apiFetch(
+    `/users/${username}/following`,
+    {},
+    z.object({ users: z.array(UserSchema) }),
+    token
+  );
+
+export const getFollowersList = (username: string, token: string | null) =>
+  apiFetch(
+    `/users/${username}/followers`,
+    {},
+    z.object({ users: z.array(UserSchema) }),
+    token
+  );

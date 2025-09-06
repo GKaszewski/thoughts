@@ -135,16 +135,18 @@ export function ThoughtCard({
           <p className="whitespace-pre-wrap break-words">{thought.content}</p>
         </CardContent>
 
-        <CardFooter className="border-t px-4 pt-2 pb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsReplyOpen(!isReplyOpen)}
-          >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Reply
-          </Button>
-        </CardFooter>
+        {token && (
+          <CardFooter className="border-t px-4 pt-2 pb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsReplyOpen(!isReplyOpen)}
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Reply
+            </Button>
+          </CardFooter>
+        )}
 
         {isReplyOpen && (
           <div className="border-t p-4">
