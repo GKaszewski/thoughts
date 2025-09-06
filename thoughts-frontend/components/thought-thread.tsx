@@ -34,7 +34,7 @@ export function ThoughtThread({
       />
 
       {directReplies.length > 0 && (
-        <div className="pl-6 border-l-2 border-dashed ml-6 flex flex-col gap-4 pt-4">
+        <div className="pl-6 border-l-2 border-primary/30 border-dashed ml-6 flex flex-col gap-4 pt-4">
           {directReplies.map((reply) => (
             <ThoughtThread // RECURSIVE CALL
               key={reply.id}

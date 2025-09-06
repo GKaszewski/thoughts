@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { ReplyForm } from "@/components/reply-form";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -83,16 +84,19 @@ export function ThoughtCard({
     <>
       <div
         id={thought.id}
-        className={!isReply ? "bg-card rounded-xl border shadow-sm" : ""}
+        className={cn(
+          "bg-card/70 backdrop-blur-lg shadow-fa-md rounded-xl overflow-hidden glossy-effect bottom",
+          isReply ? "backdrop-blur-sm shadow-fa-sm p-2" : ""
+        )}
       >
         {thought.replyToId && isReply && (
-          <div className="px-4 pt-2 text-sm text-muted-foreground flex items-center gap-2">
-            <CornerUpLeft className="h-4 w-4" />
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <CornerUpLeft className="h-4 w-4 text-primary/70" />
             <span>
               Replying to{" "}
               <Link
                 href={`#${thought.replyToId}`}
-                className="hover:underline text-primary"
+                className="hover:underline text-primary text-shadow-sm"
               >
                 parent thought
               </Link>
@@ -100,16 +104,18 @@ export function ThoughtCard({
           </div>
         )}
       </div>
-      <Card>
+      <Card className="mt-2">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <Link
             href={`/users/${author.username}`}
-            className="flex items-center gap-4"
+            className="flex items-center gap-4 text-shadow-md"
           >
             <UserAvatar src={author.avatarUrl} alt={author.username} />
             <div className="flex flex-col">
               <span className="font-bold">{author.username}</span>
-              <span className="text-sm text-muted-foreground">{timeAgo}</span>
+              <span className="text-sm text-muted-foreground text-shadow-sm">
+                {timeAgo}
+              </span>
             </div>
           </Link>
           <DropdownMenu>
@@ -138,11 +144,13 @@ export function ThoughtCard({
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap break-words">{thought.content}</p>
+          <p className="whitespace-pre-wrap break-words text-shadow-sm">
+            {thought.content}
+          </p>
         </CardContent>
 
         {token && (
-          <CardFooter className="border-t px-4 pt-2 pb-2">
+          <CardFooter className="border-t px-4 pt-2 pb-2 border-border/50">
             <Button
               variant="ghost"
               size="sm"
@@ -155,7 +163,7 @@ export function ThoughtCard({
         )}
 
         {isReplyOpen && (
-          <div className="border-t p-4">
+          <div className="border-t p-4 border-border/50 bg-background/50 backdrop-blur-sm">
             <ReplyForm
               parentThoughtId={thought.id}
               onReplySuccess={() => setIsReplyOpen(false)}

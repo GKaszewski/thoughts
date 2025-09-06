@@ -14,12 +14,12 @@ export async function TopFriends({ usernames }: TopFriendsProps) {
 
   if (usernames.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Friends</CardTitle>
+      <Card className="p-4">
+        <CardHeader className="p-0 pb-2">
+          <CardTitle className="text-lg text-shadow-md">Top Friends</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground">
+        <CardContent className="p-0">
+          <p className="text-sm text-muted-foreground">
             No top friends to display.
           </p>
         </CardContent>
@@ -40,19 +40,19 @@ export async function TopFriends({ usernames }: TopFriendsProps) {
     .map((result) => result.value);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Top Friends</CardTitle>
+    <Card className="p-4">
+      <CardHeader className="p-0 pb-2">
+        <CardTitle className="text-lg text-shadow-md">Top Friends</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-4 gap-4">
+      <CardContent className="p-0">
         {friends.map((friend) => (
           <Link
             href={`/users/${friend.username}`}
             key={friend.id}
-            className="flex flex-col items-center gap-2 text-center group"
+            className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-accent/50 transition-colors"
           >
             <UserAvatar src={friend.avatarUrl} alt={friend.username} />
-            <span className="text-xs font-medium truncate w-full group-hover:underline">
+            <span className="text-xs truncate w-full group-hover:underline font-medium text-shadow-sm">
               {friend.displayName || friend.username}
             </span>
           </Link>

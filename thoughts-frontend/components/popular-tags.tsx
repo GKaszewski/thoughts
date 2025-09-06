@@ -23,22 +23,25 @@ export async function PopularTags() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Popular Tags</CardTitle>
+    <Card className="p-4">
+      <CardHeader className="p-0 pb-2">
+        <CardTitle className="text-lg text-shadow-md">Popular Tags</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
+      <CardContent className="flex flex-wrap gap-2 p-0">
         {tags.map((tag) => (
           <Link href={`/tags/${tag}`} key={tag}>
             <Badge
               variant="secondary"
-              className="hover:bg-accent cursor-pointer"
+              className="hover:shadow-lg transition-shadow text-shadow-sm cursor-pointer"
             >
               <Hash className="mr-1 h-3 w-3" />
               {tag}
             </Badge>
           </Link>
         ))}
+        {tags.length === 0 && (
+          <p className="text-sm text-muted-foreground">No popular tags yet.</p>
+        )}
       </CardContent>
     </Card>
   );

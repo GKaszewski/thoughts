@@ -96,7 +96,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div className="flex justify-between items-start">
                 <div className="flex items-end gap-4">
                   <div className="w-24 h-24 rounded-full border-4 border-background shrink-0">
-                    <UserAvatar src={user.avatarUrl} alt={user.displayName} />
+                    <UserAvatar
+                      src={user.avatarUrl}
+                      alt={user.displayName}
+                      className="w-full h-full"
+                    />
                   </div>
                 </div>
                 {/* Action Button */}
