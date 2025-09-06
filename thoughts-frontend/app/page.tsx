@@ -1,15 +1,13 @@
-// app/page.tsx
 import { cookies } from "next/headers";
-import { getFeed, getMe, getUserProfile, Me, Thought } from "@/lib/api";
-import { ThoughtCard } from "@/components/thought-card";
+import { getFeed, getMe, getUserProfile, Me, User } from "@/lib/api";
 import { PostThoughtForm } from "@/components/post-thought-form";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PopularTags } from "@/components/popular-tags";
 import { ThoughtThread } from "@/components/thought-thread";
 import { buildThoughtThreads } from "@/lib/utils";
+import { TopFriends } from "@/components/top-friends";
 
-// This is now an async Server Component
 export default async function Home() {
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
@@ -21,50 +19,66 @@ export default async function Home() {
 }
 
 async function FeedPage({ token }: { token: string }) {
-  const feedData = await getFeed(token);
-  const me = (await getMe(token).catch(() => null)) as Me | null;
+  const [feedData, me] = await Promise.all([
+    getFeed(token),
+    getMe(token).catch(() => null) as Promise<Me | null>,
+  ]);
+
   const authors = [...new Set(feedData.thoughts.map((t) => t.authorUsername))];
   const userProfiles = await Promise.all(
     authors.map((username) => getUserProfile(username, token).catch(() => null))
   );
 
-  const authorDetails = new Map(
+  const authorDetails = new Map<string, { avatarUrl?: string | null }>(
     userProfiles
-      .filter(Boolean)
-      .map((user) => [user!.username, { avatarUrl: user!.avatarUrl }])
+      .filter((u): u is User => !!u)
+      .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
   );
 
-  const allThoughts = feedData.thoughts;
-  const { topLevelThoughts, repliesByParentId } =
-    buildThoughtThreads(allThoughts);
+  const { topLevelThoughts, repliesByParentId } = buildThoughtThreads(
+    feedData.thoughts
+  );
 
   return (
-    <div className="container mx-auto max-w-4xl p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-      <main className="md:col-span-2 space-y-6">
-        <header className="my-6">
-          <h1 className="text-3xl font-bold">Your Feed</h1>
-        </header>
-        <PostThoughtForm />
-        <main className="space-y-6">
-          {topLevelThoughts.map((thought) => (
-            <ThoughtThread
-              key={thought.id}
-              thought={thought}
-              repliesByParentId={repliesByParentId}
-              authorDetails={authorDetails}
-              currentUser={me}
-            />
-          ))}
-          {topLevelThoughts.length === 0 && (
-            <p className="text-center text-muted-foreground pt-8">
-              Your feed is empty. Follow some users to see their thoughts here!
-            </p>
-          )}
+    <div className="container mx-auto max-w-6xl p-4 sm:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <aside className="hidden lg:block lg:col-span-1">
+          <div className="sticky top-20 space-y-6">
+            <h2 className="text-lg font-semibold">Filters & Sorting</h2>
+            <p className="text-sm text-muted-foreground">Coming soon...</p>
+          </div>
+        </aside>
+
+        <main className="col-span-1 lg:col-span-2 space-y-6">
+          <header className="mb-6">
+            <h1 className="text-3xl font-bold">Your Feed</h1>
+          </header>
+          <PostThoughtForm />
+          <div className="space-y-6">
+            {topLevelThoughts.map((thought) => (
+              <ThoughtThread
+                key={thought.id}
+                thought={thought}
+                repliesByParentId={repliesByParentId}
+                authorDetails={authorDetails}
+                currentUser={me}
+              />
+            ))}
+            {topLevelThoughts.length === 0 && (
+              <p className="text-center text-muted-foreground pt-8">
+                Your feed is empty. Follow some users to see their thoughts!
+              </p>
+            )}
+          </div>
         </main>
-      </main>
-      <aside className="md:col-span-1 space-y-6 pt-20">
-        <PopularTags />
-      </aside>
+
+        <aside className="hidden lg:block lg:col-span-1">
+          <div className="sticky top-20 space-y-6">
+            {me?.topFriends && <TopFriends usernames={me.topFriends} />}
+            <PopularTags />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

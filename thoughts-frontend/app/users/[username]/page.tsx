@@ -62,69 +62,75 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         }}
       />
 
-      <main className="container mx-auto max-w-3xl p-4 -mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <aside className="md:col-span-1 space-y-6 pt-24">
-          <TopFriends usernames={user.topFriends} />
-        </aside>
-        <div className="md:col-span-2 mt-8 md:mt-0 space-y-4">
-          <Card className="p-6 bg-card/80 backdrop-blur-lg">
-            <div className="flex justify-between items-start">
-              <div className="flex items-end gap-4">
-                <div className="w-24 h-24 rounded-full border-4 border-background shrink-0">
-                  <UserAvatar src={user.avatarUrl} alt={user.displayName} />
+      <main className="container mx-auto max-w-6xl p-4 -mt-16 grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Left Sidebar (Profile Card & Top Friends) */}
+        <aside className="col-span-1 lg:col-span-1 space-y-6">
+          <div className="sticky top-20 space-y-6">
+            <Card className="p-6 bg-card/80 backdrop-blur-lg">
+              <div className="flex justify-between items-start">
+                <div className="flex items-end gap-4">
+                  <div className="w-24 h-24 rounded-full border-4 border-background shrink-0">
+                    <UserAvatar src={user.avatarUrl} alt={user.displayName} />
+                  </div>
                 </div>
+                {/* Action Button */}
                 <div>
-                  <h1 className="text-2xl font-bold">
-                    {user.displayName || user.username}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    @{user.username}
-                  </p>
+                  {isOwnProfile ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/settings/profile">
+                        <Settings className="mr-2 h-4 w-4" /> Edit
+                      </Link>
+                    </Button>
+                  ) : token ? (
+                    <FollowButton
+                      username={user.username}
+                      isInitiallyFollowing={isFollowing}
+                    />
+                  ) : null}
                 </div>
               </div>
 
-              <div>
-                {isOwnProfile ? (
-                  <Button asChild variant="outline">
-                    <Link href="/settings/profile">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </Button>
-                ) : token ? (
-                  <FollowButton
-                    username={user.username}
-                    isInitiallyFollowing={isFollowing}
-                  />
-                ) : null}
+              <div className="mt-4">
+                <h1 className="text-2xl font-bold">
+                  {user.displayName || user.username}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  @{user.username}
+                </p>
               </div>
-            </div>
 
-            <p className="mt-4 whitespace-pre-wrap">{user.bio}</p>
-            <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>Joined {new Date(user.joinedAt).toLocaleDateString()}</span>
-            </div>
-          </Card>
+              <p className="mt-4 text-sm whitespace-pre-wrap">{user.bio}</p>
 
-          {/* Thoughts Feed */}
-          <div className="mt-8 space-y-4">
-            {topLevelThoughts.map((thought) => (
-              <ThoughtThread
-                key={thought.id}
-                thought={thought}
-                repliesByParentId={repliesByParentId}
-                authorDetails={authorDetails}
-                currentUser={me}
-              />
-            ))}
-            {topLevelThoughts.length === 0 && (
-              <p className="text-center text-muted-foreground pt-8">
-                Your feed is empty. Follow some users to see their thoughts
-                here!
-              </p>
-            )}
+              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  Joined {new Date(user.joinedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </Card>
+
+            <TopFriends usernames={user.topFriends} />
           </div>
+        </aside>
+
+        {/* Main Content (Thoughts Feed) */}
+        <div className="col-span-1 lg:col-span-3 space-y-4">
+          {topLevelThoughts.map((thought) => (
+            <ThoughtThread
+              key={thought.id}
+              thought={thought}
+              repliesByParentId={repliesByParentId}
+              authorDetails={authorDetails}
+              currentUser={me}
+            />
+          ))}
+          {topLevelThoughts.length === 0 && (
+            <Card className="flex items-center justify-center h-48">
+              <p className="text-center text-muted-foreground">
+                This user hasn&apos;t posted any public thoughts yet.
+              </p>
+            </Card>
+          )}
         </div>
       </main>
     </div>
