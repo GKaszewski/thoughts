@@ -1,6 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { UserAvatar } from "./user-avatar";
 import { deleteThought, Me, Thought } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
@@ -14,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +30,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  CornerUpLeft,
+  MessageSquare,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
+import { ReplyForm } from "@/components/reply-form";
+import Link from "next/link";
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -33,14 +46,17 @@ interface ThoughtCardProps {
     avatarUrl?: string | null;
   };
   currentUser: Me | null;
+  isReply?: boolean;
 }
 
 export function ThoughtCard({
   thought,
   author,
   currentUser,
+  isReply = false,
 }: ThoughtCardProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isReplyOpen, setIsReplyOpen] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
   const timeAgo = formatDistanceToNow(new Date(thought.createdAt), {
@@ -64,6 +80,25 @@ export function ThoughtCard({
 
   return (
     <>
+      <div
+        id={thought.id}
+        className={!isReply ? "bg-card rounded-xl border shadow-sm" : ""}
+      >
+        {thought.replyToId && isReply && (
+          <div className="px-4 pt-2 text-sm text-muted-foreground flex items-center gap-2">
+            <CornerUpLeft className="h-4 w-4" />
+            <span>
+              Replying to{" "}
+              <Link
+                href={`#${thought.replyToId}`}
+                className="hover:underline text-primary"
+              >
+                parent thought
+              </Link>
+            </span>
+          </div>
+        )}
+      </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-4">
@@ -95,6 +130,26 @@ export function ThoughtCard({
         <CardContent>
           <p className="whitespace-pre-wrap break-words">{thought.content}</p>
         </CardContent>
+
+        <CardFooter className="border-t px-4 pt-2 pb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsReplyOpen(!isReplyOpen)}
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Reply
+          </Button>
+        </CardFooter>
+
+        {isReplyOpen && (
+          <div className="border-t p-4">
+            <ReplyForm
+              parentThoughtId={thought.id}
+              onReplySuccess={() => setIsReplyOpen(false)}
+            />
+          </div>
+        )}
       </Card>
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>

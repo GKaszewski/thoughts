@@ -1,11 +1,13 @@
 // app/page.tsx
 import { cookies } from "next/headers";
-import { getFeed, getMe, getUserProfile, Me } from "@/lib/api";
+import { getFeed, getMe, getUserProfile, Me, Thought } from "@/lib/api";
 import { ThoughtCard } from "@/components/thought-card";
 import { PostThoughtForm } from "@/components/post-thought-form";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PopularTags } from "@/components/popular-tags";
+import { ThoughtThread } from "@/components/thought-thread";
+import { buildThoughtThreads } from "@/lib/utils";
 
 // This is now an async Server Component
 export default async function Home() {
@@ -32,6 +34,10 @@ async function FeedPage({ token }: { token: string }) {
       .map((user) => [user!.username, { avatarUrl: user!.avatarUrl }])
   );
 
+  const allThoughts = feedData.thoughts;
+  const { topLevelThoughts, repliesByParentId } =
+    buildThoughtThreads(allThoughts);
+
   return (
     <div className="container mx-auto max-w-4xl p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
       <main className="md:col-span-2 space-y-6">
@@ -39,22 +45,22 @@ async function FeedPage({ token }: { token: string }) {
           <h1 className="text-3xl font-bold">Your Feed</h1>
         </header>
         <PostThoughtForm />
-        {feedData.thoughts.map((thought) => (
-          <ThoughtCard
-            key={thought.id}
-            thought={thought}
-            author={{
-              username: thought.authorUsername,
-              avatarUrl: authorDetails.get(thought.authorUsername)?.avatarUrl,
-            }}
-            currentUser={me}
-          />
-        ))}
-        {feedData.thoughts.length === 0 && (
-          <p className="text-center text-muted-foreground pt-8">
-            Your feed is empty. Follow some users to see their thoughts here!
-          </p>
-        )}
+        <main className="space-y-6">
+          {topLevelThoughts.map((thought) => (
+            <ThoughtThread
+              key={thought.id}
+              thought={thought}
+              repliesByParentId={repliesByParentId}
+              authorDetails={authorDetails}
+              currentUser={me}
+            />
+          ))}
+          {topLevelThoughts.length === 0 && (
+            <p className="text-center text-muted-foreground pt-8">
+              Your feed is empty. Follow some users to see their thoughts here!
+            </p>
+          )}
+        </main>
       </main>
       <aside className="md:col-span-1 space-y-6 pt-20">
         <PopularTags />

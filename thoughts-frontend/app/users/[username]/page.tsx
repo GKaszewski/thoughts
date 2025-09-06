@@ -1,12 +1,13 @@
 import { getMe, getUserProfile, getUserThoughts, Me } from "@/lib/api";
 import { UserAvatar } from "@/components/user-avatar";
-import { ThoughtCard } from "@/components/thought-card";
 import { Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { FollowButton } from "@/components/follow-button";
 import { TopFriends } from "@/components/top-friends";
+import { buildThoughtThreads } from "@/lib/utils";
+import { ThoughtThread } from "@/components/thought-thread";
 
 interface ProfilePageProps {
   params: { username: string };
@@ -16,10 +17,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
-  // Fetch data in parallel
   const userProfilePromise = getUserProfile(username, token);
   const thoughtsPromise = getUserThoughts(username, token);
-  // Fetch the logged-in user's data (if they exist)
   const mePromise = token ? getMe(token) : Promise.resolve(null);
 
   const [userResult, thoughtsResult, meResult] = await Promise.allSettled([
@@ -33,26 +32,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const user = userResult.value;
-  const thoughts =
-    thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
-  // *** SIMPLIFIED LOGIC ***
-  // The follow status is now directly available from the `me` object.
+  const thoughts =
+    thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
+  const { topLevelThoughts, repliesByParentId } = buildThoughtThreads(thoughts);
+
   const isOwnProfile = me?.username === user.username;
   const isFollowing =
     me?.following?.some(
       (followedUser) => followedUser.username === user.username
     ) || false;
 
+  const authorDetails = new Map<string, { avatarUrl?: string | null }>();
+  authorDetails.set(user.username, { avatarUrl: user.avatarUrl });
+
   return (
     <div>
-      {/* Custom CSS Injection */}
       {user.customCss && (
         <style dangerouslySetInnerHTML={{ __html: user.customCss }} />
       )}
 
-      {/* Header Image */}
       <div
         className="h-48 bg-gray-200 bg-cover bg-center"
         style={{
@@ -81,7 +81,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              {/* Render the FollowButton if it's not the user's own profile */}
               {!isOwnProfile && token && (
                 <FollowButton
                   username={user.username}
@@ -99,17 +98,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           {/* Thoughts Feed */}
           <div className="mt-8 space-y-4">
-            {thoughts.map((thought) => (
-              <ThoughtCard
+            {topLevelThoughts.map((thought) => (
+              <ThoughtThread
                 key={thought.id}
                 thought={thought}
-                author={{ username: user.username, avatarUrl: user.avatarUrl }}
-                currentUser={me || null}
+                repliesByParentId={repliesByParentId}
+                authorDetails={authorDetails}
+                currentUser={me}
               />
             ))}
-            {thoughts.length === 0 && (
-              <p className="text-center text-muted-foreground">
-                This user hasn&apos;t posted any thoughts yet.
+            {topLevelThoughts.length === 0 && (
+              <p className="text-center text-muted-foreground pt-8">
+                Your feed is empty. Follow some users to see their thoughts
+                here!
               </p>
             )}
           </div>
