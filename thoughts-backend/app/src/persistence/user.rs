@@ -132,7 +132,10 @@ pub async fn update_user_profile(
 
 pub async fn get_top_friends(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model>, DbErr> {
     user::Entity::find()
-        .join(JoinType::InnerJoin, top_friends::Relation::User.def().rev())
+        .join(
+            JoinType::InnerJoin,
+            top_friends::Relation::Friend.def().rev(),
+        )
         .filter(top_friends::Column::UserId.eq(user_id))
         .order_by_asc(top_friends::Column::Position)
         .all(db)

@@ -69,7 +69,7 @@ async fn test_thought_replies() {
     // 2. User 2 replies to the original thought
     let reply_body = json!({
         "content": "This is a reply.",
-        "reply_to_id": original_thought_id
+        "replyToId": original_thought_id
     })
     .to_string();
     let response =

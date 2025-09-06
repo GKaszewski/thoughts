@@ -90,9 +90,9 @@ async fn test_me_endpoints() {
 
     // 4. PUT /users/me to update the profile
     let update_body = json!({
-        "display_name": "Me User",
+        "displayName": "Me User",
         "bio": "This is my updated bio.",
-        "avatar_url": "https://example.com/avatar.png"
+        "avatarUrl": "https://example.com/avatar.png"
     })
     .to_string();
     let response = make_jwt_request(
@@ -137,7 +137,7 @@ async fn test_update_me_top_friends() {
 
     // 3. Update profile to set top friends
     let update_body = json!({
-        "top_friends": ["friend1", "friend2"]
+        "topFriends": ["friend1", "friend2"]
     })
     .to_string();
 
@@ -166,7 +166,7 @@ async fn test_update_me_top_friends() {
 
     // 5. Update again with a different list to test replacement
     let update_body_2 = json!({
-        "top_friends": ["friend2"]
+        "topFriends": ["friend2"]
     })
     .to_string();
 
@@ -203,7 +203,7 @@ async fn test_update_me_css_and_images() {
 
     // 2. Attempt to update with an invalid avatar URL
     let invalid_body = json!({
-        "avatar_url": "not-a-valid-url"
+        "avatarUrl": "not-a-valid-url"
     })
     .to_string();
 
@@ -219,9 +219,9 @@ async fn test_update_me_css_and_images() {
 
     // 3. Update profile with valid URLs and custom CSS
     let valid_body = json!({
-        "avatar_url": "https://example.com/new-avatar.png",
-        "header_url": "https://example.com/new-header.jpg",
-        "custom_css": "body { color: blue; }"
+        "avatarUrl": "https://example.com/new-avatar.png",
+        "headerUrl": "https://example.com/new-header.jpg",
+        "customCss": "body { color: blue; }"
     })
     .to_string();
 
