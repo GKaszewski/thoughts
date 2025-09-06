@@ -10,15 +10,15 @@ use serde_json::{json, Value};
 use app::persistence::{
     follow,
     thought::get_thoughts_by_user,
-    user::{get_user, search_users},
+    user::{get_user, search_users, update_user_profile},
 };
 use app::state::AppState;
 use app::{error::UserError, persistence::user::get_user_by_username};
-use models::schemas::thought::ThoughtListSchema;
 use models::schemas::user::{UserListSchema, UserSchema};
+use models::{params::user::UpdateUserParams, schemas::thought::ThoughtListSchema};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
-use crate::extractor::Json;
+use crate::extractor::{Json, Valid};
 use crate::models::ApiErrorResponse;
 use crate::{error::ApiError, extractor::AuthUser};
 
@@ -311,9 +311,52 @@ async fn user_outbox_get(
     Ok((headers, Json(outbox)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/me",
+    responses(
+        (status = 200, description = "Authenticated user's profile", body = UserSchema)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+async fn get_me(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user(&state.conn, auth_user.id)
+        .await?
+        .ok_or(UserError::NotFound)?;
+    Ok(axum::Json(UserSchema::from(user)))
+}
+
+#[utoipa::path(
+    put,
+    path = "/me",
+    request_body = UpdateUserParams,
+    responses(
+        (status = 200, description = "Profile updated", body = UserSchema),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 422, description = "Validation error", body = ApiErrorResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+async fn update_me(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Valid(Json(params)): Valid<Json<UpdateUserParams>>,
+) -> Result<impl IntoResponse, ApiError> {
+    let updated_user = update_user_profile(&state.conn, auth_user.id, params).await?;
+    Ok(axum::Json(UserSchema::from(updated_user)))
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
+        .route("/me", get(get_me).put(update_me))
         .route("/{param}", get(get_user_by_param))
         .route("/{username}/thoughts", get(user_thoughts_get))
         .route(

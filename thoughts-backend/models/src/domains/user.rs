@@ -10,6 +10,15 @@ pub struct Model {
     #[sea_orm(unique)]
     pub username: String,
     pub password_hash: Option<String>,
+    #[sea_orm(unique)]
+    pub email: Option<String>,
+    pub display_name: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+    pub header_url: Option<String>,
+    pub custom_css: Option<String>,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

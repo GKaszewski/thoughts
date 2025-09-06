@@ -1,7 +1,6 @@
-use sea_orm::{DatabaseConnection, Unchanged};
+use sea_orm::{DatabaseConnection, TryIntoModel};
 
 use app::persistence::user::create_user;
-use models::domains::user;
 use models::params::user::CreateUserParams;
 
 pub(super) async fn test_user(db: &DatabaseConnection) {
@@ -9,13 +8,12 @@ pub(super) async fn test_user(db: &DatabaseConnection) {
         username: "test".to_string(),
         password: "password".to_string(),
     };
+    let user_model = create_user(db, params)
+        .await
+        .expect("Create user failed!")
+        .try_into_model() // Convert ActiveModel to Model for easier checks
+        .unwrap();
 
-    let user = create_user(db, params).await.expect("Create user failed!");
-    let expected = user::ActiveModel {
-        id: Unchanged(1),
-        username: Unchanged("test".to_owned()),
-        password_hash: Unchanged(None),
-        ..Default::default()
-    };
-    assert_eq!(user, expected);
+    assert_eq!(user_model.id, 1);
+    assert_eq!(user_model.username, "test");
 }

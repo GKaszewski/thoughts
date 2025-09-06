@@ -21,7 +21,7 @@ pub async fn federate_thought(
     };
 
     if follower_ids.is_empty() {
-        tracing::debug!("No followers to federate to for user {}", author.username);
+        println!("No followers to federate to for user {}", author.username);
         return;
     }
 

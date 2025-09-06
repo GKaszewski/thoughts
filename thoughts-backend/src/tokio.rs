@@ -48,7 +48,7 @@ pub fn run() {
 
     let listener = std::net::TcpListener::bind(config.get_server_url()).expect("bind to port");
     listener.set_nonblocking(true).expect("non blocking failed");
-    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
+    println!("listening on http://{}", listener.local_addr().unwrap());
 
     #[cfg(feature = "prefork")]
     if config.prefork {

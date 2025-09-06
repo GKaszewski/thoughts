@@ -12,5 +12,4 @@ path = "src/lib.rs"
 bcrypt = "0.17.1"
 models = { path = "../models" }
 validator = "0.20"
-
-sea-orm = { workspace = true }
+sea-orm = { version = "1.1.12" }
