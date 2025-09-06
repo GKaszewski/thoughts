@@ -1,6 +1,6 @@
 import { getMe, getUserProfile, getUserThoughts, Me } from "@/lib/api";
 import { UserAvatar } from "@/components/user-avatar";
-import { Calendar } from "lucide-react";
+import { Calendar, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
@@ -8,6 +8,8 @@ import { FollowButton } from "@/components/follow-button";
 import { TopFriends } from "@/components/top-friends";
 import { buildThoughtThreads } from "@/lib/utils";
 import { ThoughtThread } from "@/components/thought-thread";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface ProfilePageProps {
   params: { username: string };
@@ -54,7 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       )}
 
       <div
-        className="h-48 bg-gray-200 bg-cover bg-center"
+        className="h-48 bg-gray-200 bg-cover bg-center profile-header"
         style={{
           backgroundImage: user.headerUrl ? `url(${user.headerUrl})` : "none",
         }}
@@ -81,12 +83,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              {!isOwnProfile && token && (
-                <FollowButton
-                  username={user.username}
-                  isInitiallyFollowing={isFollowing}
-                />
-              )}
+              <div>
+                {isOwnProfile ? (
+                  <Button asChild variant="outline">
+                    <Link href="/settings/profile">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </Button>
+                ) : token ? (
+                  <FollowButton
+                    username={user.username}
+                    isInitiallyFollowing={isFollowing}
+                  />
+                ) : null}
+              </div>
             </div>
 
             <p className="mt-4 whitespace-pre-wrap">{user.bio}</p>

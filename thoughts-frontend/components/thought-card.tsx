@@ -70,7 +70,7 @@ export function ThoughtCard({
     try {
       await deleteThought(thought.id, token);
       toast.success("Thought deleted successfully.");
-      router.refresh(); // Refresh the feed
+      router.refresh();
     } catch (error) {
       toast.error("Failed to delete thought.");
     } finally {
@@ -101,13 +101,16 @@ export function ThoughtCard({
       </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-4">
+          <Link
+            href={`/users/${author.username}`}
+            className="flex items-center gap-4"
+          >
             <UserAvatar src={author.avatarUrl} alt={author.username} />
             <div className="flex flex-col">
               <span className="font-bold">{author.username}</span>
               <span className="text-sm text-muted-foreground">{timeAgo}</span>
             </div>
-          </div>
+          </Link>
           {isAuthor && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
