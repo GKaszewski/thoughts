@@ -1,4 +1,4 @@
-import { getMe, getUserProfile, getUserThoughts } from "@/lib/api";
+import { getMe, getUserProfile, getUserThoughts, Me } from "@/lib/api";
 import { UserAvatar } from "@/components/user-avatar";
 import { ThoughtCard } from "@/components/thought-card";
 import { Calendar } from "lucide-react";
@@ -35,7 +35,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const user = userResult.value;
   const thoughts =
     thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
-  const me = meResult.status === "fulfilled" ? meResult.value : null;
+  const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
   // *** SIMPLIFIED LOGIC ***
   // The follow status is now directly available from the `me` object.
@@ -104,6 +104,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 key={thought.id}
                 thought={thought}
                 author={{ username: user.username, avatarUrl: user.avatarUrl }}
+                currentUser={me || null}
               />
             ))}
             {thoughts.length === 0 && (

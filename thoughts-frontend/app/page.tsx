@@ -1,6 +1,6 @@
 // app/page.tsx
 import { cookies } from "next/headers";
-import { getFeed, getUserProfile } from "@/lib/api";
+import { getFeed, getMe, getUserProfile, Me } from "@/lib/api";
 import { ThoughtCard } from "@/components/thought-card";
 import { PostThoughtForm } from "@/components/post-thought-form";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default async function Home() {
 
 async function FeedPage({ token }: { token: string }) {
   const feedData = await getFeed(token);
+  const me = (await getMe(token).catch(() => null)) as Me | null;
   const authors = [...new Set(feedData.thoughts.map((t) => t.authorUsername))];
   const userProfiles = await Promise.all(
     authors.map((username) => getUserProfile(username, token).catch(() => null))
@@ -46,6 +47,7 @@ async function FeedPage({ token }: { token: string }) {
               username: thought.authorUsername,
               avatarUrl: authorDetails.get(thought.authorUsername)?.avatarUrl,
             }}
+            currentUser={me}
           />
         ))}
         {feedData.thoughts.length === 0 && (

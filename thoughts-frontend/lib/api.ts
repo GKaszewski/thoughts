@@ -51,6 +51,15 @@ export const CreateThoughtSchema = z.object({
   replyToId: z.string().uuid().optional(),
 });
 
+export const UpdateProfileSchema = z.object({
+  displayName: z.string().max(50).optional(),
+  bio: z.string().max(160).optional(),
+  avatarUrl: z.url().or(z.literal("")).optional(),
+  headerUrl: z.url().or(z.literal("")).optional(),
+  customCss: z.string().optional(),
+  topFriends: z.array(z.string()).max(8).optional(),
+});
+
 export type User = z.infer<typeof UserSchema>;
 export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
@@ -161,4 +170,26 @@ export const unfollowUser = (username: string, token: string) =>
     "/tags/popular",
     {},
     z.array(z.string()) // Expect an array of strings
+  );
+
+  export const deleteThought = (thoughtId: string, token: string) =>
+  apiFetch(
+    `/thoughts/${thoughtId}`,
+    { method: "DELETE" },
+    z.null(), // Expect a 204 No Content response
+    token
+  );
+
+export const updateProfile = (
+  data: z.infer<typeof UpdateProfileSchema>,
+  token: string
+) =>
+  apiFetch(
+    "/users/me",
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    },
+    UserSchema, // Expect the updated user object back
+    token
   );
