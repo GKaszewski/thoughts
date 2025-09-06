@@ -10,8 +10,10 @@ use utils::testing::{make_delete_request, make_post_request};
 #[tokio::test]
 async fn test_thought_endpoints() {
     let app = setup().await;
-    let user1 = create_user_with_password(&app.db, "user1", "password123").await; // AuthUser is ID 1
-    let _user2 = create_user_with_password(&app.db, "user2", "password123").await; // Other user is ID 2
+    let user1 =
+        create_user_with_password(&app.db, "user1", "password123", "user1@example.com").await; // AuthUser is ID 1
+    let _user2 =
+        create_user_with_password(&app.db, "user2", "password123", "user2@example.com").await; // Other user is ID 2
 
     // 1. Post a new thought as user 1
     let body = json!({ "content": "My first thought!" }).to_string();

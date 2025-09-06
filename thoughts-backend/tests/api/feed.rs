@@ -7,9 +7,9 @@ use utils::testing::make_jwt_request;
 #[tokio::test]
 async fn test_feed_and_user_thoughts() {
     let app = setup().await;
-    create_user_with_password(&app.db, "user1", "password1").await;
-    create_user_with_password(&app.db, "user2", "password2").await;
-    create_user_with_password(&app.db, "user3", "password3").await;
+    create_user_with_password(&app.db, "user1", "password1", "user1@example.com").await;
+    create_user_with_password(&app.db, "user2", "password2", "user2@example.com").await;
+    create_user_with_password(&app.db, "user3", "password3", "user3@example.com").await;
 
     // As user1, post a thought
     let token = super::main::login_user(app.router.clone(), "user1", "password1").await;

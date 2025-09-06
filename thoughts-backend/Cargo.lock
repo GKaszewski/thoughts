@@ -357,6 +357,7 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "bcrypt",
+ "chrono",
  "models",
  "rand 0.8.5",
  "sea-orm",

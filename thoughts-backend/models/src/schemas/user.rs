@@ -14,10 +14,24 @@ pub struct UserSchema {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
-    // In a real implementation, you'd fetch and return this data.
-    // For now, we'll omit it from the schema to keep it simple.
-    // pub top_friends: Vec<String>,
+    pub top_friends: Vec<String>,
     pub joined_at: DateTimeWithTimeZoneWrapper,
+}
+
+impl From<(user::Model, Vec<user::Model>)> for UserSchema {
+    fn from((user, top_friends): (user::Model, Vec<user::Model>)) -> Self {
+        Self {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+            bio: user.bio,
+            avatar_url: user.avatar_url,
+            header_url: user.header_url,
+            custom_css: user.custom_css,
+            top_friends: top_friends.into_iter().map(|u| u.username).collect(),
+            joined_at: user.created_at.into(),
+        }
+    }
 }
 
 impl From<user::Model> for UserSchema {
@@ -30,6 +44,7 @@ impl From<user::Model> for UserSchema {
             avatar_url: user.avatar_url,
             header_url: user.header_url,
             custom_css: user.custom_css,
+            top_friends: vec![], // Defaults to an empty list
             joined_at: user.created_at.into(),
         }
     }

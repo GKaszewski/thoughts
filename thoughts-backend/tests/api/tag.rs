@@ -1,4 +1,4 @@
-use crate::api::main::{create_user_with_password, login_user, setup};
+use crate::api::main::{create_user_with_password, login_user, setup, TestApp};
 use axum::http::StatusCode;
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
@@ -7,7 +7,8 @@ use utils::testing::{make_get_request, make_jwt_request};
 #[tokio::test]
 async fn test_hashtag_flow() {
     let app = setup().await;
-    let user = create_user_with_password(&app.db, "taguser", "password123").await;
+    let user =
+        create_user_with_password(&app.db, "taguser", "password123", "taguser@example.com").await;
     let token = login_user(app.router.clone(), "taguser", "password123").await;
 
     // 1. Post a thought with hashtags
@@ -47,4 +48,44 @@ async fn test_hashtag_flow() {
     let thoughts = v["thoughts"].as_array().unwrap();
     assert_eq!(thoughts.len(), 1);
     assert_eq!(thoughts[0]["id"], thought_id);
+}
+
+#[tokio::test]
+async fn test_popular_tags() {
+    let app = setup().await;
+    let _ = create_user_with_password(&app.db, "poptag_user", "password123", "poptag@example.com")
+        .await;
+    let token = login_user(app.router.clone(), "poptag_user", "password123").await;
+
+    // Helper async function to post a thought
+    async fn post_thought(app: &TestApp, token: &str, content: &str) {
+        let body = json!({ "content": content }).to_string();
+        let response =
+            make_jwt_request(app.router.clone(), "/thoughts", "POST", Some(body), token).await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    // 1. Post thoughts to create tag usage data
+    // Expected counts: rust (3), web (2), axum (2), testing (1)
+    post_thought(&app, &token, "My first post about #rust and the #web").await;
+    post_thought(&app, &token, "Another post about #rust and #axum").await;
+    post_thought(&app, &token, "I'm really enjoying #rust lately").await;
+    post_thought(&app, &token, "Let's talk about #axum and the #web").await;
+    post_thought(&app, &token, "Don't forget about #testing").await;
+
+    // 2. Fetch the popular tags
+    let response = make_get_request(app.router.clone(), "/tags/popular", None).await;
+    println!("Response: {:?}", response);
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Vec<String> = serde_json::from_slice(&body).unwrap();
+
+    // 3. Assert the results
+    assert_eq!(v.len(), 4, "Should return the 4 unique tags used");
+    assert_eq!(
+        v,
+        vec!["rust", "axum", "web", "testing"],
+        "Tags should be ordered by popularity, then alphabetically"
+    );
 }

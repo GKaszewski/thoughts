@@ -7,7 +7,13 @@ use utils::testing::{make_jwt_request, make_request_with_headers};
 #[tokio::test]
 async fn test_api_key_flow() {
     let app = setup().await;
-    let _ = create_user_with_password(&app.db, "apikey_user", "password123").await;
+    let _ = create_user_with_password(
+        &app.db,
+        "apikey_user",
+        "password123",
+        "apikey_user@example.com",
+    )
+    .await;
     let jwt = login_user(app.router.clone(), "apikey_user", "password123").await;
 
     // 1. Create a new API key using JWT auth

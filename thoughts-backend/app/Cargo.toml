@@ -14,3 +14,4 @@ models = { path = "../models" }
 validator = "0.20"
 rand = "0.8.5"
 sea-orm = { version = "1.1.12" }
+chrono = { workspace = true }

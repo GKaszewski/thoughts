@@ -1,7 +1,7 @@
 use axum::{extract::State, response::IntoResponse, routing::get, Json, Router};
 
 use app::{
-    persistence::{follow::get_followed_ids, thought::get_feed_for_user},
+    persistence::{follow::get_following_ids, thought::get_feed_for_user},
     state::AppState,
 };
 use models::schemas::thought::{ThoughtListSchema, ThoughtSchema};
@@ -23,8 +23,8 @@ async fn feed_get(
     State(state): State<AppState>,
     auth_user: AuthUser,
 ) -> Result<impl IntoResponse, ApiError> {
-    let followed_ids = get_followed_ids(&state.conn, auth_user.id).await?;
-    let mut thoughts_with_authors = get_feed_for_user(&state.conn, followed_ids).await?;
+    let following_ids = get_following_ids(&state.conn, auth_user.id).await?;
+    let mut thoughts_with_authors = get_feed_for_user(&state.conn, following_ids).await?;
 
     let own_thoughts = get_feed_for_user(&state.conn, vec![auth_user.id]).await?;
     thoughts_with_authors.extend(own_thoughts);

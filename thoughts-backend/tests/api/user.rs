@@ -12,7 +12,8 @@ use crate::api::main::{create_user_with_password, login_user, setup};
 async fn test_post_users() {
     let app = setup().await;
 
-    let body = r#"{"username": "test", "password": "password123"}"#.to_owned();
+    let body = r#"{"username": "test", "email": "test@example.com", "password": "password123"}"#
+        .to_owned();
     let response = make_post_request(app.router, "/auth/register", body, None).await;
 
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -21,14 +22,15 @@ async fn test_post_users() {
     let v: Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(v["username"], "test");
-    assert!(v["display_name"].is_null());
+    assert!(v["display_name"].is_string());
 }
 
 #[tokio::test]
 pub(super) async fn test_post_users_error() {
     let app = setup().await;
 
-    let body = r#"{"username": "1", "password": "password123"}"#.to_owned();
+    let body =
+        r#"{"username": "1", "email": "test@example.com", "password": "password123"}"#.to_owned();
     let response = make_post_request(app.router, "/auth/register", body, None).await;
 
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
@@ -43,7 +45,8 @@ pub(super) async fn test_post_users_error() {
 pub async fn test_get_users() {
     let app = setup().await;
 
-    let body = r#"{"username": "test", "password": "password123"}"#.to_owned();
+    let body = r#"{"username": "test", "email": "test@example.com", "password": "password123"}"#
+        .to_owned();
     make_post_request(app.router.clone(), "/auth/register", body, None).await;
 
     let response = make_get_request(app.router, "/users", None).await;
@@ -65,6 +68,7 @@ async fn test_me_endpoints() {
     // 1. Register a new user
     let register_body = json!({
         "username": "me_user",
+        "email": "me_user@example.com",
         "password": "password123"
     })
     .to_string();
@@ -82,7 +86,7 @@ async fn test_me_endpoints() {
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["username"], "me_user");
     assert!(v["bio"].is_null());
-    assert!(v["display_name"].is_null());
+    assert!(v["display_name"].is_string());
 
     // 4. PUT /users/me to update the profile
     let update_body = json!({
@@ -119,10 +123,14 @@ async fn test_update_me_top_friends() {
     let app = setup().await;
 
     // 1. Create users for the test
-    let user_me = create_user_with_password(&app.db, "me_user", "password123").await;
-    let friend1 = create_user_with_password(&app.db, "friend1", "password123").await;
-    let friend2 = create_user_with_password(&app.db, "friend2", "password123").await;
-    let _friend3 = create_user_with_password(&app.db, "friend3", "password123").await;
+    let user_me =
+        create_user_with_password(&app.db, "me_user", "password123", "me_user@example.com").await;
+    let friend1 =
+        create_user_with_password(&app.db, "friend1", "password123", "friend1@example.com").await;
+    let friend2 =
+        create_user_with_password(&app.db, "friend2", "password123", "friend2@example.com").await;
+    let _friend3 =
+        create_user_with_password(&app.db, "friend3", "password123", "friend3@example.com").await;
 
     // 2. Log in as "me_user"
     let token = login_user(app.router.clone(), "me_user", "password123").await;
@@ -189,7 +197,8 @@ async fn test_update_me_css_and_images() {
     let app = setup().await;
 
     // 1. Create and log in as a user
-    let _ = create_user_with_password(&app.db, "css_user", "password123").await;
+    let _ =
+        create_user_with_password(&app.db, "css_user", "password123", "css_user@example.com").await;
     let token = login_user(app.router.clone(), "css_user", "password123").await;
 
     // 2. Attempt to update with an invalid avatar URL

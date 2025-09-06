@@ -7,7 +7,7 @@ use models::domains::follow;
 
 pub async fn add_follower(
     db: &DbConn,
-    followed_id: Uuid,
+    following_id: Uuid,
     follower_actor_id: &str,
 ) -> Result<(), UserError> {
     let follower_username = follower_actor_id
@@ -20,21 +20,21 @@ pub async fn add_follower(
         .map_err(|e| UserError::Internal(e.to_string()))?
         .ok_or(UserError::NotFound)?;
 
-    follow_user(db, follower.id, followed_id)
+    follow_user(db, follower.id, following_id)
         .await
         .map_err(|e| UserError::Internal(e.to_string()))?;
 
     Ok(())
 }
 
-pub async fn follow_user(db: &DbConn, follower_id: Uuid, followed_id: Uuid) -> Result<(), DbErr> {
-    if follower_id == followed_id {
+pub async fn follow_user(db: &DbConn, follower_id: Uuid, following_id: Uuid) -> Result<(), DbErr> {
+    if follower_id == following_id {
         return Err(DbErr::Custom("Users cannot follow themselves".to_string()));
     }
 
     let follow = follow::ActiveModel {
         follower_id: Set(follower_id),
-        followed_id: Set(followed_id),
+        following_id: Set(following_id),
     };
 
     follow.insert(db).await?;
@@ -44,11 +44,11 @@ pub async fn follow_user(db: &DbConn, follower_id: Uuid, followed_id: Uuid) -> R
 pub async fn unfollow_user(
     db: &DbConn,
     follower_id: Uuid,
-    followed_id: Uuid,
+    following_id: Uuid,
 ) -> Result<(), UserError> {
     let deleted_result = follow::Entity::delete_many()
         .filter(follow::Column::FollowerId.eq(follower_id))
-        .filter(follow::Column::FollowedId.eq(followed_id))
+        .filter(follow::Column::FollowingId.eq(following_id))
         .exec(db)
         .await
         .map_err(|e| UserError::Internal(e.to_string()))?;
@@ -60,18 +60,18 @@ pub async fn unfollow_user(
     Ok(())
 }
 
-pub async fn get_followed_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
+pub async fn get_following_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
     let followed_users = follow::Entity::find()
         .filter(follow::Column::FollowerId.eq(user_id))
         .all(db)
         .await?;
 
-    Ok(followed_users.into_iter().map(|f| f.followed_id).collect())
+    Ok(followed_users.into_iter().map(|f| f.following_id).collect())
 }
 
 pub async fn get_follower_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
     let followers = follow::Entity::find()
-        .filter(follow::Column::FollowedId.eq(user_id))
+        .filter(follow::Column::FollowingId.eq(user_id))
         .all(db)
         .await?;
     Ok(followers.into_iter().map(|f| f.follower_id).collect())

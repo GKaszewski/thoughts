@@ -69,9 +69,9 @@ pub async fn get_thoughts_by_user(
 
 pub async fn get_feed_for_user(
     db: &DbConn,
-    followed_ids: Vec<Uuid>,
+    following_ids: Vec<Uuid>,
 ) -> Result<Vec<ThoughtWithAuthor>, UserError> {
-    if followed_ids.is_empty() {
+    if following_ids.is_empty() {
         return Ok(vec![]);
     }
 
@@ -83,7 +83,7 @@ pub async fn get_feed_for_user(
         .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
         .join(JoinType::InnerJoin, thought::Relation::User.def())
-        .filter(thought::Column::AuthorId.is_in(followed_ids))
+        .filter(thought::Column::AuthorId.is_in(following_ids))
         .order_by_desc(thought::Column::CreatedAt)
         .into_model::<ThoughtWithAuthor>()
         .all(db)

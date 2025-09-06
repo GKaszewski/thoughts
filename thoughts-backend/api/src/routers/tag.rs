@@ -1,5 +1,8 @@
 use crate::error::ApiError;
-use app::{persistence::thought::get_thoughts_by_tag_name, state::AppState};
+use app::{
+    persistence::{tag, thought::get_thoughts_by_tag_name},
+    state::AppState,
+};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -27,6 +30,20 @@ async fn get_thoughts_by_tag(
     Ok(Json(ThoughtListSchema::from(thoughts_schema)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/popular",
+    responses((status = 200, description = "List of popular tags", body = Vec<String>))
+)]
+async fn get_popular_tags(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    let tags = tag::get_popular_tags(&state.conn).await;
+    println!("Fetched popular tags: {:?}", tags);
+    let tags = tags?;
+    Ok(Json(tags))
+}
+
 pub fn create_tag_router() -> Router<AppState> {
-    Router::new().route("/{tag_name}", get(get_thoughts_by_tag))
+    Router::new()
+        .route("/{tag_name}", get(get_thoughts_by_tag))
+        .route("/popular", get(get_popular_tags))
 }

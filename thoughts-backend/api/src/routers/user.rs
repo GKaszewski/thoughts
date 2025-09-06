@@ -248,7 +248,12 @@ async fn get_user_by_param(
         }
     } else {
         match get_user_by_username(&state.conn, &username).await {
-            Ok(Some(user)) => Json(UserSchema::from(user)).into_response(),
+            Ok(Some(user)) => {
+                let top_friends = app::persistence::user::get_top_friends(&state.conn, user.id)
+                    .await
+                    .unwrap_or_default();
+                Json(UserSchema::from((user, top_friends))).into_response()
+            }
             Ok(None) => ApiError::from(UserError::NotFound).into_response(),
             Err(e) => ApiError::from(e).into_response(),
         }
@@ -332,7 +337,9 @@ async fn get_me(
     let user = get_user(&state.conn, auth_user.id)
         .await?
         .ok_or(UserError::NotFound)?;
-    Ok(axum::Json(UserSchema::from(user)))
+    let top_friends = app::persistence::user::get_top_friends(&state.conn, auth_user.id).await?;
+
+    Ok(axum::Json(UserSchema::from((user, top_friends))))
 }
 
 #[utoipa::path(

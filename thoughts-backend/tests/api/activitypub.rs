@@ -9,7 +9,7 @@ use utils::testing::{
 #[tokio::test]
 async fn test_webfinger_discovery() {
     let app = setup().await;
-    create_user_with_password(&app.db, "testuser", "password123").await;
+    create_user_with_password(&app.db, "testuser", "password123", "testuser@example.com").await;
 
     // 1. Valid WebFinger lookup for existing user
     let url = "/.well-known/webfinger?resource=acct:testuser@localhost:3000";
@@ -36,7 +36,7 @@ async fn test_webfinger_discovery() {
 #[tokio::test]
 async fn test_user_actor_endpoint() {
     let app = setup().await;
-    create_user_with_password(&app.db, "testuser", "password123").await;
+    create_user_with_password(&app.db, "testuser", "password123", "testuser@example.com").await;
 
     let response = make_request_with_headers(
         app.router.clone(),
@@ -64,9 +64,11 @@ async fn test_user_actor_endpoint() {
 async fn test_user_inbox_follow() {
     let app = setup().await;
     // user1 will be followed
-    let user1 = create_user_with_password(&app.db, "user1", "password123").await;
+    let user1 =
+        create_user_with_password(&app.db, "user1", "password123", "user1@example.com").await;
     // user2 will be the follower
-    let user2 = create_user_with_password(&app.db, "user2", "password123").await;
+    let user2 =
+        create_user_with_password(&app.db, "user2", "password123", "user2@example.com").await;
 
     // Construct a follow activity from user2, targeting user1
     let follow_activity = json!({
@@ -90,7 +92,7 @@ async fn test_user_inbox_follow() {
     assert_eq!(response.status(), StatusCode::ACCEPTED);
 
     // Verify that user2 is now following user1 in the database
-    let followers = app::persistence::follow::get_followed_ids(&app.db, user2.id)
+    let followers = app::persistence::follow::get_following_ids(&app.db, user2.id)
         .await
         .unwrap();
     assert!(
@@ -98,7 +100,7 @@ async fn test_user_inbox_follow() {
         "User2 should be following user1"
     );
 
-    let following = app::persistence::follow::get_followed_ids(&app.db, user1.id)
+    let following = app::persistence::follow::get_following_ids(&app.db, user1.id)
         .await
         .unwrap();
     assert!(
@@ -111,7 +113,7 @@ async fn test_user_inbox_follow() {
 #[tokio::test]
 async fn test_user_outbox_get() {
     let app = setup().await;
-    create_user_with_password(&app.db, "testuser", "password123").await;
+    create_user_with_password(&app.db, "testuser", "password123", "testuser@example.com").await;
     let token = super::main::login_user(app.router.clone(), "testuser", "password123").await;
 
     // Create a thought first

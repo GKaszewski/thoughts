@@ -38,10 +38,12 @@ pub async fn create_user_with_password(
     db: &DatabaseConnection,
     username: &str,
     password: &str,
+    email: &str,
 ) -> user::Model {
     let params = RegisterParams {
         username: username.to_string(),
         password: password.to_string(),
+        email: email.to_string(),
     };
     app::persistence::auth::register_user(db, params)
         .await

@@ -13,7 +13,6 @@ fn hash_password(password: &str) -> Result<String, BcryptError> {
 }
 
 pub async fn register_user(db: &DbConn, params: RegisterParams) -> Result<user::Model, UserError> {
-    // Validate the parameters
     params
         .validate()
         .map_err(|e| UserError::Validation(e.to_string()))?;
@@ -22,8 +21,10 @@ pub async fn register_user(db: &DbConn, params: RegisterParams) -> Result<user::
         hash_password(&params.password).map_err(|e| UserError::Internal(e.to_string()))?;
 
     let new_user = user::ActiveModel {
-        username: Set(params.username),
+        username: Set(params.username.clone()),
         password_hash: Set(Some(hashed_password)),
+        email: Set(Some(params.email)),
+        display_name: Set(Some(params.username)),
         ..Default::default()
     };
 

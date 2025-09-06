@@ -1,6 +1,7 @@
 use sea_orm::prelude::Uuid;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
+    QuerySelect, RelationTrait, Set, TransactionTrait,
 };
 
 use models::domains::{top_friends, user};
@@ -126,4 +127,13 @@ pub async fn update_user_profile(
     user.update(db)
         .await
         .map_err(|e| UserError::Internal(e.to_string()))
+}
+
+pub async fn get_top_friends(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model>, DbErr> {
+    user::Entity::find()
+        .join(JoinType::InnerJoin, top_friends::Relation::User.def().rev())
+        .filter(top_friends::Column::UserId.eq(user_id))
+        .order_by_asc(top_friends::Column::Position)
+        .all(db)
+        .await
 }

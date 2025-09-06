@@ -46,12 +46,12 @@ impl MigrationTrait for Migration {
                     .table(Follow::Table)
                     .if_not_exists()
                     .col(uuid(Follow::FollowerId).not_null())
-                    .col(uuid(Follow::FollowedId).not_null())
+                    .col(uuid(Follow::FollowingId).not_null())
                     // Composite Primary Key to ensure a user can only follow another once
                     .primary_key(
                         Index::create()
                             .col(Follow::FollowerId)
-                            .col(Follow::FollowedId),
+                            .col(Follow::FollowingId),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -62,8 +62,8 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_follow_followed_id")
-                            .from(Follow::Table, Follow::FollowedId)
+                            .name("fk_follow_following_id")
+                            .from(Follow::Table, Follow::FollowingId)
                             .to(User::Table, User::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -97,5 +97,5 @@ pub enum Follow {
     // The user who is initiating the follow
     FollowerId,
     // The user who is being followed
-    FollowedId,
+    FollowingId,
 }

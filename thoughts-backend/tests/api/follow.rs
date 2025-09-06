@@ -7,8 +7,8 @@ async fn test_follow_endpoints() {
     std::env::set_var("AUTH_SECRET", "test-secret");
     let app = setup().await;
 
-    create_user_with_password(&app.db, "user1", "password1").await;
-    create_user_with_password(&app.db, "user2", "password2").await;
+    create_user_with_password(&app.db, "user1", "password1", "user1@example.com").await;
+    create_user_with_password(&app.db, "user2", "password2", "user2@example.com").await;
 
     let token = super::main::login_user(app.router.clone(), "user1", "password1").await;
 

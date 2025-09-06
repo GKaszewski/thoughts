@@ -11,6 +11,7 @@ async fn test_auth_flow() {
 
     let register_body = json!({
         "username": "testuser",
+        "email": "testuser@example.com",
         "password": "password123"
     })
     .to_string();
@@ -26,6 +27,7 @@ async fn test_auth_flow() {
         "/auth/register",
         json!({
             "username": "testuser",
+            "email": "testuser@example.com",
             "password": "password456"
         })
         .to_string(),
@@ -48,6 +50,7 @@ async fn test_auth_flow() {
 
     let bad_login_body = json!({
         "username": "testuser",
+        "email": "testuser@example.com",
         "password": "wrongpassword"
     })
     .to_string();
