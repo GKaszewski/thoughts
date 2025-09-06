@@ -19,8 +19,8 @@ use models::schemas::user::{UserListSchema, UserSchema};
 use models::{params::user::UpdateUserParams, schemas::thought::ThoughtListSchema};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
-use crate::models::ApiErrorResponse;
 use crate::{error::ApiError, extractor::AuthUser};
+use crate::{extractor::OptionalAuthUser, models::ApiErrorResponse};
 use crate::{
     extractor::{Json, Valid},
     routers::api_key::create_api_key_router,
@@ -63,12 +63,14 @@ async fn users_get(
 async fn user_thoughts_get(
     State(state): State<AppState>,
     Path(username): Path<String>,
+    viewer: OptionalAuthUser,
 ) -> Result<impl IntoResponse, ApiError> {
     let user = get_user_by_username(&state.conn, &username)
         .await?
         .ok_or(UserError::NotFound)?;
 
-    let thoughts_with_authors = get_thoughts_by_user(&state.conn, user.id).await?;
+    let thoughts_with_authors =
+        get_thoughts_by_user(&state.conn, user.id, viewer.0.map(|u| u.id)).await?;
 
     let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
         .into_iter()
@@ -272,12 +274,13 @@ async fn get_user_by_param(
 async fn user_outbox_get(
     State(state): State<AppState>,
     Path(username): Path<String>,
+    viewer: OptionalAuthUser,
 ) -> Result<impl IntoResponse, ApiError> {
     let user = get_user_by_username(&state.conn, &username)
         .await?
         .ok_or(UserError::NotFound)?;
 
-    let thoughts = get_thoughts_by_user(&state.conn, user.id).await?;
+    let thoughts = get_thoughts_by_user(&state.conn, user.id, viewer.0.map(|u| u.id)).await?;
 
     // Format the outbox as an ActivityPub OrderedCollection
     let outbox_url = format!("{}/users/{}/outbox", &state.base_url, username);

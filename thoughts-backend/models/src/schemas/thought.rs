@@ -1,4 +1,7 @@
-use crate::domains::{thought, user};
+use crate::domains::{
+    thought::{self, Visibility},
+    user,
+};
 use common::DateTimeWithTimeZoneWrapper;
 use sea_orm::FromQueryResult;
 use serde::Serialize;
@@ -12,6 +15,7 @@ pub struct ThoughtSchema {
     pub author_username: String,
     #[schema(example = "This is my first thought! #welcome")]
     pub content: String,
+    pub visibility: Visibility,
     pub reply_to_id: Option<Uuid>,
     pub created_at: DateTimeWithTimeZoneWrapper,
 }
@@ -22,6 +26,7 @@ impl ThoughtSchema {
             id: thought.id,
             author_username: author.username.clone(),
             content: thought.content.clone(),
+            visibility: thought.visibility.clone(),
             reply_to_id: thought.reply_to_id,
             created_at: thought.created_at.into(),
         }
@@ -44,6 +49,7 @@ pub struct ThoughtWithAuthor {
     pub id: Uuid,
     pub content: String,
     pub created_at: sea_orm::prelude::DateTimeWithTimeZone,
+    pub visibility: Visibility,
     pub author_id: Uuid,
     pub author_username: String,
     pub reply_to_id: Option<Uuid>,
@@ -57,6 +63,7 @@ impl From<ThoughtWithAuthor> for ThoughtSchema {
             content: model.content,
             created_at: model.created_at.into(),
             reply_to_id: model.reply_to_id,
+            visibility: model.visibility,
         }
     }
 }

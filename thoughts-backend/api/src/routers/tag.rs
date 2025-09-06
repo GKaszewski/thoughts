@@ -1,4 +1,4 @@
-use crate::error::ApiError;
+use crate::{error::ApiError, extractor::OptionalAuthUser};
 use app::{
     persistence::{tag, thought::get_thoughts_by_tag_name},
     state::AppState,
@@ -20,8 +20,10 @@ use models::schemas::thought::{ThoughtListSchema, ThoughtSchema};
 async fn get_thoughts_by_tag(
     State(state): State<AppState>,
     Path(tag_name): Path<String>,
+    viewer: OptionalAuthUser,
 ) -> Result<impl IntoResponse, ApiError> {
-    let thoughts_with_authors = get_thoughts_by_tag_name(&state.conn, &tag_name).await;
+    let thoughts_with_authors =
+        get_thoughts_by_tag_name(&state.conn, &tag_name, viewer.0.map(|u| u.id)).await;
     let thoughts_with_authors = thoughts_with_authors?;
     let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
         .into_iter()

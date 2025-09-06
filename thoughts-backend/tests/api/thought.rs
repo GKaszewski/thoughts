@@ -1,11 +1,12 @@
-use crate::api::main::create_user_with_password;
+use crate::api::main::{create_user_with_password, login_user};
 
 use super::main::setup;
-use axum::http::StatusCode;
+use app::persistence::follow;
+use axum::{http::StatusCode, Router};
 use http_body_util::BodyExt;
 use sea_orm::prelude::Uuid;
 use serde_json::{json, Value};
-use utils::testing::{make_delete_request, make_post_request};
+use utils::testing::{make_delete_request, make_get_request, make_jwt_request, make_post_request};
 
 #[tokio::test]
 async fn test_thought_endpoints() {
@@ -80,4 +81,85 @@ async fn test_thought_replies() {
     // 3. Verify the reply is linked correctly
     assert_eq!(reply_thought["reply_to_id"], original_thought_id);
     assert_eq!(reply_thought["author_username"], "user2");
+}
+
+#[tokio::test]
+async fn test_thought_visibility() {
+    let app = setup().await;
+    let author = create_user_with_password(&app.db, "author", "password123", "a@a.com").await;
+    let friend = create_user_with_password(&app.db, "friend", "password123", "f@f.com").await;
+    let _stranger = create_user_with_password(&app.db, "stranger", "password123", "s@s.com").await;
+
+    // Make author and friend follow each other
+    follow::follow_user(&app.db, author.id, friend.id)
+        .await
+        .unwrap();
+    follow::follow_user(&app.db, friend.id, author.id)
+        .await
+        .unwrap();
+
+    let author_jwt = login_user(app.router.clone(), "author", "password123").await;
+    let friend_jwt = login_user(app.router.clone(), "friend", "password123").await;
+    let stranger_jwt = login_user(app.router.clone(), "stranger", "password123").await;
+
+    // Author posts one of each visibility
+    make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(json!({"content": "public", "visibility": "Public"}).to_string()),
+        &author_jwt,
+    )
+    .await;
+    make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(json!({"content": "friends", "visibility": "FriendsOnly"}).to_string()),
+        &author_jwt,
+    )
+    .await;
+    make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(json!({"content": "private", "visibility": "Private"}).to_string()),
+        &author_jwt,
+    )
+    .await;
+
+    // Helper to get thoughts and count them
+    async fn get_thought_count(router: Router, jwt: Option<&str>) -> usize {
+        let response = if let Some(token) = jwt {
+            make_jwt_request(router, "/users/author/thoughts", "GET", None, token).await
+        } else {
+            make_get_request(router, "/users/author/thoughts", None).await
+        };
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let v: Value = serde_json::from_slice(&body).unwrap();
+
+        v["thoughts"].as_array().unwrap().len()
+    }
+
+    // Assertions
+    assert_eq!(
+        get_thought_count(app.router.clone(), Some(&author_jwt)).await,
+        3,
+        "Author should see all their posts"
+    );
+    assert_eq!(
+        get_thought_count(app.router.clone(), Some(&friend_jwt)).await,
+        2,
+        "Friend should see public and friends_only posts"
+    );
+    assert_eq!(
+        get_thought_count(app.router.clone(), Some(&stranger_jwt)).await,
+        1,
+        "Stranger should see only public posts"
+    );
+    assert_eq!(
+        get_thought_count(app.router.clone(), None).await,
+        1,
+        "Unauthenticated guest should see only public posts"
+    );
 }

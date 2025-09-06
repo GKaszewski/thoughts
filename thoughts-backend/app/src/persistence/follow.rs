@@ -76,3 +76,16 @@ pub async fn get_follower_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, D
         .await?;
     Ok(followers.into_iter().map(|f| f.follower_id).collect())
 }
+
+pub async fn get_friend_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
+    let following = get_following_ids(db, user_id).await?;
+    let followers = get_follower_ids(db, user_id).await?;
+
+    let following_set: std::collections::HashSet<Uuid> = following.into_iter().collect();
+    let followers_set: std::collections::HashSet<Uuid> = followers.into_iter().collect();
+
+    Ok(following_set
+        .intersection(&followers_set)
+        .cloned()
+        .collect())
+}
