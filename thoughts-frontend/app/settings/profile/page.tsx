@@ -1,15 +1,9 @@
+// app/settings/profile/page.tsx
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/api";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { EditProfileForm } from "@/components/edit-profile-form";
 
-// This is a Server Component to fetch initial data
 export default async function EditProfilePage() {
   const token = (await cookies()).get("auth_token")?.value;
 
@@ -25,15 +19,13 @@ export default async function EditProfilePage() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Profile</CardTitle>
-          <CardDescription>
-            Update your public profile information.
-          </CardDescription>
-        </CardHeader>
-        <EditProfileForm currentUser={me} />
-      </Card>
+      <div>
+        <h3 className="text-lg font-medium">Profile</h3>
+        <p className="text-sm text-muted-foreground">
+          This is how others will see you on the site.
+        </p>
+      </div>
+      <EditProfileForm currentUser={me} />
     </div>
   );
 }

@@ -193,3 +193,19 @@ export const updateProfile = (
     UserSchema, // Expect the updated user object back
     token
   );
+
+  export const getThoughtsByTag = (tagName: string, token: string | null) =>
+  apiFetch(
+    `/tags/${tagName}`,
+    {},
+    z.object({ thoughts: z.array(ThoughtSchema) }),
+    token
+  );
+
+export const getThoughtById = (thoughtId: string, token: string | null) =>
+  apiFetch(
+    `/thoughts/${thoughtId}`,
+    {},
+    ThoughtSchema, // Expect a single thought object
+    token
+  );

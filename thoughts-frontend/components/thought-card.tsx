@@ -72,6 +72,7 @@ export function ThoughtCard({
       toast.success("Thought deleted successfully.");
       router.refresh();
     } catch (error) {
+      console.error("Failed to delete thought:", error);
       toast.error("Failed to delete thought.");
     } finally {
       setIsAlertOpen(false);

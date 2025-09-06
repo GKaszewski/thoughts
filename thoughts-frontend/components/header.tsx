@@ -6,7 +6,6 @@ import { Button } from "./ui/button";
 import { UserNav } from "./user-nav";
 import { MainNav } from "./main-nav";
 import { ThemeToggle } from "./theme-toggle";
-import { Wind } from "lucide-react";
 
 export function Header() {
   const { token } = useAuth();

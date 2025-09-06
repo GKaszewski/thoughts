@@ -51,7 +51,7 @@ export function EditProfileForm({ currentUser }: EditProfileFormProps) {
       router.push(`/users/${currentUser.username}`);
       router.refresh(); // Ensure fresh data is loaded
     } catch (err) {
-      toast.error("Failed to update profile.");
+      toast.error(`Failed to update profile. ${err}`);
     }
   }
 
