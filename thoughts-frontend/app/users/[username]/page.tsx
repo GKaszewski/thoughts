@@ -4,6 +4,7 @@ import { ThoughtCard } from "@/components/thought-card";
 import { Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 
 interface ProfilePageProps {
   params: { username: string };
@@ -11,12 +12,13 @@ interface ProfilePageProps {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = params;
+  const token = (await cookies()).get("auth_token")?.value ?? null;
 
   // Fetch data directly on the server.
   // The `loading.tsx` file will be shown to the user during this fetch.
   const [userResult, thoughtsResult] = await Promise.allSettled([
-    getUserProfile(username),
-    getUserThoughts(username),
+    getUserProfile(username, token),
+    getUserThoughts(username, token),
   ]);
 
   // Handle errors from the server-side fetch
