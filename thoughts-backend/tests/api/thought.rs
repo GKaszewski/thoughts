@@ -23,7 +23,7 @@ async fn test_thought_endpoints() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["content"], "My first thought!");
-    assert_eq!(v["author_username"], "user1");
+    assert_eq!(v["authorUsername"], "user1");
     let thought_id = v["id"].as_str().unwrap().to_string();
 
     // 2. Post a thought with invalid content
@@ -79,8 +79,8 @@ async fn test_thought_replies() {
     let reply_thought: Value = serde_json::from_slice(&body).unwrap();
 
     // 3. Verify the reply is linked correctly
-    assert_eq!(reply_thought["reply_to_id"], original_thought_id);
-    assert_eq!(reply_thought["author_username"], "user2");
+    assert_eq!(reply_thought["replyToId"], original_thought_id);
+    assert_eq!(reply_thought["authorUsername"], "user2");
 }
 
 #[tokio::test]

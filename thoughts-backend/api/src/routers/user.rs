@@ -11,11 +11,11 @@ use serde_json::{json, Value};
 use app::persistence::{
     follow,
     thought::get_thoughts_by_user,
-    user::{get_user, search_users, update_user_profile},
+    user::{get_followers, get_following, get_user, search_users, update_user_profile},
 };
 use app::state::AppState;
 use app::{error::UserError, persistence::user::get_user_by_username};
-use models::schemas::user::{UserListSchema, UserSchema};
+use models::schemas::user::{MeSchema, UserListSchema, UserSchema};
 use models::{params::user::UpdateUserParams, schemas::thought::ThoughtListSchema};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
@@ -327,7 +327,7 @@ async fn user_outbox_get(
     get,
     path = "/me",
     responses(
-        (status = 200, description = "Authenticated user's profile", body = UserSchema)
+        (status = 200, description = "Authenticated user's full profile", body = MeSchema)
     ),
     security(
         ("bearer_auth" = [])
@@ -342,7 +342,14 @@ async fn get_me(
         .ok_or(UserError::NotFound)?;
     let top_friends = app::persistence::user::get_top_friends(&state.conn, auth_user.id).await?;
 
-    Ok(axum::Json(UserSchema::from((user, top_friends))))
+    let following = get_following(&state.conn, auth_user.id).await?;
+
+    let response = MeSchema {
+        user: UserSchema::from((user, top_friends)),
+        following: following.into_iter().map(UserSchema::from).collect(),
+    };
+
+    Ok(axum::Json(response))
 }
 
 #[utoipa::path(
@@ -367,6 +374,38 @@ async fn update_me(
     Ok(axum::Json(UserSchema::from(updated_user)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/{username}/following",
+    responses((status = 200, body = UserListSchema))
+)]
+async fn get_user_following(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+    let following_list = get_following(&state.conn, user.id).await?;
+    Ok(Json(UserListSchema::from(following_list)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/{username}/followers",
+    responses((status = 200, body = UserListSchema))
+)]
+async fn get_user_followers(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user = get_user_by_username(&state.conn, &username)
+        .await?
+        .ok_or(UserError::NotFound)?;
+    let followers_list = get_followers(&state.conn, user.id).await?;
+    Ok(Json(UserListSchema::from(followers_list)))
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
@@ -374,6 +413,8 @@ pub fn create_user_router() -> Router<AppState> {
         .nest("/me/api-keys", create_api_key_router())
         .route("/{param}", get(get_user_by_param))
         .route("/{username}/thoughts", get(user_thoughts_get))
+        .route("/{username}/followers", get(get_user_followers))
+        .route("/{username}/following", get(get_user_following))
         .route(
             "/{username}/follow",
             post(user_follow_post).delete(user_follow_delete),

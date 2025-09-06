@@ -22,7 +22,7 @@ async fn test_post_users() {
     let v: Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(v["username"], "test");
-    assert!(v["display_name"].is_string());
+    assert!(v["displayName"].is_string());
 }
 
 #[tokio::test]
@@ -86,7 +86,7 @@ async fn test_me_endpoints() {
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["username"], "me_user");
     assert!(v["bio"].is_null());
-    assert!(v["display_name"].is_string());
+    assert!(v["displayName"].is_string());
 
     // 4. PUT /users/me to update the profile
     let update_body = json!({
@@ -106,7 +106,7 @@ async fn test_me_endpoints() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v_updated: Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(v_updated["display_name"], "Me User");
+    assert_eq!(v_updated["displayName"], "Me User");
     assert_eq!(v_updated["bio"], "This is my updated bio.");
 
     // 5. GET /users/me again to verify the update was persisted
@@ -114,7 +114,7 @@ async fn test_me_endpoints() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v_verify: Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(v_verify["display_name"], "Me User");
+    assert_eq!(v_verify["displayName"], "Me User");
     assert_eq!(v_verify["bio"], "This is my updated bio.");
 }
 
@@ -241,7 +241,7 @@ async fn test_update_me_css_and_images() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(v["avatar_url"], "https://example.com/new-avatar.png");
-    assert_eq!(v["header_url"], "https://example.com/new-header.jpg");
-    assert_eq!(v["custom_css"], "body { color: blue; }");
+    assert_eq!(v["avatarUrl"], "https://example.com/new-avatar.png");
+    assert_eq!(v["headerUrl"], "https://example.com/new-header.jpg");
+    assert_eq!(v["customCss"], "body { color: blue; }");
 }

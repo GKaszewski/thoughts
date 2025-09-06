@@ -68,3 +68,10 @@ impl From<Vec<user::Model>> for UserListSchema {
         }
     }
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct MeSchema {
+    #[serde(flatten)]
+    pub user: UserSchema,
+    pub following: Vec<UserSchema>,
+}

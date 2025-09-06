@@ -1,6 +1,10 @@
+use crate::api::main::login_user;
+
 use super::main::{create_user_with_password, setup};
 use axum::http::StatusCode;
-use utils::testing::make_jwt_request;
+use http_body_util::BodyExt;
+use serde_json::Value;
+use utils::testing::{make_get_request, make_jwt_request};
 
 #[tokio::test]
 async fn test_follow_endpoints() {
@@ -66,4 +70,55 @@ async fn test_follow_endpoints() {
     )
     .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_follow_lists() {
+    let app = setup().await;
+
+    let user_a = create_user_with_password(&app.db, "userA", "password123", "a@a.com").await;
+    let user_b = create_user_with_password(&app.db, "userB", "password123", "b@b.com").await;
+    let user_c = create_user_with_password(&app.db, "userC", "password123", "c@c.com").await;
+
+    // A follows B, C follows A
+    app::persistence::follow::follow_user(&app.db, user_a.id, user_b.id)
+        .await
+        .unwrap();
+    app::persistence::follow::follow_user(&app.db, user_c.id, user_a.id)
+        .await
+        .unwrap();
+
+    // 1. Check user A's lists
+    let response_following =
+        make_get_request(app.router.clone(), "/users/userA/following", None).await;
+    let body_following = response_following
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let v: Value = serde_json::from_slice(&body_following).unwrap();
+    assert_eq!(v["users"].as_array().unwrap().len(), 1);
+    assert_eq!(v["users"][0]["username"], "userB");
+
+    let response_followers =
+        make_get_request(app.router.clone(), "/users/userA/followers", None).await;
+    let body_followers = response_followers
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let v: Value = serde_json::from_slice(&body_followers).unwrap();
+    assert_eq!(v["users"].as_array().unwrap().len(), 1);
+    assert_eq!(v["users"][0]["username"], "userC");
+
+    // 2. Check user A's /me endpoint
+    let jwt_a = login_user(app.router.clone(), "userA", "password123").await;
+    let response_me = make_jwt_request(app.router.clone(), "/users/me", "GET", None, &jwt_a).await;
+    let body_me = response_me.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body_me).unwrap();
+    assert_eq!(v["username"], "userA");
+    assert_eq!(v["following"].as_array().unwrap().len(), 1);
+    assert_eq!(v["following"][0]["username"], "userB");
 }

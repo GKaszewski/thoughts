@@ -20,6 +20,8 @@ use models::schemas::{
         user_outbox_get,
         get_me,
         update_me,
+        get_user_followers,
+        get_user_following
     ),
     components(schemas(
         CreateUserParams,

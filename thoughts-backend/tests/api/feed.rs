@@ -60,7 +60,7 @@ async fn test_feed_and_user_thoughts() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["thoughts"].as_array().unwrap().len(), 1);
-    assert_eq!(v["thoughts"][0]["author_username"], "user1");
+    assert_eq!(v["thoughts"][0]["authorUsername"], "user1");
     assert_eq!(v["thoughts"][0]["content"], "A thought from user1");
 
     // 3. user1 follows user2
@@ -79,8 +79,8 @@ async fn test_feed_and_user_thoughts() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["thoughts"].as_array().unwrap().len(), 2);
-    assert_eq!(v["thoughts"][0]["author_username"], "user2");
+    assert_eq!(v["thoughts"][0]["authorUsername"], "user2");
     assert_eq!(v["thoughts"][0]["content"], "user2 was here");
-    assert_eq!(v["thoughts"][1]["author_username"], "user1");
+    assert_eq!(v["thoughts"][1]["authorUsername"], "user1");
     assert_eq!(v["thoughts"][1]["content"], "A thought from user1");
 }

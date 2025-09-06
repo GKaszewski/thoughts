@@ -31,7 +31,7 @@ async fn test_api_key_flow() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: Value = serde_json::from_slice(&body).unwrap();
 
-    let plaintext_key = v["plaintext_key"]
+    let plaintext_key = v["plaintextKey"]
         .as_str()
         .expect("Plaintext key not found")
         .to_string();
