@@ -3,6 +3,7 @@ use axum::Router;
 pub mod api_key;
 pub mod auth;
 pub mod feed;
+pub mod friends;
 pub mod root;
 pub mod tag;
 pub mod thought;
@@ -28,6 +29,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/thoughts", create_thought_router())
         .nest("/feed", create_feed_router())
         .nest("/tags", tag::create_tag_router())
+        .nest("/friends", friends::create_friends_router())
         .with_state(state)
         .layer(cors)
 }

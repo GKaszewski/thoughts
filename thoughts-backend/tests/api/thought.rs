@@ -163,3 +163,89 @@ async fn test_thought_visibility() {
         "Unauthenticated guest should see only public posts"
     );
 }
+
+async fn post_thought_and_get_id(
+    router: &Router,
+    content: &str,
+    visibility: &str,
+    token: &str,
+) -> String {
+    let body = json!({ "content": content, "visibility": visibility }).to_string();
+    let response = make_jwt_request(router.clone(), "/thoughts", "POST", Some(body), token).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+    v["id"].as_str().unwrap().to_string()
+}
+
+#[tokio::test]
+async fn test_get_thought_by_id_visibility() {
+    let app = setup().await;
+    let author = create_user_with_password(&app.db, "author", "password123", "a@a.com").await;
+    let friend = create_user_with_password(&app.db, "friend", "password123", "f@f.com").await;
+    let _stranger = create_user_with_password(&app.db, "stranger", "password123", "s@s.com").await;
+
+    // Make author and friend follow each other
+    follow::follow_user(&app.db, author.id, friend.id)
+        .await
+        .unwrap();
+    follow::follow_user(&app.db, friend.id, author.id)
+        .await
+        .unwrap();
+
+    let author_jwt = login_user(app.router.clone(), "author", "password123").await;
+    let friend_jwt = login_user(app.router.clone(), "friend", "password123").await;
+    let stranger_jwt = login_user(app.router.clone(), "stranger", "password123").await;
+
+    // Author posts one of each visibility
+    let public_id = post_thought_and_get_id(&app.router, "public", "Public", &author_jwt).await;
+    let friends_id =
+        post_thought_and_get_id(&app.router, "friends", "FriendsOnly", &author_jwt).await;
+    let private_id = post_thought_and_get_id(&app.router, "private", "Private", &author_jwt).await;
+
+    // --- Test Assertions ---
+
+    // 1. Public thought
+    let public_url = format!("/thoughts/{}", public_id);
+    assert_eq!(
+        make_get_request(app.router.clone(), &public_url, None)
+            .await
+            .status(),
+        StatusCode::OK,
+        "Guest should see public thought"
+    );
+
+    // 2. Friends-only thought
+    let friends_url = format!("/thoughts/{}", friends_id);
+    assert_eq!(
+        make_jwt_request(app.router.clone(), &friends_url, "GET", None, &friend_jwt)
+            .await
+            .status(),
+        StatusCode::OK,
+        "Friend should see friends-only thought"
+    );
+    assert_eq!(
+        make_jwt_request(app.router.clone(), &friends_url, "GET", None, &stranger_jwt)
+            .await
+            .status(),
+        StatusCode::NOT_FOUND,
+        "Stranger should NOT see friends-only thought"
+    );
+
+    // 3. Private thought
+    let private_url = format!("/thoughts/{}", private_id);
+    assert_eq!(
+        make_jwt_request(app.router.clone(), &private_url, "GET", None, &author_jwt)
+            .await
+            .status(),
+        StatusCode::OK,
+        "Author should see their private thought"
+    );
+    assert_eq!(
+        make_jwt_request(app.router.clone(), &private_url, "GET", None, &friend_jwt)
+            .await
+            .status(),
+        StatusCode::NOT_FOUND,
+        "Friend should NOT see private thought"
+    );
+}

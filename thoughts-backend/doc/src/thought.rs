@@ -7,7 +7,7 @@ use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(thoughts_post, thoughts_delete),
+    paths(thoughts_post, thoughts_delete, get_thought_by_id),
     components(schemas(
         CreateThoughtParams,
         ThoughtSchema,

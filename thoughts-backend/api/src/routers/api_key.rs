@@ -16,7 +16,7 @@ use sea_orm::prelude::Uuid;
 
 #[utoipa::path(
     get,
-    path = "/me/api-keys",
+    path = "",
     responses(
         (status = 200, description = "List of API keys", body = ApiKeyListSchema),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
@@ -36,7 +36,7 @@ async fn get_keys(
 
 #[utoipa::path(
     post,
-    path = "/me/api-keys",
+    path = "",
     request_body = ApiKeyRequest,
     responses(
         (status = 201, description = "API key created", body = ApiKeyResponse),
@@ -63,7 +63,7 @@ async fn create_key(
 
 #[utoipa::path(
     delete,
-    path = "/me/api-keys/{key_id}",
+    path = "/{key_id}",
     responses(
         (status = 204, description = "API key deleted"),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),

@@ -45,8 +45,36 @@ pub async fn create_thought(
     Ok(new_thought)
 }
 
-pub async fn get_thought(db: &DbConn, thought_id: Uuid) -> Result<Option<thought::Model>, DbErr> {
-    thought::Entity::find_by_id(thought_id).one(db).await
+pub async fn get_thought(
+    db: &DbConn,
+    thought_id: Uuid,
+    viewer_id: Option<Uuid>,
+) -> Result<Option<thought::Model>, DbErr> {
+    let thought = thought::Entity::find_by_id(thought_id).one(db).await?;
+
+    match thought {
+        Some(t) => {
+            if t.visibility == thought::Visibility::Public {
+                return Ok(Some(t));
+            }
+
+            if let Some(viewer) = viewer_id {
+                if t.author_id == viewer {
+                    return Ok(Some(t));
+                }
+
+                if t.visibility == thought::Visibility::FriendsOnly {
+                    let author_friends = follow::get_friend_ids(db, t.author_id).await?;
+                    if author_friends.contains(&viewer) {
+                        return Ok(Some(t));
+                    }
+                }
+            }
+
+            Ok(None)
+        }
+        None => Ok(None),
+    }
 }
 
 pub async fn delete_thought(db: &DbConn, thought_id: Uuid) -> Result<(), DbErr> {

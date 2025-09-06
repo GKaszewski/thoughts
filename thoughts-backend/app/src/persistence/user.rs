@@ -9,7 +9,7 @@ use models::params::user::{CreateUserParams, UpdateUserParams};
 use models::queries::user::UserQuery;
 
 use crate::error::UserError;
-use crate::persistence::follow::{get_follower_ids, get_following_ids};
+use crate::persistence::follow::{get_follower_ids, get_following_ids, get_friend_ids};
 
 pub async fn create_user(
     db: &DbConn,
@@ -140,6 +140,14 @@ pub async fn get_top_friends(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Mod
         .order_by_asc(top_friends::Column::Position)
         .all(db)
         .await
+}
+
+pub async fn get_friends(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model>, DbErr> {
+    let friend_ids = get_friend_ids(db, user_id).await?;
+    if friend_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    get_users_by_ids(db, friend_ids).await
 }
 
 pub async fn get_following(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model>, DbErr> {

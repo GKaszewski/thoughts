@@ -9,6 +9,7 @@ use utoipa_swagger_ui::SwaggerUi;
 mod api_key;
 mod auth;
 mod feed;
+mod friends;
 mod root;
 mod tag;
 mod thought;
@@ -24,6 +25,7 @@ mod user;
         (path = "/thoughts", api = thought::ThoughtApi),
         (path = "/feed", api = feed::FeedApi),
         (path = "/tags", api = tag::TagApi),
+        (path = "/friends", api = friends::FriendsApi),
     ),
     tags(
         (name = "root", description = "Root API"),
@@ -32,6 +34,7 @@ mod user;
         (name = "thought", description = "Thoughts API"),
         (name = "feed", description = "Feed API"),
         (name = "tag", description = "Tag Discovery API"),
+        (name = "friends", description = "Friends API"),
     ),
     modifiers(&SecurityAddon),
 )]

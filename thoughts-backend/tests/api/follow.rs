@@ -122,3 +122,41 @@ async fn test_follow_lists() {
     assert_eq!(v["following"].as_array().unwrap().len(), 1);
     assert_eq!(v["following"][0]["username"], "userB");
 }
+
+#[tokio::test]
+async fn test_get_friends_list() {
+    let app = setup().await;
+
+    let user_a = create_user_with_password(&app.db, "userA", "password123", "a@a.com").await;
+    let user_b = create_user_with_password(&app.db, "userB", "password123", "b@b.com").await;
+    let user_c = create_user_with_password(&app.db, "userC", "password123", "c@c.com").await;
+
+    // --- Create relationships ---
+    // A and B are friends (reciprocal follow)
+    app::persistence::follow::follow_user(&app.db, user_a.id, user_b.id)
+        .await
+        .unwrap();
+    app::persistence::follow::follow_user(&app.db, user_b.id, user_a.id)
+        .await
+        .unwrap();
+
+    // A follows C, but C does not follow A back
+    app::persistence::follow::follow_user(&app.db, user_a.id, user_c.id)
+        .await
+        .unwrap();
+
+    // --- Test as user_a ---
+    let jwt_a = login_user(app.router.clone(), "userA", "password123").await;
+    let response = make_jwt_request(app.router.clone(), "/friends", "GET", None, &jwt_a).await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+    let friends_list = v["users"].as_array().unwrap();
+
+    assert_eq!(friends_list.len(), 1, "User A should only have one friend");
+    assert_eq!(
+        friends_list[0]["username"], "userB",
+        "User B should be in User A's friend list"
+    );
+}

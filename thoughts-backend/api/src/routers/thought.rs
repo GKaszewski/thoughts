@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, post},
+    routing::{get, post},
     Router,
 };
 
@@ -16,10 +16,39 @@ use sea_orm::prelude::Uuid;
 
 use crate::{
     error::ApiError,
-    extractor::{AuthUser, Json, Valid},
+    extractor::{AuthUser, Json, OptionalAuthUser, Valid},
     federation,
     models::{ApiErrorResponse, ParamsErrorResponse},
 };
+
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Thought ID")
+    ),
+    responses(
+        (status = 200, description = "Thought found", body = ThoughtSchema),
+        (status = 404, description = "Not Found", body = ApiErrorResponse)
+    )
+)]
+async fn get_thought_by_id(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    viewer: OptionalAuthUser,
+) -> Result<impl IntoResponse, ApiError> {
+    let viewer_id = viewer.0.map(|u| u.id);
+    let thought = get_thought(&state.conn, id, viewer_id)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let author = app::persistence::user::get_user(&state.conn, thought.author_id)
+        .await?
+        .ok_or(UserError::NotFound)?;
+
+    let schema = ThoughtSchema::from_models(&thought, &author);
+    Ok(Json(schema))
+}
 
 #[utoipa::path(
     post,
@@ -77,7 +106,7 @@ async fn thoughts_delete(
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let thought = get_thought(&state.conn, id)
+    let thought = get_thought(&state.conn, id, Some(auth_user.id))
         .await?
         .ok_or(UserError::NotFound)?;
 
@@ -92,5 +121,5 @@ async fn thoughts_delete(
 pub fn create_thought_router() -> Router<AppState> {
     Router::new()
         .route("/", post(thoughts_post))
-        .route("/{id}", delete(thoughts_delete))
+        .route("/{id}", get(get_thought_by_id).delete(thoughts_delete))
 }
