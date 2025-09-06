@@ -6,9 +6,11 @@ use utoipa::{
 use utoipa_scalar::{Scalar, Servable as ScalarServable};
 use utoipa_swagger_ui::SwaggerUi;
 
+mod api_key;
 mod auth;
 mod feed;
 mod root;
+mod tag;
 mod thought;
 mod user;
 
@@ -18,8 +20,10 @@ mod user;
         (path = "/", api = root::RootApi),
         (path = "/auth", api = auth::AuthApi),
         (path = "/users", api = user::UserApi),
+        (path = "/users/me/api-keys", api = api_key::ApiKeyApi),
         (path = "/thoughts", api = thought::ThoughtApi),
         (path = "/feed", api = feed::FeedApi),
+        (path = "/tags", api = tag::TagApi),
     ),
     tags(
         (name = "root", description = "Root API"),
@@ -27,6 +31,7 @@ mod user;
         (name = "user", description = "User & Social API"),
         (name = "thought", description = "Thoughts API"),
         (name = "feed", description = "Feed API"),
+        (name = "tag", description = "Tag Discovery API"),
     ),
     modifiers(&SecurityAddon),
 )]

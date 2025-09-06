@@ -2,7 +2,7 @@ use utoipa::OpenApi;
 
 use api::models::{ApiErrorResponse, ParamsErrorResponse};
 use api::routers::user::*;
-use models::params::user::CreateUserParams;
+use models::params::user::{CreateUserParams, UpdateUserParams};
 use models::schemas::{
     thought::{ThoughtListSchema, ThoughtSchema},
     user::{UserListSchema, UserSchema},
@@ -24,6 +24,7 @@ use models::schemas::{
     components(schemas(
         CreateUserParams,
         UserListSchema,
+        UpdateUserParams,
         UserSchema,
         ThoughtSchema,
         ThoughtListSchema,
