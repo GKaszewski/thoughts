@@ -5,8 +5,9 @@ use axum::{
     Router,
 };
 use tower::ServiceExt;
+use uuid::Uuid;
 
-pub async fn make_get_request(app: Router, url: &str, user_id: Option<i32>) -> Response {
+pub async fn make_get_request(app: Router, url: &str, user_id: Option<Uuid>) -> Response {
     let mut builder = Request::builder()
         .uri(url)
         .header("Content-Type", "application/json");
@@ -24,7 +25,7 @@ pub async fn make_post_request(
     app: Router,
     url: &str,
     body: String,
-    user_id: Option<i32>,
+    user_id: Option<Uuid>,
 ) -> Response {
     let mut builder = Request::builder()
         .method("POST")
@@ -40,7 +41,7 @@ pub async fn make_post_request(
         .unwrap()
 }
 
-pub async fn make_delete_request(app: Router, url: &str, user_id: Option<i32>) -> Response {
+pub async fn make_delete_request(app: Router, url: &str, user_id: Option<Uuid>) -> Response {
     let mut builder = Request::builder()
         .method("DELETE")
         .uri(url)

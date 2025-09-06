@@ -1,10 +1,12 @@
 use axum::http::StatusCode;
 use http_body_util::BodyExt;
+use models::domains::top_friends;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{json, Value};
 
 use utils::testing::{make_get_request, make_jwt_request, make_post_request};
 
-use crate::api::main::{login_user, setup};
+use crate::api::main::{create_user_with_password, login_user, setup};
 
 #[tokio::test]
 async fn test_post_users() {
@@ -18,7 +20,6 @@ async fn test_post_users() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(v["id"], 1);
     assert_eq!(v["username"], "test");
     assert!(v["display_name"].is_null());
 }
@@ -54,7 +55,6 @@ pub async fn test_get_users() {
     assert!(v["users"].is_array());
     let users_array = v["users"].as_array().unwrap();
     assert_eq!(users_array.len(), 1);
-    assert_eq!(users_array[0]["id"], 1);
     assert_eq!(users_array[0]["username"], "test");
 }
 
@@ -112,4 +112,74 @@ async fn test_me_endpoints() {
     let v_verify: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v_verify["display_name"], "Me User");
     assert_eq!(v_verify["bio"], "This is my updated bio.");
+}
+
+#[tokio::test]
+async fn test_update_me_top_friends() {
+    let app = setup().await;
+
+    // 1. Create users for the test
+    let user_me = create_user_with_password(&app.db, "me_user", "password123").await;
+    let friend1 = create_user_with_password(&app.db, "friend1", "password123").await;
+    let friend2 = create_user_with_password(&app.db, "friend2", "password123").await;
+    let _friend3 = create_user_with_password(&app.db, "friend3", "password123").await;
+
+    // 2. Log in as "me_user"
+    let token = login_user(app.router.clone(), "me_user", "password123").await;
+
+    // 3. Update profile to set top friends
+    let update_body = json!({
+        "top_friends": ["friend1", "friend2"]
+    })
+    .to_string();
+
+    let response = make_jwt_request(
+        app.router.clone(),
+        "/users/me",
+        "PUT",
+        Some(update_body),
+        &token,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 4. Verify the database state directly
+    let top_friends_list = top_friends::Entity::find()
+        .filter(top_friends::Column::UserId.eq(user_me.id))
+        .all(&app.db)
+        .await
+        .unwrap();
+
+    assert_eq!(top_friends_list.len(), 2);
+    assert_eq!(top_friends_list[0].friend_id, friend1.id);
+    assert_eq!(top_friends_list[0].position, 1);
+    assert_eq!(top_friends_list[1].friend_id, friend2.id);
+    assert_eq!(top_friends_list[1].position, 2);
+
+    // 5. Update again with a different list to test replacement
+    let update_body_2 = json!({
+        "top_friends": ["friend2"]
+    })
+    .to_string();
+
+    let response = make_jwt_request(
+        app.router.clone(),
+        "/users/me",
+        "PUT",
+        Some(update_body_2),
+        &token,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 6. Verify the new state
+    let top_friends_list_2 = top_friends::Entity::find()
+        .filter(top_friends::Column::UserId.eq(user_me.id))
+        .all(&app.db)
+        .await
+        .unwrap();
+
+    assert_eq!(top_friends_list_2.len(), 1);
+    assert_eq!(top_friends_list_2[0].friend_id, friend2.id);
+    assert_eq!(top_friends_list_2[0].position, 1);
 }

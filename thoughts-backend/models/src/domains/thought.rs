@@ -3,9 +3,9 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "thought")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub author_id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub author_id: Uuid,
     pub content: String,
     pub created_at: DateTimeWithTimeZone,
 }
@@ -20,11 +20,23 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     User,
+
+    #[sea_orm(has_many = "super::thought_tag::Entity")]
+    ThoughtTag,
 }
 
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def()
+    }
+}
+
+impl Related<super::tag::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::thought_tag::Relation::Tag.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::thought_tag::Relation::Thought.def().rev())
     }
 }
 

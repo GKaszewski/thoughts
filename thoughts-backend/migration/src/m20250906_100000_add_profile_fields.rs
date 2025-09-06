@@ -36,8 +36,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TopFriends::Table)
                     .if_not_exists()
-                    .col(integer(TopFriends::UserId).not_null())
-                    .col(integer(TopFriends::FriendId).not_null())
+                    .col(uuid(TopFriends::UserId).not_null())
+                    .col(uuid(TopFriends::FriendId).not_null())
                     .col(small_integer(TopFriends::Position).not_null())
                     .primary_key(
                         Index::create()

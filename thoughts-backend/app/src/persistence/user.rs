@@ -1,8 +1,9 @@
+use sea_orm::prelude::Uuid;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
 
-use models::domains::user;
+use models::domains::{top_friends, user};
 use models::params::user::{CreateUserParams, UpdateUserParams};
 use models::queries::user::UserQuery;
 
@@ -27,7 +28,7 @@ pub async fn search_users(db: &DbConn, query: UserQuery) -> Result<Vec<user::Mod
         .await
 }
 
-pub async fn get_user(db: &DbConn, id: i32) -> Result<Option<user::Model>, DbErr> {
+pub async fn get_user(db: &DbConn, id: Uuid) -> Result<Option<user::Model>, DbErr> {
     user::Entity::find_by_id(id).one(db).await
 }
 
@@ -41,7 +42,7 @@ pub async fn get_user_by_username(
         .await
 }
 
-pub async fn get_users_by_ids(db: &DbConn, ids: Vec<i32>) -> Result<Vec<user::Model>, DbErr> {
+pub async fn get_users_by_ids(db: &DbConn, ids: Vec<Uuid>) -> Result<Vec<user::Model>, DbErr> {
     user::Entity::find()
         .filter(user::Column::Id.is_in(ids))
         .all(db)
@@ -50,7 +51,7 @@ pub async fn get_users_by_ids(db: &DbConn, ids: Vec<i32>) -> Result<Vec<user::Mo
 
 pub async fn update_user_profile(
     db: &DbConn,
-    user_id: i32,
+    user_id: Uuid,
     params: UpdateUserParams,
 ) -> Result<user::Model, UserError> {
     let mut user: user::ActiveModel = get_user(db, user_id)
@@ -75,26 +76,47 @@ pub async fn update_user_profile(
         user.custom_css = Set(Some(custom_css));
     }
 
-    // This is a complex operation, so we use a transaction
     if let Some(friend_usernames) = params.top_friends {
         let txn = db
             .begin()
             .await
             .map_err(|e| UserError::Internal(e.to_string()))?;
 
-        // 1. Delete old top friends
-        // In a real app, you would create a `top_friends` entity and use it here.
-        // For now, we'll skip this to avoid creating the model.
+        top_friends::Entity::delete_many()
+            .filter(top_friends::Column::UserId.eq(user_id))
+            .exec(&txn)
+            .await
+            .map_err(|e| UserError::Internal(e.to_string()))?;
 
-        // 2. Find new friends by username
-        let _friends = user::Entity::find()
-            .filter(user::Column::Username.is_in(friend_usernames))
+        let friends = user::Entity::find()
+            .filter(user::Column::Username.is_in(friend_usernames.clone()))
             .all(&txn)
             .await
             .map_err(|e| UserError::Internal(e.to_string()))?;
 
-        // 3. Insert new friends
-        // This part would involve inserting into the `top_friends` table.
+        if friends.len() != friend_usernames.len() {
+            return Err(UserError::Validation(
+                "One or more usernames in top_friends do not exist".to_string(),
+            ));
+        }
+
+        let new_top_friends: Vec<top_friends::ActiveModel> = friends
+            .iter()
+            .enumerate()
+            .map(|(index, friend)| top_friends::ActiveModel {
+                user_id: Set(user_id),
+                friend_id: Set(friend.id),
+                position: Set((index + 1) as i16),
+                ..Default::default()
+            })
+            .collect();
+
+        if !new_top_friends.is_empty() {
+            top_friends::Entity::insert_many(new_top_friends)
+                .exec(&txn)
+                .await
+                .map_err(|e| UserError::Internal(e.to_string()))?;
+        }
 
         txn.commit()
             .await

@@ -5,6 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use sea_orm::prelude::Uuid;
 use serde_json::{json, Value};
 
 use app::persistence::{
@@ -201,7 +202,7 @@ async fn get_user_by_param(
     Path(param): Path<String>,
 ) -> Response {
     // First, try to handle it as a numeric ID.
-    if let Ok(id) = param.parse::<i32>() {
+    if let Ok(id) = param.parse::<Uuid>() {
         return match get_user(&state.conn, id).await {
             Ok(Some(user)) => Json(UserSchema::from(user)).into_response(),
             Ok(None) => ApiError::from(UserError::NotFound).into_response(),

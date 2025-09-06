@@ -13,8 +13,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Thought::Table)
                     .if_not_exists()
-                    .col(pk_auto(Thought::Id))
-                    .col(integer(Thought::AuthorId).not_null())
+                    .col(
+                        ColumnDef::new(Thought::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key()
+                            .default(Expr::cust("gen_random_uuid()")),
+                    )
+                    .col(uuid(Thought::AuthorId).not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_thought_author_id")
@@ -39,8 +45,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Follow::Table)
                     .if_not_exists()
-                    .col(integer(Follow::FollowerId).not_null())
-                    .col(integer(Follow::FollowedId).not_null())
+                    .col(uuid(Follow::FollowerId).not_null())
+                    .col(uuid(Follow::FollowedId).not_null())
                     // Composite Primary Key to ensure a user can only follow another once
                     .primary_key(
                         Index::create()
@@ -77,7 +83,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Thought {
+pub enum Thought {
     Table,
     Id,
     AuthorId,
@@ -86,7 +92,7 @@ enum Thought {
 }
 
 #[derive(DeriveIden)]
-enum Follow {
+pub enum Follow {
     Table,
     // The user who is initiating the follow
     FollowerId,

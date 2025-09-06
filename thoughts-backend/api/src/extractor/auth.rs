@@ -5,13 +5,14 @@ use axum::{
 
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use once_cell::sync::Lazy;
+use sea_orm::prelude::Uuid;
 use serde::{Deserialize, Serialize};
 
 use app::state::AppState;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: i32,
+    pub sub: Uuid,
     pub exp: usize,
 }
 
@@ -19,7 +20,7 @@ static JWT_SECRET: Lazy<String> =
     Lazy::new(|| std::env::var("AUTH_SECRET").expect("AUTH_SECRET must be set"));
 
 pub struct AuthUser {
-    pub id: i32,
+    pub id: Uuid,
 }
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -31,7 +32,7 @@ impl FromRequestParts<AppState> for AuthUser {
     ) -> Result<Self, Self::Rejection> {
         if let Some(user_id_header) = parts.headers.get("x-test-user-id") {
             let user_id_str = user_id_header.to_str().unwrap_or("0");
-            let user_id = user_id_str.parse::<i32>().unwrap_or(0);
+            let user_id = user_id_str.parse::<Uuid>().unwrap_or(Uuid::nil());
             return Ok(AuthUser { id: user_id });
         }
 

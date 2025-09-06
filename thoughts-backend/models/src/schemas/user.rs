@@ -1,12 +1,13 @@
 use common::DateTimeWithTimeZoneWrapper;
 use serde::Serialize;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::domains::user;
 
 #[derive(Serialize, ToSchema)]
 pub struct UserSchema {
-    pub id: i32,
+    pub id: Uuid,
     pub username: String,
     pub display_name: Option<String>,
     pub bio: Option<String>,

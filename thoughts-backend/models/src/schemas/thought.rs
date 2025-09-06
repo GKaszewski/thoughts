@@ -3,10 +3,11 @@ use common::DateTimeWithTimeZoneWrapper;
 use sea_orm::FromQueryResult;
 use serde::Serialize;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Serialize, ToSchema, FromQueryResult, Debug)]
 pub struct ThoughtSchema {
-    pub id: i32,
+    pub id: Uuid,
     #[schema(example = "frutiger")]
     pub author_username: String,
     #[schema(example = "This is my first thought! #welcome")]
@@ -38,10 +39,10 @@ impl From<Vec<ThoughtSchema>> for ThoughtListSchema {
 
 #[derive(Debug, FromQueryResult)]
 pub struct ThoughtWithAuthor {
-    pub id: i32,
+    pub id: Uuid,
     pub content: String,
     pub created_at: sea_orm::prelude::DateTimeWithTimeZone,
-    pub author_id: i32,
+    pub author_id: Uuid,
     pub author_username: String,
 }
 

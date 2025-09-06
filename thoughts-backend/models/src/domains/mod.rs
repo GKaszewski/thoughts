@@ -3,5 +3,8 @@
 pub mod prelude;
 
 pub mod follow;
+pub mod tag;
 pub mod thought;
+pub mod thought_tag;
+pub mod top_friends;
 pub mod user;

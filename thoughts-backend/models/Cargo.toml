@@ -17,6 +17,7 @@ sea-orm = { workspace = true, features = [
   "runtime-tokio-rustls",
   "macros",
 ] }
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
 validator = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true }
 

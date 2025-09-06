@@ -64,9 +64,9 @@ async fn test_user_actor_endpoint() {
 async fn test_user_inbox_follow() {
     let app = setup().await;
     // user1 will be followed
-    create_user_with_password(&app.db, "user1", "password123").await;
+    let user1 = create_user_with_password(&app.db, "user1", "password123").await;
     // user2 will be the follower
-    create_user_with_password(&app.db, "user2", "password123").await;
+    let user2 = create_user_with_password(&app.db, "user2", "password123").await;
 
     // Construct a follow activity from user2, targeting user1
     let follow_activity = json!({
@@ -90,16 +90,19 @@ async fn test_user_inbox_follow() {
     assert_eq!(response.status(), StatusCode::ACCEPTED);
 
     // Verify that user2 is now following user1 in the database
-    let followers = app::persistence::follow::get_followed_ids(&app.db, 2)
-        .await
-        .unwrap();
-    assert!(followers.contains(&1), "User2 should be following user1");
-
-    let following = app::persistence::follow::get_followed_ids(&app.db, 1)
+    let followers = app::persistence::follow::get_followed_ids(&app.db, user2.id)
         .await
         .unwrap();
     assert!(
-        !following.contains(&2),
+        followers.contains(&user1.id),
+        "User2 should be following user1"
+    );
+
+    let following = app::persistence::follow::get_followed_ids(&app.db, user1.id)
+        .await
+        .unwrap();
+    assert!(
+        !following.contains(&user2.id),
         "User1 should now be followed by user2"
     );
     assert!(following.is_empty(), "User1 should not be following anyone");

@@ -14,6 +14,5 @@ pub(super) async fn test_user(db: &DatabaseConnection) {
         .try_into_model() // Convert ActiveModel to Model for easier checks
         .unwrap();
 
-    assert_eq!(user_model.id, 1);
     assert_eq!(user_model.username, "test");
 }

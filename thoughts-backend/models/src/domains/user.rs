@@ -5,8 +5,8 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "user")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
     #[sea_orm(unique)]
     pub username: String,
     pub password_hash: Option<String>,
@@ -22,6 +22,12 @@ pub struct Model {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::thought::Entity")]
+    Thought,
+
+    #[sea_orm(has_many = "super::top_friends::Entity")]
+    TopFriends,
+}
 
 impl ActiveModelBehavior for ActiveModel {}

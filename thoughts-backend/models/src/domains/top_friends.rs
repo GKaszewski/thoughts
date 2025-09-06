@@ -1,37 +1,34 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "follow")]
+#[sea_orm(table_name = "top_friends")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub follower_id: Uuid,
+    pub user_id: Uuid,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub followed_id: Uuid,
+    pub friend_id: Uuid,
+    pub position: i16,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::FollowerId",
-        to = "super::user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
+        from = "Column::UserId",
+        to = "super::user::Column::Id"
     )]
-    Follower,
+    User,
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::FollowedId",
-        to = "super::user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
+        from = "Column::FriendId",
+        to = "super::user::Column::Id"
     )]
-    Followed,
+    Friend,
 }
 
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Follower.def()
+        Relation::User.def()
     }
 }
 

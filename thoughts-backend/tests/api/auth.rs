@@ -20,7 +20,6 @@ async fn test_auth_flow() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["username"], "testuser");
-    assert!(v["id"].is_number());
 
     let response = make_post_request(
         app.router.clone(),

@@ -1,8 +1,7 @@
 use api::setup_router;
-use app::persistence::user::create_user;
 use axum::Router;
 use http_body_util::BodyExt;
-use models::params::{auth::RegisterParams, user::CreateUserParams};
+use models::{domains::user, params::auth::RegisterParams};
 use sea_orm::DatabaseConnection;
 use serde_json::{json, Value};
 use utils::testing::{make_post_request, setup_test_db};
@@ -35,25 +34,18 @@ pub async fn setup() -> TestApp {
     TestApp { router, db }
 }
 
-// Helper to create users for tests
-pub async fn create_test_user(db: &DatabaseConnection, username: &str) {
-    let params = CreateUserParams {
-        username: username.to_string(),
-        password: "password".to_string(),
-    };
-    create_user(db, params)
-        .await
-        .expect("Failed to create test user");
-}
-
-pub async fn create_user_with_password(db: &DatabaseConnection, username: &str, password: &str) {
+pub async fn create_user_with_password(
+    db: &DatabaseConnection,
+    username: &str,
+    password: &str,
+) -> user::Model {
     let params = RegisterParams {
         username: username.to_string(),
         password: password.to_string(),
     };
     app::persistence::auth::register_user(db, params)
         .await
-        .expect("Failed to create test user with password");
+        .expect("Failed to create test user with password")
 }
 
 pub async fn login_user(router: Router, username: &str, password: &str) -> String {

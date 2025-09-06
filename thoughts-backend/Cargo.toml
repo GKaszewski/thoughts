@@ -17,11 +17,11 @@ members = ["api", "app", "doc", "models", "migration", "utils"]
 tower = { version = "0.5.2", default-features = false }
 axum = { version = "0.8.4", default-features = false }
 sea-orm = { version = "1.1.12" }
-sea-query = { version = "0.32.6" }                              # Added sea-query dependency
+sea-query = { version = "0.32.6" }                                      # Added sea-query dependency
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140", features = ["raw_value"] }
 tracing = "0.1.41"
-utoipa = { version = "5.4.0", features = ["macros", "chrono"] }
+utoipa = { version = "5.4.0", features = ["macros", "chrono", "uuid"] }
 validator = { version = "0.20.0", default-features = false }
 chrono = { version = "0.4.41", features = ["serde"] }
 tokio = { version = "1.45.1", features = ["full"] }

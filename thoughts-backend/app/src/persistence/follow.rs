@@ -1,11 +1,13 @@
-use sea_orm::{ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    prelude::Uuid, ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, Set,
+};
 
 use crate::{error::UserError, persistence::user::get_user_by_username};
 use models::domains::follow;
 
 pub async fn add_follower(
     db: &DbConn,
-    followed_id: i32,
+    followed_id: Uuid,
     follower_actor_id: &str,
 ) -> Result<(), UserError> {
     let follower_username = follower_actor_id
@@ -25,7 +27,7 @@ pub async fn add_follower(
     Ok(())
 }
 
-pub async fn follow_user(db: &DbConn, follower_id: i32, followed_id: i32) -> Result<(), DbErr> {
+pub async fn follow_user(db: &DbConn, follower_id: Uuid, followed_id: Uuid) -> Result<(), DbErr> {
     if follower_id == followed_id {
         return Err(DbErr::Custom("Users cannot follow themselves".to_string()));
     }
@@ -41,8 +43,8 @@ pub async fn follow_user(db: &DbConn, follower_id: i32, followed_id: i32) -> Res
 
 pub async fn unfollow_user(
     db: &DbConn,
-    follower_id: i32,
-    followed_id: i32,
+    follower_id: Uuid,
+    followed_id: Uuid,
 ) -> Result<(), UserError> {
     let deleted_result = follow::Entity::delete_many()
         .filter(follow::Column::FollowerId.eq(follower_id))
@@ -58,7 +60,7 @@ pub async fn unfollow_user(
     Ok(())
 }
 
-pub async fn get_followed_ids(db: &DbConn, user_id: i32) -> Result<Vec<i32>, DbErr> {
+pub async fn get_followed_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
     let followed_users = follow::Entity::find()
         .filter(follow::Column::FollowerId.eq(user_id))
         .all(db)
@@ -67,7 +69,7 @@ pub async fn get_followed_ids(db: &DbConn, user_id: i32) -> Result<Vec<i32>, DbE
     Ok(followed_users.into_iter().map(|f| f.followed_id).collect())
 }
 
-pub async fn get_follower_ids(db: &DbConn, user_id: i32) -> Result<Vec<i32>, DbErr> {
+pub async fn get_follower_ids(db: &DbConn, user_id: Uuid) -> Result<Vec<Uuid>, DbErr> {
     let followers = follow::Entity::find()
         .filter(follow::Column::FollowedId.eq(user_id))
         .all(db)

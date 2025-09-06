@@ -12,6 +12,7 @@ use app::{
     state::AppState,
 };
 use models::{params::thought::CreateThoughtParams, schemas::thought::ThoughtSchema};
+use sea_orm::prelude::Uuid;
 
 use crate::{
     error::ApiError,
@@ -74,7 +75,7 @@ async fn thoughts_post(
 async fn thoughts_delete(
     State(state): State<AppState>,
     auth_user: AuthUser,
-    Path(id): Path<i32>,
+    Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     let thought = get_thought(&state.conn, id)
         .await?
