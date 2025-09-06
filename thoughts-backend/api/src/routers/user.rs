@@ -19,9 +19,12 @@ use models::schemas::user::{UserListSchema, UserSchema};
 use models::{params::user::UpdateUserParams, schemas::thought::ThoughtListSchema};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
-use crate::extractor::{Json, Valid};
 use crate::models::ApiErrorResponse;
 use crate::{error::ApiError, extractor::AuthUser};
+use crate::{
+    extractor::{Json, Valid},
+    routers::api_key::create_api_key_router,
+};
 
 #[utoipa::path(
     get,
@@ -358,6 +361,7 @@ pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
         .route("/me", get(get_me).put(update_me))
+        .nest("/me/api-keys", create_api_key_router())
         .route("/{param}", get(get_user_by_param))
         .route("/{username}/thoughts", get(user_thoughts_get))
         .route(

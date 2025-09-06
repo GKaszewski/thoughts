@@ -25,7 +25,6 @@ async fn test_hashtag_flow() {
 
     // 3. Fetch thoughts by tag "rustlang"
     let response = make_get_request(app.router.clone(), "/tags/rustlang", Some(user.id)).await;
-    println!("Response: {:?}", response);
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let v: Value = serde_json::from_slice(&body_bytes).unwrap();

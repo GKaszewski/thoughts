@@ -183,3 +183,56 @@ async fn test_update_me_top_friends() {
     assert_eq!(top_friends_list_2[0].friend_id, friend2.id);
     assert_eq!(top_friends_list_2[0].position, 1);
 }
+
+#[tokio::test]
+async fn test_update_me_css_and_images() {
+    let app = setup().await;
+
+    // 1. Create and log in as a user
+    let _ = create_user_with_password(&app.db, "css_user", "password123").await;
+    let token = login_user(app.router.clone(), "css_user", "password123").await;
+
+    // 2. Attempt to update with an invalid avatar URL
+    let invalid_body = json!({
+        "avatar_url": "not-a-valid-url"
+    })
+    .to_string();
+
+    let response = make_jwt_request(
+        app.router.clone(),
+        "/users/me",
+        "PUT",
+        Some(invalid_body),
+        &token,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // 3. Update profile with valid URLs and custom CSS
+    let valid_body = json!({
+        "avatar_url": "https://example.com/new-avatar.png",
+        "header_url": "https://example.com/new-header.jpg",
+        "custom_css": "body { color: blue; }"
+    })
+    .to_string();
+
+    let response = make_jwt_request(
+        app.router.clone(),
+        "/users/me",
+        "PUT",
+        Some(valid_body),
+        &token,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 4. Verify the changes were persisted by fetching the profile again
+    let response = make_jwt_request(app.router.clone(), "/users/me", "GET", None, &token).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(v["avatar_url"], "https://example.com/new-avatar.png");
+    assert_eq!(v["header_url"], "https://example.com/new-header.jpg");
+    assert_eq!(v["custom_css"], "body { color: blue; }");
+}

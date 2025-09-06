@@ -28,6 +28,9 @@ pub enum Relation {
 
     #[sea_orm(has_many = "super::top_friends::Entity")]
     TopFriends,
+
+    #[sea_orm(has_many = "super::api_key::Entity")]
+    ApiKey,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

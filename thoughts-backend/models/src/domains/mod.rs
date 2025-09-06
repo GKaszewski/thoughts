@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod api_key;
 pub mod follow;
 pub mod tag;
 pub mod thought;

@@ -19,17 +19,11 @@ async fn get_thoughts_by_tag(
     Path(tag_name): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let thoughts_with_authors = get_thoughts_by_tag_name(&state.conn, &tag_name).await;
-    println!(
-        "Result from get_thoughts_by_tag_name: {:?}",
-        thoughts_with_authors
-    );
     let thoughts_with_authors = thoughts_with_authors?;
-    println!("Thoughts with authors: {:?}", thoughts_with_authors);
     let thoughts_schema: Vec<ThoughtSchema> = thoughts_with_authors
         .into_iter()
         .map(ThoughtSchema::from)
         .collect();
-    println!("Thoughts schema: {:?}", thoughts_schema);
     Ok(Json(ThoughtListSchema::from(thoughts_schema)))
 }
 

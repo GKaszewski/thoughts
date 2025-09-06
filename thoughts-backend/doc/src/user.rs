@@ -19,7 +19,7 @@ use models::schemas::{
         user_inbox_post,
         user_outbox_get,
         get_me,
-        update_me
+        update_me,
     ),
     components(schemas(
         CreateUserParams,

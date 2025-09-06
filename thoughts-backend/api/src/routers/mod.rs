@@ -1,5 +1,6 @@
 use axum::Router;
 
+pub mod api_key;
 pub mod auth;
 pub mod feed;
 pub mod root;
