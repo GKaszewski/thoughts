@@ -12,11 +12,14 @@ use uuid::Uuid;
 pub struct ThoughtSchema {
     pub id: Uuid,
     #[schema(example = "frutiger")]
+    #[serde(rename = "authorUsername")]
     pub author_username: String,
     #[schema(example = "This is my first thought! #welcome")]
     pub content: String,
     pub visibility: Visibility,
+    #[serde(rename = "replyToId")]
     pub reply_to_id: Option<Uuid>,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTimeWithTimeZoneWrapper,
 }
 

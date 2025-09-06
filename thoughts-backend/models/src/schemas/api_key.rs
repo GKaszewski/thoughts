@@ -17,7 +17,7 @@ pub struct ApiKeyResponse {
     #[serde(flatten)]
     pub key: ApiKeySchema,
     /// The full plaintext API key. This is only returned on creation.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "plaintextKey")]
     pub plaintext_key: Option<String>,
 }
 
