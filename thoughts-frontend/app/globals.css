@@ -42,6 +42,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  --background-start: var(--color-sky-blue);
+  --background-end: var(--color-lime-300);
+
   /* Frutiger Aero Gradients */
   --gradient-fa-blue: 135deg, hsl(217 91% 60%) 0%, hsl(200 90% 70%) 100%;
   --gradient-fa-green: 135deg, hsl(155 70% 55%) 0%, hsl(170 80% 65%) 100%;
@@ -59,6 +62,8 @@
   --text-shadow-sm: 0 1px 0px rgba(255, 255, 255, 0.4);
   --text-shadow-md: 0 2px 2px rgba(0, 0, 0, 0.2);
   --text-shadow-lg: 0 4px 4px rgba(0, 0, 0, 0.2);
+
+  --font-display: var(--font-frutiger), "Arial", "Helvetica", "sans-serif";
 }
 
 :root {
@@ -178,12 +183,11 @@
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--background)) 70%,
-      hsl(var(--primary) / 0.1) 100%
-    );
+    background-image: url("/background.jpeg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   .glossy-effect::before {
@@ -258,6 +262,51 @@
       0deg,
       rgba(0, 0, 0, 0.1) 0%,
       rgba(0, 0, 0, 0) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+@layer components {
+  .shadow-fa-sm {
+    box-shadow: var(--shadow-fa-sm), var(--fa-inner);
+  }
+  .shadow-fa-md {
+    box-shadow: var(--shadow-fa-md), var(--fa-inner);
+  }
+  .shadow-fa-lg {
+    box-shadow: var(--shadow-fa-lg), var(--fa-inner);
+  }
+  .text-shadow-default {
+    text-shadow: var(--text-shadow-default);
+  }
+  .text-shadow-sm {
+    text-shadow: var(--text-shadow-sm);
+  }
+  .text-shadow-md {
+    text-shadow: var(--text-shadow-md);
+  }
+  .text-shadow-lg {
+    text-shadow: var(--text-shadow-lg);
+  }
+
+  .glass-effect {
+    @apply bg-card/70 backdrop-blur-lg border border-white/20 shadow-fa-lg;
+  }
+
+  .gloss-highlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    border-radius: inherit; /* This is key for matching the parent's border radius */
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0) 100%
     );
     pointer-events: none;
     z-index: 1;

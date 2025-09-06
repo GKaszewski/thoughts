@@ -76,26 +76,36 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   authorDetails.set(user.username, { avatarUrl: user.avatarUrl });
 
   return (
-    <div>
+    <div id={`profile-page-${user.username}`}>
       {user.customCss && (
         <style dangerouslySetInnerHTML={{ __html: user.customCss }} />
       )}
 
       <div
+        id="profile-header"
         className="h-48 bg-gray-200 bg-cover bg-center profile-header"
         style={{
           backgroundImage: user.headerUrl ? `url(${user.headerUrl})` : "none",
         }}
       />
 
-      <main className="container mx-auto max-w-6xl p-4 -mt-16 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <main
+        id="main-container"
+        className="container mx-auto max-w-6xl p-4 -mt-16 grid grid-cols-1 lg:grid-cols-4 gap-8"
+      >
         {/* Left Sidebar (Profile Card & Top Friends) */}
-        <aside className="col-span-1 lg:col-span-1 space-y-6">
-          <div className="sticky top-20 space-y-6">
-            <Card className="p-6 bg-card/80 backdrop-blur-lg">
-              <div className="flex justify-between items-start">
-                <div className="flex items-end gap-4">
-                  <div className="w-24 h-24 rounded-full border-4 border-background shrink-0">
+        <aside id="left-sidebar" className="col-span-1 lg:col-span-1 space-y-6">
+          <div id="left-sidebar__inner" className="sticky top-20 space-y-6">
+            <Card id="profile-card" className="p-6 bg-card/80 backdrop-blur-lg">
+              <div
+                id="profile-card__inner"
+                className="flex justify-between items-start"
+              >
+                <div id="profile-card__avatar" className="flex items-end gap-4">
+                  <div
+                    id="profile-card__avatar-image"
+                    className="w-24 h-24 rounded-full border-4 border-background shrink-0"
+                  >
                     <UserAvatar
                       src={user.avatarUrl}
                       alt={user.displayName}
@@ -104,7 +114,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   </div>
                 </div>
                 {/* Action Button */}
-                <div>
+                <div id="profile-card__action">
                   {isOwnProfile ? (
                     <Button asChild variant="outline" size="sm">
                       <Link href="/settings/profile">
@@ -120,19 +130,30 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <h1 className="text-2xl font-bold">
+              <div id="profile-card__info" className="mt-4">
+                <h1 id="profile-card__name" className="text-2xl font-bold">
                   {user.displayName || user.username}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p
+                  id="profile-card__username"
+                  className="text-sm text-muted-foreground"
+                >
                   @{user.username}
                 </p>
               </div>
 
-              <p className="mt-4 text-sm whitespace-pre-wrap">{user.bio}</p>
+              <p
+                id="profile-card__bio"
+                className="mt-4 text-sm whitespace-pre-wrap"
+              >
+                {user.bio}
+              </p>
 
               {isOwnProfile && (
-                <div className="flex items-center gap-4 mt-4 text-sm">
+                <div
+                  id="profile-card__stats"
+                  className="flex items-center gap-4 mt-4 text-sm"
+                >
                   <Link
                     href={`/users/${user.username}/following`}
                     className="hover:underline"
@@ -154,7 +175,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+              <div
+                id="profile-card__joined"
+                className="flex items-center gap-2 mt-4 text-sm text-muted-foreground"
+              >
                 <Calendar className="h-4 w-4" />
                 <span>
                   Joined {new Date(user.joinedAt).toLocaleDateString()}
@@ -166,7 +190,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </aside>
 
-        <div className="col-span-1 lg:col-span-3 space-y-4">
+        <div
+          id="profile-card__thoughts"
+          className="col-span-1 lg:col-span-3 space-y-4"
+        >
           {topLevelThoughts.map((thought) => (
             <ThoughtThread
               key={thought.id}
@@ -177,7 +204,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             />
           ))}
           {topLevelThoughts.length === 0 && (
-            <Card className="flex items-center justify-center h-48">
+            <Card
+              id="profile-card__no-thoughts"
+              className="flex items-center justify-center h-48"
+            >
               <p className="text-center text-muted-foreground">
                 This user hasn&apos;t posted any public thoughts yet.
               </p>

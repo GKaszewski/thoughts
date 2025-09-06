@@ -11,12 +11,13 @@ const buttonVariants = cva(
       variant: {
         // Default button gets blue gradient, gloss, and shadows
         default:
-          "fa-gradient-blue text-primary-foreground shadow-fa-md hover:bg-primary/90 active:shadow-fa-inner transition-transform active:scale-[0.98] glossy-effect",
+          "glass-effect fa-gradient-blue text-primary-foreground shadow-fa-md hover:bg-primary/90 active:shadow-fa-inner transition-transform active:scale-[0.98] glossy-effect",
         // Secondary gets green gradient
         secondary:
-          "fa-gradient-green text-secondary-foreground shadow-fa-md hover:bg-secondary/90 active:shadow-fa-inner transition-transform active:scale-[0.98] glossy-effect",
+          "glass-effect fa-gradient-green text-secondary-foreground shadow-fa-md hover:bg-secondary/90 active:shadow-fa-inner transition-transform active:scale-[0.98] glossy-effect",
         // Ghost and Link should be more subtle
-        ghost: "hover:bg-accent hover:text-accent-foreground rounded-lg", // Keep them simple, maybe a slight blur/gloss on hover
+        ghost:
+          "glass-effect hover:bg-accent hover:text-accent-foreground rounded-lg", // Keep them simple, maybe a slight blur/gloss on hover
         link: "text-primary underline-offset-4 hover:underline",
         // Outline button for a transparent-ish, glassy feel
         outline:

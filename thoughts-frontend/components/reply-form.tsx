@@ -55,7 +55,7 @@ export function ReplyForm({ parentThoughtId, onReplySuccess }: ReplyFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 pt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 p-4">
         <FormField
           control={form.control}
           name="content"
@@ -64,7 +64,7 @@ export function ReplyForm({ parentThoughtId, onReplySuccess }: ReplyFormProps) {
               <FormControl>
                 <Textarea
                   placeholder="Post your reply..."
-                  className="resize-none"
+                  className="resize-none bg-white glass-effect glossy-efect bottom shadow-fa-sm"
                   {...field}
                 />
               </FormControl>

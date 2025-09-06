@@ -85,8 +85,10 @@ export function ThoughtCard({
       <div
         id={thought.id}
         className={cn(
-          "bg-card/70 backdrop-blur-lg shadow-fa-md rounded-xl overflow-hidden glossy-effect bottom",
-          isReply ? "backdrop-blur-sm shadow-fa-sm p-2" : ""
+          "bg-transparent backdrop-blur-lg shadow-fa-md rounded-xl overflow-hidden glossy-effect bottom",
+          isReply
+            ? "bg-white/80 glass-effect glossy-effect bottom shadow-fa-sm p-2"
+            : ""
         )}
       >
         {thought.replyToId && isReply && (
@@ -163,7 +165,7 @@ export function ThoughtCard({
         )}
 
         {isReplyOpen && (
-          <div className="border-t p-4 border-border/50 bg-background/50 backdrop-blur-sm">
+          <div className="border-t m-4 rounded-2xl border-border/50 bg-secondary/20 ">
             <ReplyForm
               parentThoughtId={thought.id}
               onReplySuccess={() => setIsReplyOpen(false)}

@@ -40,19 +40,25 @@ export async function TopFriends({ usernames }: TopFriendsProps) {
     .map((result) => result.value);
 
   return (
-    <Card className="p-4">
-      <CardHeader className="p-0 pb-2">
-        <CardTitle className="text-lg text-shadow-md">Top Friends</CardTitle>
+    <Card id="top-friends" className="p-4">
+      <CardHeader id="top-friends__header" className="p-0 pb-2">
+        <CardTitle id="top-friends__title" className="text-lg text-shadow-md">
+          Top Friends
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent id="top-friends__content" className="p-0">
         {friends.map((friend) => (
           <Link
+            id={`top-friends__link-${friend.id}`}
             href={`/users/${friend.username}`}
             key={friend.id}
             className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-accent/50 transition-colors"
           >
             <UserAvatar src={friend.avatarUrl} alt={friend.username} />
-            <span className="text-xs truncate w-full group-hover:underline font-medium text-shadow-sm">
+            <span
+              id={`top-friends__name-${friend.id}`}
+              className="text-xs truncate w-full group-hover:underline font-medium text-shadow-sm"
+            >
               {friend.displayName || friend.username}
             </span>
           </Link>

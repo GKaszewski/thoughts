@@ -25,7 +25,7 @@ export function ThoughtThread({
   const directReplies = repliesByParentId.get(thought.id) || [];
 
   return (
-    <div className="flex flex-col gap-0">
+    <div id={`thought-thread-${thought.id}`} className="flex flex-col gap-0">
       <ThoughtCard
         thought={thought}
         author={author}
@@ -34,7 +34,10 @@ export function ThoughtThread({
       />
 
       {directReplies.length > 0 && (
-        <div className="pl-6 border-l-2 border-primary/30 border-dashed ml-6 flex flex-col gap-4 pt-4">
+        <div
+          id={`thought-thread-${thought.id}__replies`}
+          className="pl-6 border-l-2 border-primary border-dashed ml-6 flex flex-col gap-4 pt-4"
+        >
           {directReplies.map((reply) => (
             <ThoughtThread // RECURSIVE CALL
               key={reply.id}

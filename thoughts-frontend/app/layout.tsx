@@ -4,21 +4,28 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/header";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import localFont from "next/font/local";
 
 export const metadata: Metadata = {
   title: "Thoughts",
   description: "A social network for sharing thoughts",
 };
+
+const frutiger = localFont({
+  src: [
+    {
+      path: "./frutiger.woff",
+      weight: "normal",
+      style: "normal",
+    },
+    {
+      path: "./frutiger-bold.woff",
+      weight: "bold",
+      style: "normal",
+    },
+  ],
+  variable: "--font-frutiger",
+});
 
 export default function RootLayout({
   children,
@@ -27,9 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${frutiger.className} antialiased`}>
         <AuthProvider>
           <Header />
           <main className="flex-1">{children}</main>

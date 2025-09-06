@@ -51,7 +51,7 @@ async function FeedPage({ token }: { token: string }) {
 
         <main className="col-span-1 lg:col-span-2 space-y-6">
           <header className="mb-6">
-            <h1 className="text-3xl font-bold">Your Feed</h1>
+            <h1 className="text-3xl font-bold text-shadow-sm">Your Feed</h1>
           </header>
           <PostThoughtForm />
           <div className="space-y-6">

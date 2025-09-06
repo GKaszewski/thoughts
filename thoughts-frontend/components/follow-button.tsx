@@ -50,6 +50,7 @@ export function FollowButton({
       onClick={handleClick}
       disabled={isLoading}
       variant={isFollowing ? "secondary" : "default"}
+      data-following={isFollowing}
     >
       {isFollowing ? (
         <>

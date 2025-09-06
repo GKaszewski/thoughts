@@ -10,7 +10,7 @@ export function Header() {
   const { token } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 flex justify-center w-full border-b border-primary/20 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 glossy-effect bottom">
+    <header className="sticky top-0 z-50 flex justify-center w-full border-b border-primary/20 bg-background/80 glass-effect glossy-effect bottom rounded-none">
       <div className="container flex h-14 items-center px-2">
         <div className="flex gap-2">
           <Link href="/" className="flex items-center gap-1">
