@@ -5,6 +5,7 @@ import { ThoughtCard } from "@/components/thought-card";
 import { PostThoughtForm } from "@/components/post-thought-form";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { PopularTags } from "@/components/popular-tags";
 
 // This is now an async Server Component
 export default async function Home() {
@@ -31,11 +32,11 @@ async function FeedPage({ token }: { token: string }) {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl p-4 sm:p-6">
-      <header className="my-6">
-        <h1 className="text-3xl font-bold">Your Feed</h1>
-      </header>
-      <main className="space-y-6">
+    <div className="container mx-auto max-w-4xl p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <main className="md:col-span-2 space-y-6">
+        <header className="my-6">
+          <h1 className="text-3xl font-bold">Your Feed</h1>
+        </header>
         <PostThoughtForm />
         {feedData.thoughts.map((thought) => (
           <ThoughtCard
@@ -53,6 +54,9 @@ async function FeedPage({ token }: { token: string }) {
           </p>
         )}
       </main>
+      <aside className="md:col-span-1 space-y-6 pt-20">
+        <PopularTags />
+      </aside>
     </div>
   );
 }

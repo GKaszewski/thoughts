@@ -155,3 +155,10 @@ export const unfollowUser = (username: string, token: string) =>
 
   export const getMe = (token: string) =>
   apiFetch("/users/me", {}, MeSchema, token);
+
+  export const getPopularTags = () =>
+  apiFetch(
+    "/tags/popular",
+    {},
+    z.array(z.string()) // Expect an array of strings
+  );
