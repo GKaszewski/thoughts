@@ -9,12 +9,18 @@ use crate::domains::user;
 pub struct UserSchema {
     pub id: Uuid,
     pub username: String,
+    #[serde(rename = "displayName")]
     pub display_name: Option<String>,
     pub bio: Option<String>,
+    #[serde(rename = "avatarUrl")]
     pub avatar_url: Option<String>,
+    #[serde(rename = "headerUrl")]
     pub header_url: Option<String>,
+    #[serde(rename = "customCss")]
     pub custom_css: Option<String>,
+    #[serde(rename = "topFriends")]
     pub top_friends: Vec<String>,
+    #[serde(rename = "joinedAt")]
     pub joined_at: DateTimeWithTimeZoneWrapper,
 }
 
