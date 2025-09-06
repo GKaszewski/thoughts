@@ -225,3 +225,11 @@ export const getFollowersList = (username: string, token: string | null) =>
     z.object({ users: z.array(UserSchema) }),
     token
   );
+
+  export const getFriends = (token: string) =>
+  apiFetch(
+    "/friends",
+    {},
+    z.object({ users: z.array(UserSchema) }),
+    token
+  );

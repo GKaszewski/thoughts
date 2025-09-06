@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TopFriendsCombobox } from "@/components/top-friends-combobox";
 
 interface EditProfileFormProps {
   currentUser: Me;
@@ -47,9 +48,8 @@ export function EditProfileForm({ currentUser }: EditProfileFormProps) {
     try {
       await updateProfile(values, token);
       toast.success("Profile updated successfully!");
-      // Redirect to the profile page to see the changes
       router.push(`/users/${currentUser.username}`);
-      router.refresh(); // Ensure fresh data is loaded
+      router.refresh();
     } catch (err) {
       toast.error(`Failed to update profile. ${err}`);
     }
@@ -139,21 +139,16 @@ export function EditProfileForm({ currentUser }: EditProfileFormProps) {
               name="topFriends"
               control={form.control}
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Top Friends</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="username1, username2, ..."
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value.split(",").map((s) => s.trim())
-                        )
-                      }
+                    <TopFriendsCombobox
+                      value={field.value || []}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormDescription>
-                    A comma-separated list of usernames.
+                    Select up to 8 of your friends to display on your profile.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

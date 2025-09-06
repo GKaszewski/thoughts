@@ -112,14 +112,14 @@ export function ThoughtCard({
               <span className="text-sm text-muted-foreground">{timeAgo}</span>
             </div>
           </Link>
-          {isAuthor && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 rounded-full hover:bg-accent">
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-full hover:bg-accent">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {isAuthor && (
                 <DropdownMenuItem
                   className="text-destructive"
                   onSelect={() => setIsAlertOpen(true)}
@@ -127,9 +127,15 @@ export function ThoughtCard({
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+              )}
+              <DropdownMenuItem>
+                <Link href={`/thoughts/${thought.id}`} className="flex gap-2">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  View
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardHeader>
         <CardContent>
           <p className="whitespace-pre-wrap break-words">{thought.content}</p>
