@@ -5,11 +5,14 @@ import { getUserProfile, User } from "@/lib/api";
 import { cookies } from "next/headers";
 
 interface TopFriendsProps {
+  mode: "friends" | "top-friends";
   usernames: string[];
 }
 
-// This is an async Server Component
-export async function TopFriends({ usernames }: TopFriendsProps) {
+export async function TopFriends({
+  mode = "top-friends",
+  usernames,
+}: TopFriendsProps) {
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   if (usernames.length === 0) {
@@ -27,7 +30,6 @@ export async function TopFriends({ usernames }: TopFriendsProps) {
     );
   }
 
-  // Fetch all top friend profiles in parallel
   const friendsResults = await Promise.allSettled(
     usernames.map((username) => getUserProfile(username, token))
   );
@@ -43,7 +45,7 @@ export async function TopFriends({ usernames }: TopFriendsProps) {
     <Card id="top-friends" className="p-4">
       <CardHeader id="top-friends__header" className="p-0 pb-2">
         <CardTitle id="top-friends__title" className="text-lg text-shadow-md">
-          Top Friends
+          {mode === "top-friends" ? "Top Friends" : "Friends"}
         </CardTitle>
       </CardHeader>
       <CardContent id="top-friends__content" className="p-0">

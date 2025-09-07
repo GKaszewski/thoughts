@@ -1,6 +1,7 @@
 import {
   getFollowersList,
   getFollowingList,
+  getFriends,
   getMe,
   getUserProfile,
   getUserThoughts,
@@ -74,6 +75,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const authorDetails = new Map<string, { avatarUrl?: string | null }>();
   authorDetails.set(user.username, { avatarUrl: user.avatarUrl });
+
+  const friends =
+    typeof token === "string"
+      ? (await getFriends(token)).users.map((user) => user.username)
+      : [];
+
+  const shouldDisplayTopFriends = token && friends.length > 8;
 
   return (
     <div id={`profile-page-${user.username}`}>
@@ -186,7 +194,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </Card>
 
-            <TopFriends usernames={user.topFriends} />
+            {shouldDisplayTopFriends && (
+              <TopFriends mode="top-friends" usernames={user.topFriends} />
+            )}
+            {token && <TopFriends mode="friends" usernames={friends || []} />}
           </div>
         </aside>
 

@@ -1,5 +1,12 @@
 import { cookies } from "next/headers";
-import { getFeed, getMe, getUserProfile, Me, User } from "@/lib/api";
+import {
+  getFeed,
+  getFriends,
+  getMe,
+  getUserProfile,
+  Me,
+  User,
+} from "@/lib/api";
 import { PostThoughtForm } from "@/components/post-thought-form";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -39,11 +46,14 @@ async function FeedPage({ token }: { token: string }) {
     feedData.thoughts
   );
 
+  const friends = (await getFriends(token)).users.map((user) => user.username);
+  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 8;
+
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="hidden lg:block lg:col-span-1">
-          <div className="sticky top-20 space-y-6">
+          <div className="sticky top-20 space-y-6 glass-effect glossy-effect bottom rounded-md p-4">
             <h2 className="text-lg font-semibold">Filters & Sorting</h2>
             <p className="text-sm text-muted-foreground">Coming soon...</p>
           </div>
@@ -74,8 +84,11 @@ async function FeedPage({ token }: { token: string }) {
 
         <aside className="hidden lg:block lg:col-span-1">
           <div className="sticky top-20 space-y-6">
-            {me?.topFriends && <TopFriends usernames={me.topFriends} />}
+            {shouldDisplayTopFriends && (
+              <TopFriends mode="top-friends" usernames={me.topFriends} />
+            )}
             <PopularTags />
+            {token && <TopFriends mode="friends" usernames={friends || []} />}
           </div>
         </aside>
       </div>

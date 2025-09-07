@@ -53,7 +53,7 @@ export const CreateThoughtSchema = z.object({
 
 export const UpdateProfileSchema = z.object({
   displayName: z.string().max(50).optional(),
-  bio: z.string().max(160).optional(),
+  bio: z.string().max(4000).optional(),
   avatarUrl: z.url().or(z.literal("")).optional(),
   headerUrl: z.url().or(z.literal("")).optional(),
   customCss: z.string().optional(),

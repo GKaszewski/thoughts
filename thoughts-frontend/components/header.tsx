@@ -25,7 +25,7 @@ export function Header() {
             <UserNav />
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild size="sm">
                 <Link href="/login">Login</Link>
               </Button>
               <Button asChild size="sm">
