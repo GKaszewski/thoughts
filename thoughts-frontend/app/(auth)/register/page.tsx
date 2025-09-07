@@ -40,7 +40,7 @@ export default function RegisterPage() {
       await registerUser(values);
       // You can automatically log the user in here or just redirect them
       router.push("/login");
-    } catch (err) {
+    } catch {
       setError("Username or email may already be taken.");
     }
   }

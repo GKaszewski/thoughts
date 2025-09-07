@@ -42,7 +42,7 @@ export default function LoginPage() {
       const { token } = await loginUser(values);
       setToken(token);
       router.push("/"); // Redirect to homepage on successful login
-    } catch (err) {
+    } catch {
       setError("Invalid username or password.");
     }
   }

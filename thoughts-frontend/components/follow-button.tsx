@@ -36,7 +36,7 @@ export function FollowButton({
       setIsFollowing(!isFollowing);
       await action(username, token);
       router.refresh(); // Re-fetch server component data to get the latest follower count etc.
-    } catch (err) {
+    } catch {
       // Revert on error
       setIsFollowing(isFollowing);
       toast.error(`Failed to ${isFollowing ? "unfollow" : "follow"} user.`);

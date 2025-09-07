@@ -4,6 +4,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/header";
 import localFont from "next/font/local";
+import InstallPrompt from "@/components/install-prompt";
 
 export const metadata: Metadata = {
   title: "Thoughts",
@@ -37,6 +38,7 @@ export default function RootLayout({
         <AuthProvider>
           <Header />
           <main className="flex-1">{children}</main>
+          <InstallPrompt />
           <Toaster />
         </AuthProvider>
       </body>

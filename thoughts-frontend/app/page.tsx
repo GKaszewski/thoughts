@@ -14,6 +14,7 @@ import { PopularTags } from "@/components/popular-tags";
 import { ThoughtThread } from "@/components/thought-thread";
 import { buildThoughtThreads } from "@/lib/utils";
 import { TopFriends } from "@/components/top-friends";
+import InstallPrompt from "@/components/install-prompt";
 
 export default async function Home() {
   const token = (await cookies()).get("auth_token")?.value ?? null;
@@ -101,26 +102,28 @@ async function FeedPage({ token }: { token: string }) {
 
 function LandingPage() {
   return (
-    <div className="font-sans min-h-screen text-gray-800 flex items-center justify-center">
-      <div className="container mx-auto max-w-2xl p-4 sm:p-6 text-center glass-effect glossy-effect bottom rounded-md shadow-fa-lg">
-        <h1
-          className="text-5xl font-bold"
-          style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}
-        >
-          Welcome to Thoughts
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Throwback to the golden age of microblogging.
-        </p>
-        <div className="mt-8 flex justify-center gap-4">
-          <Button asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button variant="secondary" asChild>
-            <Link href="/register">Register</Link>
-          </Button>
+    <>
+      <div className="font-sans min-h-screen text-gray-800 flex items-center justify-center">
+        <div className="container mx-auto max-w-2xl p-4 sm:p-6 text-center glass-effect glossy-effect bottom rounded-md shadow-fa-lg">
+          <h1
+            className="text-5xl font-bold"
+            style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}
+          >
+            Welcome to Thoughts
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Throwback to the golden age of microblogging.
+          </p>
+          <div className="mt-8 flex justify-center gap-4">
+            <Button asChild>
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button variant="secondary" asChild>
+              <Link href="/register">Register</Link>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
