@@ -8,7 +8,7 @@ import { SearchInput } from "./search-input";
 export function MainNav() {
   const pathname = usePathname();
   return (
-    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+    <nav className="inline-flex md:flex items-center space-x-6 text-sm font-medium">
       <Link
         href="/"
         className={cn(

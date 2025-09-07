@@ -63,6 +63,11 @@ async function FeedPage({ token }: { token: string }) {
             <h1 className="text-3xl font-bold text-shadow-sm">Your Feed</h1>
           </header>
           <PostThoughtForm />
+
+          <div className="block lg:hidden space-y-6">
+            <PopularTags />
+          </div>
+
           <div className="space-y-6">
             {thoughtThreads.map((thought) => (
               <ThoughtThread
@@ -97,7 +102,7 @@ async function FeedPage({ token }: { token: string }) {
 function LandingPage() {
   return (
     <div className="font-sans min-h-screen text-gray-800 flex items-center justify-center">
-      <div className="container mx-auto max-w-2xl p-4 sm:p-6 text-center">
+      <div className="container mx-auto max-w-2xl p-4 sm:p-6 text-center glass-effect glossy-effect bottom rounded-md shadow-fa-lg">
         <h1
           className="text-5xl font-bold"
           style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}
@@ -105,7 +110,7 @@ function LandingPage() {
           Welcome to Thoughts
         </h1>
         <p className="text-muted-foreground mt-2">
-          Your space on the decentralized web.
+          Throwback to the golden age of microblogging.
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Button asChild>
