@@ -6,28 +6,8 @@ use utoipa::{
 use utoipa_scalar::{Scalar, Servable as ScalarServable};
 use utoipa_swagger_ui::SwaggerUi;
 
-mod api_key;
-mod auth;
-mod feed;
-mod friends;
-mod root;
-mod search;
-mod tag;
-mod thought;
-mod user;
 #[derive(OpenApi)]
 #[openapi(
-    nest(
-        (path = "/", api = root::RootApi),
-        (path = "/auth", api = auth::AuthApi),
-        (path = "/users", api = user::UserApi),
-        (path = "/users/me/api-keys", api = api_key::ApiKeyApi),
-        (path = "/thoughts", api = thought::ThoughtApi),
-        (path = "/feed", api = feed::FeedApi),
-        (path = "/tags", api = tag::TagApi),
-        (path = "/friends", api = friends::FriendsApi),
-        (path = "/search", api = search::SearchApi),
-    ),
     tags(
         (name = "root", description = "Root API"),
         (name = "auth", description = "Authentication API"),
@@ -57,12 +37,14 @@ impl Modify for SecurityAddon {
     }
 }
 
-pub trait ApiDoc {
+pub trait ApiDocExt {
     fn attach_doc(self) -> Self;
 }
 
-impl ApiDoc for Router {
+impl ApiDocExt for Router {
     fn attach_doc(self) -> Self {
+        tracing::info!("Attaching API documentation");
+
         self.merge(SwaggerUi::new("/docs").url("/openapi.json", _ApiDoc::openapi()))
             .merge(Scalar::with_url("/scalar", _ApiDoc::openapi()))
     }

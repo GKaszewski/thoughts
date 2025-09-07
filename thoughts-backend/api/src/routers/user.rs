@@ -345,10 +345,17 @@ async fn get_me(
     let following = get_following(&state.conn, auth_user.id).await?;
 
     let response = MeSchema {
-        user: UserSchema::from((user, top_friends)),
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        bio: user.bio,
+        avatar_url: user.avatar_url,
+        header_url: user.header_url,
+        custom_css: user.custom_css,
+        top_friends: top_friends.into_iter().map(|u| u.username).collect(),
+        joined_at: user.created_at.into(),
         following: following.into_iter().map(UserSchema::from).collect(),
     };
-
     Ok(axum::Json(response))
 }
 

@@ -8,18 +8,16 @@ use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Serialize, ToSchema, FromQueryResult, Debug)]
+#[derive(Serialize, ToSchema, FromQueryResult, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ThoughtSchema {
     pub id: Uuid,
     #[schema(example = "frutiger")]
-    #[serde(rename = "authorUsername")]
     pub author_username: String,
     #[schema(example = "This is my first thought! #welcome")]
     pub content: String,
     pub visibility: Visibility,
-    #[serde(rename = "replyToId")]
     pub reply_to_id: Option<Uuid>,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTimeWithTimeZoneWrapper,
 }
 
@@ -37,6 +35,7 @@ impl ThoughtSchema {
 }
 
 #[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ThoughtListSchema {
     pub thoughts: Vec<ThoughtSchema>,
 }
@@ -69,4 +68,16 @@ impl From<ThoughtWithAuthor> for ThoughtSchema {
             visibility: model.visibility,
         }
     }
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ThoughtThreadSchema {
+    pub id: Uuid,
+    pub author_username: String,
+    pub content: String,
+    pub visibility: Visibility,
+    pub reply_to_id: Option<Uuid>,
+    pub created_at: DateTimeWithTimeZoneWrapper,
+    pub replies: Vec<ThoughtThreadSchema>,
 }

@@ -1,5 +1,5 @@
 use api::{setup_db, setup_router};
-use doc::ApiDoc;
+use doc::ApiDocExt;
 use utils::migrate;
 
 pub async fn run(db_url: &str) -> shuttle_axum::ShuttleAxum {

@@ -8,7 +8,6 @@ use app::state::AppState;
 
 use crate::routers::create_router;
 
-// TODO: middleware, logging, authentication
 pub fn setup_router(conn: DatabaseConnection, config: &Config) -> Router {
     create_router(AppState {
         conn,

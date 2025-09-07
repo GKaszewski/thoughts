@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 axum = { workspace = true }
+tracing = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0.2", features = [
     "axum",
@@ -19,5 +20,5 @@ utoipa-scalar = { version = "0.3.0", features = [
     "axum",
 ], default-features = false }
 
-api = { path = "../api" }
+# api = { path = "../api" }
 models = { path = "../models" }

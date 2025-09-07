@@ -1,10 +1,7 @@
 use api::{setup_config, setup_db, setup_router};
-use doc::ApiDoc;
 use utils::{create_dev_db, migrate};
 
 async fn worker(child_num: u32, db_url: &str, prefork: bool, listener: std::net::TcpListener) {
-    tracing::info!("Worker {} started", child_num);
-
     let conn = setup_db(db_url, prefork).await;
 
     if child_num == 0 {
@@ -13,7 +10,7 @@ async fn worker(child_num: u32, db_url: &str, prefork: bool, listener: std::net:
 
     let config = setup_config();
 
-    let router = setup_router(conn, &config).attach_doc();
+    let router = setup_router(conn, &config);
 
     let listener = tokio::net::TcpListener::from_std(listener).expect("bind to port");
     axum::serve(listener, router).await.expect("start server");
@@ -44,11 +41,12 @@ fn run_non_prefork(db_url: &str, listener: std::net::TcpListener) {
 }
 
 pub fn run() {
+    tracing::info!("Starting server...");
     let config = setup_config();
 
     let listener = std::net::TcpListener::bind(config.get_server_url()).expect("bind to port");
     listener.set_nonblocking(true).expect("non blocking failed");
-    println!("listening on http://{}", listener.local_addr().unwrap());
+    tracing::info!("listening on http://{}", listener.local_addr().unwrap());
 
     #[cfg(feature = "prefork")]
     if config.prefork {

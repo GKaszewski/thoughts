@@ -249,3 +249,73 @@ async fn test_get_thought_by_id_visibility() {
         "Friend should NOT see private thought"
     );
 }
+
+#[tokio::test]
+async fn test_get_thought_thread() {
+    let app = setup().await;
+    let _user1 =
+        create_user_with_password(&app.db, "user1", "password123", "user1@example.com").await;
+    let _user2 =
+        create_user_with_password(&app.db, "user2", "password123", "user2@example.com").await;
+    let user3 =
+        create_user_with_password(&app.db, "user3", "password123", "user3@example.com").await;
+
+    let token1 = login_user(app.router.clone(), "user1", "password123").await;
+    let token2 = login_user(app.router.clone(), "user2", "password123").await;
+
+    // 1. user1 posts a root thought
+    let root_id = post_thought_and_get_id(&app.router, "Root thought", "Public", &token1).await;
+
+    // 2. user2 replies to the root thought
+    let reply1_body = json!({ "content": "First reply", "replyToId": root_id }).to_string();
+    let response = make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(reply1_body),
+        &token2,
+    )
+    .await;
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let reply1: Value = serde_json::from_slice(&body).unwrap();
+    let reply1_id = reply1["id"].as_str().unwrap().to_string();
+
+    // 3. user1 replies to user2's reply
+    let reply2_body =
+        json!({ "content": "Reply to the reply", "replyToId": reply1_id }).to_string();
+    make_jwt_request(
+        app.router.clone(),
+        "/thoughts",
+        "POST",
+        Some(reply2_body),
+        &token1,
+    )
+    .await;
+
+    // 4. Fetch the entire thread
+    let response = make_get_request(
+        app.router.clone(),
+        &format!("/thoughts/{}/thread", root_id),
+        Some(user3.id), // Fetch as a third user to test visibility
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let thread: Value = serde_json::from_slice(&body).unwrap();
+
+    // 5. Assert the structure
+    assert_eq!(thread["content"], "Root thought");
+    assert_eq!(thread["authorUsername"], "user1");
+    assert_eq!(thread["replies"].as_array().unwrap().len(), 1);
+
+    let reply_level_1 = &thread["replies"][0];
+    assert_eq!(reply_level_1["content"], "First reply");
+    assert_eq!(reply_level_1["authorUsername"], "user2");
+    assert_eq!(reply_level_1["replies"].as_array().unwrap().len(), 1);
+
+    let reply_level_2 = &reply_level_1["replies"][0];
+    assert_eq!(reply_level_2["content"], "Reply to the reply");
+    assert_eq!(reply_level_2["authorUsername"], "user1");
+    assert!(reply_level_2["replies"].as_array().unwrap().is_empty());
+}

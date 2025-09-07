@@ -6,21 +6,16 @@ use uuid::Uuid;
 use crate::domains::user;
 
 #[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct UserSchema {
     pub id: Uuid,
     pub username: String,
-    #[serde(rename = "displayName")]
     pub display_name: Option<String>,
     pub bio: Option<String>,
-    #[serde(rename = "avatarUrl")]
     pub avatar_url: Option<String>,
-    #[serde(rename = "headerUrl")]
     pub header_url: Option<String>,
-    #[serde(rename = "customCss")]
     pub custom_css: Option<String>,
-    #[serde(rename = "topFriends")]
     pub top_friends: Vec<String>,
-    #[serde(rename = "joinedAt")]
     pub joined_at: DateTimeWithTimeZoneWrapper,
 }
 
@@ -50,7 +45,7 @@ impl From<user::Model> for UserSchema {
             avatar_url: user.avatar_url,
             header_url: user.header_url,
             custom_css: user.custom_css,
-            top_friends: vec![], // Defaults to an empty list
+            top_friends: vec![],
             joined_at: user.created_at.into(),
         }
     }
@@ -70,8 +65,16 @@ impl From<Vec<user::Model>> for UserListSchema {
 }
 
 #[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct MeSchema {
-    #[serde(flatten)]
-    pub user: UserSchema,
+    pub id: Uuid,
+    pub username: String,
+    pub display_name: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+    pub header_url: Option<String>,
+    pub custom_css: Option<String>,
+    pub top_friends: Vec<String>,
+    pub joined_at: DateTimeWithTimeZoneWrapper,
     pub following: Vec<UserSchema>,
 }

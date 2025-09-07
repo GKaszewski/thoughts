@@ -7,7 +7,7 @@ use sea_orm::{
 use models::{
     domains::{tag, thought, thought_tag, user},
     params::thought::CreateThoughtParams,
-    schemas::thought::ThoughtWithAuthor,
+    schemas::thought::{ThoughtSchema, ThoughtThreadSchema, ThoughtWithAuthor},
 };
 
 use crate::{
@@ -210,17 +210,103 @@ pub fn apply_visibility_filter(
         Condition::any().add(thought::Column::Visibility.eq(thought::Visibility::Public));
 
     if let Some(viewer) = viewer_id {
-        // Viewers can see their own thoughts of any visibility
         if user_id == viewer {
             condition = condition
                 .add(thought::Column::Visibility.eq(thought::Visibility::FriendsOnly))
                 .add(thought::Column::Visibility.eq(thought::Visibility::Private));
-        }
-        // If the thought's author is a friend of the viewer, they can see it
-        else if !friend_ids.is_empty() && friend_ids.contains(&user_id) {
+        } else if !friend_ids.is_empty() && friend_ids.contains(&user_id) {
             condition =
                 condition.add(thought::Column::Visibility.eq(thought::Visibility::FriendsOnly));
         }
     }
     condition.into()
+}
+
+pub async fn get_thought_with_replies(
+    db: &DbConn,
+    thought_id: Uuid,
+    viewer_id: Option<Uuid>,
+) -> Result<Option<ThoughtThreadSchema>, DbErr> {
+    let root_thought = match get_thought(db, thought_id, viewer_id).await? {
+        Some(t) => t,
+        None => return Ok(None),
+    };
+
+    let mut all_thoughts_in_thread = vec![root_thought.clone()];
+    let mut ids_to_fetch = vec![root_thought.id];
+    let mut friend_ids = vec![];
+    if let Some(viewer) = viewer_id {
+        friend_ids = follow::get_friend_ids(db, viewer).await?;
+    }
+
+    while !ids_to_fetch.is_empty() {
+        let replies = thought::Entity::find()
+            .filter(thought::Column::ReplyToId.is_in(ids_to_fetch))
+            .all(db)
+            .await?;
+
+        if replies.is_empty() {
+            break;
+        }
+
+        ids_to_fetch = replies.iter().map(|r| r.id).collect();
+        all_thoughts_in_thread.extend(replies);
+    }
+
+    let mut thought_schemas = vec![];
+    for thought in all_thoughts_in_thread {
+        if let Some(author) = user::Entity::find_by_id(thought.author_id).one(db).await? {
+            let is_visible = match thought.visibility {
+                thought::Visibility::Public => true,
+                thought::Visibility::Private => viewer_id.map_or(false, |v| v == thought.author_id),
+                thought::Visibility::FriendsOnly => viewer_id.map_or(false, |v| {
+                    v == thought.author_id || friend_ids.contains(&thought.author_id)
+                }),
+            };
+
+            if is_visible {
+                thought_schemas.push(ThoughtSchema::from_models(&thought, &author));
+            }
+        }
+    }
+
+    fn build_thread(
+        thought_id: Uuid,
+        schemas_map: &std::collections::HashMap<Uuid, ThoughtSchema>,
+        replies_map: &std::collections::HashMap<Uuid, Vec<Uuid>>,
+    ) -> Option<ThoughtThreadSchema> {
+        schemas_map.get(&thought_id).map(|thought_schema| {
+            let replies = replies_map
+                .get(&thought_id)
+                .unwrap_or(&vec![])
+                .iter()
+                .filter_map(|reply_id| build_thread(*reply_id, schemas_map, replies_map))
+                .collect();
+
+            ThoughtThreadSchema {
+                id: thought_schema.id,
+                author_username: thought_schema.author_username.clone(),
+                content: thought_schema.content.clone(),
+                visibility: thought_schema.visibility.clone(),
+                reply_to_id: thought_schema.reply_to_id,
+                created_at: thought_schema.created_at.clone(),
+                replies,
+            }
+        })
+    }
+
+    let schemas_map: std::collections::HashMap<Uuid, ThoughtSchema> =
+        thought_schemas.into_iter().map(|s| (s.id, s)).collect();
+
+    let mut replies_map: std::collections::HashMap<Uuid, Vec<Uuid>> =
+        std::collections::HashMap::new();
+    for thought in schemas_map.values() {
+        if let Some(parent_id) = thought.reply_to_id {
+            if schemas_map.contains_key(&parent_id) {
+                replies_map.entry(parent_id).or_default().push(thought.id);
+            }
+        }
+    }
+
+    Ok(build_thread(root_thought.id, &schemas_map, &replies_map))
 }
