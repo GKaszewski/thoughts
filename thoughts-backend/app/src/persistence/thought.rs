@@ -35,10 +35,12 @@ pub async fn create_thought(
     .insert(&txn)
     .await?;
 
-    let tag_names = parse_hashtags(&params.content);
-    if !tag_names.is_empty() {
-        let tags = find_or_create_tags(&txn, tag_names).await?;
-        link_tags_to_thought(&txn, new_thought.id, tags).await?;
+    if new_thought.visibility == thought::Visibility::Public {
+        let tag_names = parse_hashtags(&params.content);
+        if !tag_names.is_empty() {
+            let tags = find_or_create_tags(&txn, tag_names).await?;
+            link_tags_to_thought(&txn, new_thought.id, tags).await?;
+        }
     }
 
     txn.commit().await?;

@@ -106,6 +106,7 @@ where
             thought_tag::Relation::Thought.def(),
         )
         .filter(thought::Column::CreatedAt.gte(seven_days_ago))
+        .filter(thought::Column::Visibility.eq(thought::Visibility::Public))
         .group_by(tag::Column::Name)
         .group_by(tag::Column::Id)
         .order_by_desc(Expr::col(Alias::new("count")))
