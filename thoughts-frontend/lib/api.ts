@@ -111,7 +111,10 @@ export type ApiKey = z.infer<typeof ApiKeySchema>;
 export type ApiKeyResponse = z.infer<typeof ApiKeyResponseSchema>;
 export type ThoughtThread = z.infer<typeof ThoughtThreadSchema>;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  typeof window === "undefined"
+    ? process.env.NEXT_PUBLIC_SERVER_SIDE_API_URL // Server-side
+    : process.env.NEXT_PUBLIC_API_URL; // Client-side
 
 async function apiFetch<T>(
   endpoint: string,
@@ -119,6 +122,10 @@ async function apiFetch<T>(
   schema: z.ZodType<T>,
   token?: string | null
 ): Promise<T> {
+  if (!API_BASE_URL) {
+    throw new Error("API_BASE_URL is not defined");
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -128,7 +135,8 @@ async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });

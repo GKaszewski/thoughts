@@ -1,30 +1,27 @@
-FROM oven/bun:1 AS base
+FROM node:22-slim AS builder
 WORKDIR /app
 
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN mkdir -p /temp/prod
-COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+# Install dependencies with Bun for speed
+COPY --chown=node:node package.json bun.lock ./
+RUN npm install -g bun
+RUN bun install --frozen-lockfile
 
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
-COPY . .
+# Copy the rest of the app and build with Node's Next.js runtime
+COPY --chown=node:node . .
 
 ENV NODE_ENV=production
 RUN bun run build
 
-FROM base AS release
+FROM node:22-slim AS release
 
-COPY --from=prerelease /app/public ./public
-COPY --from=prerelease /app/.next/standalone ./
-COPY --from=prerelease /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-USER bun
 EXPOSE 3000
 
-CMD ["bun", "run", "server.js"]
+CMD ["node", "server.js"]
 

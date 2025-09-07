@@ -12,7 +12,4 @@ path = "src/lib.rs"
 models = { path = "../models" }
 
 async-std = { version = "1.13.1", features = ["attributes", "tokio1"] }
-sea-orm-migration = { version = "1.1.12", features = [
-    "sqlx-sqlite",
-    "sqlx-postgres",
-] }
+sea-orm-migration = { version = "1.1.12", features = ["sqlx-postgres"] }

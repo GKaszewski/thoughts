@@ -25,6 +25,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - RUST_LOG=info
+      - RUST_BACKTRACE=1
     depends_on:
       database:
         condition: service_healthy
@@ -34,9 +37,13 @@ services:
     build:
       context: ./thoughts-frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost/api
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://proxy/api
 
   proxy:
     container_name: thoughts-proxy
