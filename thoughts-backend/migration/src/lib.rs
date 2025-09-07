@@ -7,6 +7,7 @@ mod m20250906_130237_add_tags;
 mod m20250906_134056_add_api_keys;
 mod m20250906_145148_add_reply_to_thoughts;
 mod m20250906_145755_add_visibility_to_thoughts;
+mod m20250906_231359_add_full_text_search;
 
 pub struct Migrator;
 
@@ -21,6 +22,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250906_134056_add_api_keys::Migration),
             Box::new(m20250906_145148_add_reply_to_thoughts::Migration),
             Box::new(m20250906_145755_add_visibility_to_thoughts::Migration),
+            Box::new(m20250906_231359_add_full_text_search::Migration),
         ]
     }
 }

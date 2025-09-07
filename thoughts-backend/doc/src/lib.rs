@@ -11,10 +11,10 @@ mod auth;
 mod feed;
 mod friends;
 mod root;
+mod search;
 mod tag;
 mod thought;
 mod user;
-
 #[derive(OpenApi)]
 #[openapi(
     nest(
@@ -26,6 +26,7 @@ mod user;
         (path = "/feed", api = feed::FeedApi),
         (path = "/tags", api = tag::TagApi),
         (path = "/friends", api = friends::FriendsApi),
+        (path = "/search", api = search::SearchApi),
     ),
     tags(
         (name = "root", description = "Root API"),
@@ -35,6 +36,7 @@ mod user;
         (name = "feed", description = "Feed API"),
         (name = "tag", description = "Tag Discovery API"),
         (name = "friends", description = "Friends API"),
+        (name = "search", description = "Search API"),
     ),
     modifiers(&SecurityAddon),
 )]

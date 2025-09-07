@@ -5,6 +5,7 @@ pub mod auth;
 pub mod feed;
 pub mod friends;
 pub mod root;
+pub mod search;
 pub mod tag;
 pub mod thought;
 pub mod user;
@@ -30,6 +31,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/feed", create_feed_router())
         .nest("/tags", tag::create_tag_router())
         .nest("/friends", friends::create_friends_router())
+        .nest("/search", search::create_search_router())
         .with_state(state)
         .layer(cors)
 }

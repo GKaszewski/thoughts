@@ -25,6 +25,8 @@ pub struct Model {
     pub reply_to_id: Option<Uuid>,
     pub visibility: Visibility,
     pub created_at: DateTimeWithTimeZone,
+    #[sea_orm(column_type = "custom(\"tsvector\")", nullable, ignore)]
+    pub search_document: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -201,7 +201,7 @@ pub async fn get_thoughts_by_tag_name(
     Ok(visible_thoughts)
 }
 
-fn apply_visibility_filter(
+pub fn apply_visibility_filter(
     user_id: Uuid,
     viewer_id: Option<Uuid>,
     friend_ids: &[Uuid],
