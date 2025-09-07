@@ -46,7 +46,7 @@ async function FeedPage({ token }: { token: string }) {
   );
 
   const friends = (await getFriends(token)).users.map((user) => user.username);
-  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 0;
+  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 8;
 
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6">
