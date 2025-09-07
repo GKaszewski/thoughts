@@ -46,7 +46,7 @@ export function PostThoughtForm() {
       toast.success("Your thought has been posted!");
       form.reset();
       router.refresh(); // This is the key to updating the feed
-    } catch (err) {
+    } catch {
       toast.error("Failed to post thought. Please try again.");
     }
   }

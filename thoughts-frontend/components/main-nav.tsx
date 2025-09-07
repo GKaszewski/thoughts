@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SearchInput } from "./search-input";
 
 export function MainNav() {
   const pathname = usePathname();
@@ -17,6 +18,7 @@ export function MainNav() {
       >
         Feed
       </Link>
+      <SearchInput />
     </nav>
   );
 }

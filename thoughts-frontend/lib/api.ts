@@ -60,6 +60,11 @@ export const UpdateProfileSchema = z.object({
   topFriends: z.array(z.string()).max(8).optional(),
 });
 
+export const SearchResultsSchema = z.object({
+  users: z.object({ users: z.array(UserSchema) }),
+  thoughts: z.object({ thoughts: z.array(ThoughtSchema) }),
+});
+
 export type User = z.infer<typeof UserSchema>;
 export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
@@ -231,5 +236,15 @@ export const getFollowersList = (username: string, token: string | null) =>
     "/friends",
     {},
     z.object({ users: z.array(UserSchema) }),
+    token
+  );
+
+
+
+export const search = (query: string, token: string | null) =>
+  apiFetch(
+    `/search?q=${encodeURIComponent(query)}`,
+    {},
+    SearchResultsSchema,
     token
   );
