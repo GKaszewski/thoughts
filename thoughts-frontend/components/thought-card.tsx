@@ -44,6 +44,7 @@ interface ThoughtCardProps {
   thought: Thought;
   author: {
     username: string;
+    displayName?: string | null;
     avatarUrl?: string | null;
   };
   currentUser: Me | null;
@@ -112,9 +113,14 @@ export function ThoughtCard({
             href={`/users/${author.username}`}
             className="flex items-center gap-4 text-shadow-md"
           >
-            <UserAvatar src={author.avatarUrl} alt={author.username} />
+            <UserAvatar
+              src={author.avatarUrl}
+              alt={author.displayName || author.username}
+            />
             <div className="flex flex-col">
-              <span className="font-bold">{author.username}</span>
+              <span className="font-bold">
+                {author.displayName || author.username}
+              </span>
               <span className="text-sm text-muted-foreground text-shadow-sm">
                 {timeAgo}
               </span>

@@ -16,7 +16,7 @@ export function ThoughtThread({
 }: ThoughtThreadProps) {
   const author = {
     username: thought.authorUsername,
-    avatarUrl: null,
+    displayName: thought.authorDisplayName,
     ...authorDetails.get(thought.authorUsername),
   };
 
@@ -35,7 +35,7 @@ export function ThoughtThread({
           className="pl-6 border-l-2 border-primary border-dashed ml-6 flex flex-col gap-4 pt-4"
         >
           {thought.replies.map((reply) => (
-            <ThoughtThread // RECURSIVE CALL
+            <ThoughtThread
               key={reply.id}
               thought={reply}
               authorDetails={authorDetails}

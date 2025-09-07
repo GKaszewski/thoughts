@@ -38,6 +38,7 @@ pub async fn search_thoughts(
     // We must join with the user table to get the author's username
     let thoughts_with_authors = thought::Entity::find()
         .column_as(user::Column::Username, "author_username")
+        .column_as(user::Column::DisplayName, "author_display_name")
         .join(JoinType::InnerJoin, thought::Relation::User.def())
         .filter(Expr::cust_with_values(
             "thought.search_document @@ websearch_to_tsquery('english', $1)",

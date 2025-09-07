@@ -102,6 +102,7 @@ pub async fn get_thoughts_by_user(
         .column(thought::Column::CreatedAt)
         .column(thought::Column::AuthorId)
         .column(thought::Column::Visibility)
+        .column_as(user::Column::DisplayName, "author_display_name")
         .column_as(user::Column::Username, "author_username")
         .join(JoinType::InnerJoin, thought::Relation::User.def())
         .filter(apply_visibility_filter(user_id, viewer_id, &friend_ids))
@@ -137,6 +138,7 @@ pub async fn get_feed_for_user(
         .column(thought::Column::Visibility)
         .column(thought::Column::AuthorId)
         .column_as(user::Column::Username, "author_username")
+        .column_as(user::Column::DisplayName, "author_display_name")
         .join(JoinType::InnerJoin, thought::Relation::User.def())
         .filter(
             Condition::any().add(following_ids.iter().fold(
@@ -173,6 +175,7 @@ pub async fn get_thoughts_by_tag_name(
         .column(thought::Column::AuthorId)
         .column(thought::Column::Visibility)
         .column_as(user::Column::Username, "author_username")
+        .column_as(user::Column::DisplayName, "author_display_name")
         .join(JoinType::InnerJoin, thought::Relation::User.def())
         .join(JoinType::InnerJoin, thought::Relation::ThoughtTag.def())
         .join(JoinType::InnerJoin, thought_tag::Relation::Tag.def())
@@ -288,6 +291,7 @@ pub async fn get_thought_with_replies(
             ThoughtThreadSchema {
                 id: thought_schema.id,
                 author_username: thought_schema.author_username.clone(),
+                author_display_name: thought_schema.author_display_name.clone(),
                 content: thought_schema.content.clone(),
                 visibility: thought_schema.visibility.clone(),
                 reply_to_id: thought_schema.reply_to_id,

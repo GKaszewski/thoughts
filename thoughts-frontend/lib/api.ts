@@ -28,6 +28,7 @@ export const MeSchema = z.object({
 export const ThoughtSchema = z.object({
   id: z.uuid(),
   authorUsername: z.string(),
+  authorDisplayName: z.string().nullable(),
   content: z.string(),
   visibility: z.enum(["Public", "FriendsOnly", "Private"]),
   replyToId: z.uuid().nullable(),
@@ -87,6 +88,7 @@ export const CreateApiKeySchema = z.object({
 export const ThoughtThreadSchema: z.ZodType<{
   id: string;
   authorUsername: string;
+  authorDisplayName: string | null;
   content: string;
   visibility: "Public" | "FriendsOnly" | "Private";
   replyToId: string | null;
@@ -95,6 +97,7 @@ export const ThoughtThreadSchema: z.ZodType<{
 }> = z.object({
   id: z.uuid(),
   authorUsername: z.string(),
+  authorDisplayName: z.string().nullable(),
   content: z.string(),
   visibility: z.enum(["Public", "FriendsOnly", "Private"]),
   replyToId: z.uuid().nullable(),

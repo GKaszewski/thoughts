@@ -28,7 +28,7 @@ export function ThoughtList({
           {thoughts.map((thought) => {
             const author = {
               username: thought.authorUsername,
-              avatarUrl: null,
+              displayName: thought.authorDisplayName,
               ...authorDetails.get(thought.authorUsername),
             };
             return (

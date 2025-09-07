@@ -14,6 +14,7 @@ pub struct ThoughtSchema {
     pub id: Uuid,
     #[schema(example = "frutiger")]
     pub author_username: String,
+    pub author_display_name: Option<String>,
     #[schema(example = "This is my first thought! #welcome")]
     pub content: String,
     pub visibility: Visibility,
@@ -23,15 +24,10 @@ pub struct ThoughtSchema {
 
 impl ThoughtSchema {
     pub fn from_models(thought: &thought::Model, author: &user::Model) -> Self {
-        let author_username = if let Some(display_name) = author.display_name.clone() {
-            display_name
-        } else {
-            author.username.clone()
-        };
-
         Self {
             id: thought.id,
-            author_username,
+            author_username: author.username.clone(),
+            author_display_name: author.display_name.clone(),
             content: thought.content.clone(),
             visibility: thought.visibility.clone(),
             reply_to_id: thought.reply_to_id,
@@ -60,6 +56,7 @@ pub struct ThoughtWithAuthor {
     pub visibility: Visibility,
     pub author_id: Uuid,
     pub author_username: String,
+    pub author_display_name: Option<String>,
     pub reply_to_id: Option<Uuid>,
 }
 
@@ -68,6 +65,7 @@ impl From<ThoughtWithAuthor> for ThoughtSchema {
         Self {
             id: model.id,
             author_username: model.author_username,
+            author_display_name: model.author_display_name,
             content: model.content,
             created_at: model.created_at.into(),
             reply_to_id: model.reply_to_id,
@@ -81,6 +79,7 @@ impl From<ThoughtWithAuthor> for ThoughtSchema {
 pub struct ThoughtThreadSchema {
     pub id: Uuid,
     pub author_username: String,
+    pub author_display_name: Option<String>,
     pub content: String,
     pub visibility: Visibility,
     pub reply_to_id: Option<Uuid>,
