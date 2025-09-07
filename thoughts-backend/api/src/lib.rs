@@ -1,6 +1,5 @@
 mod error;
 mod extractor;
-mod federation;
 mod init;
 mod validation;
 

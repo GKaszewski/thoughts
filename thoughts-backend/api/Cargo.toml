@@ -38,6 +38,5 @@ tower-http = { version = "0.6.6", features = ["fs", "cors"] }
 tower-cookies = "0.11.0"
 anyhow = "1.0.98"
 dotenvy = "0.15.7"
-activitypub_federation = "0.6.5"
-url = "2.5.7"
+
 [dev-dependencies]

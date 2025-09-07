@@ -1,4 +1,3 @@
-mod activitypub;
 mod api_key;
 mod auth;
 mod feed;
