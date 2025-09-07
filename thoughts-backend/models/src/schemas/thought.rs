@@ -23,9 +23,15 @@ pub struct ThoughtSchema {
 
 impl ThoughtSchema {
     pub fn from_models(thought: &thought::Model, author: &user::Model) -> Self {
+        let author_username = if let Some(display_name) = author.display_name.clone() {
+            display_name
+        } else {
+            author.username.clone()
+        };
+
         Self {
             id: thought.id,
-            author_username: author.username.clone(),
+            author_username,
             content: thought.content.clone(),
             visibility: thought.visibility.clone(),
             reply_to_id: thought.reply_to_id,
