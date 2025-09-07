@@ -84,6 +84,24 @@ export const CreateApiKeySchema = z.object({
   name: z.string().min(1, "Key name cannot be empty."),
 });
 
+export const ThoughtThreadSchema: z.ZodType<{
+  id: string;
+  authorUsername: string;
+  content: string;
+  visibility: "Public" | "FriendsOnly" | "Private";
+  replyToId: string | null;
+  createdAt: Date;
+  replies: ThoughtThread[];
+}> = z.object({
+  id: z.uuid(),
+  authorUsername: z.string(),
+  content: z.string(),
+  visibility: z.enum(["Public", "FriendsOnly", "Private"]),
+  replyToId: z.uuid().nullable(),
+  createdAt: z.coerce.date(),
+  replies: z.lazy(() => z.array(ThoughtThreadSchema)),
+});
+
 export type User = z.infer<typeof UserSchema>;
 export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
@@ -91,6 +109,7 @@ export type Register = z.infer<typeof RegisterSchema>;
 export type Login = z.infer<typeof LoginSchema>;
 export type ApiKey = z.infer<typeof ApiKeySchema>;
 export type ApiKeyResponse = z.infer<typeof ApiKeyResponseSchema>;
+export type ThoughtThread = z.infer<typeof ThoughtThreadSchema>;
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -295,3 +314,6 @@ export const deleteApiKey = (keyId: string, token: string) =>
     z.null(),
     token
   );
+
+export const getThoughtThread = (thoughtId: string, token: string | null) =>
+  apiFetch(`/thoughts/${thoughtId}/thread`, {}, ThoughtThreadSchema, token);

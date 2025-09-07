@@ -56,7 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const thoughts =
     thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
-  const { topLevelThoughts, repliesByParentId } = buildThoughtThreads(thoughts);
+  const thoughtThreads = buildThoughtThreads(thoughts);
 
   const followersCount =
     followersResult.status === "fulfilled"
@@ -205,16 +205,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           id="profile-card__thoughts"
           className="col-span-1 lg:col-span-3 space-y-4"
         >
-          {topLevelThoughts.map((thought) => (
+          {thoughtThreads.map((thought) => (
             <ThoughtThread
               key={thought.id}
               thought={thought}
-              repliesByParentId={repliesByParentId}
               authorDetails={authorDetails}
               currentUser={me}
             />
           ))}
-          {topLevelThoughts.length === 0 && (
+          {thoughtThreads.length === 0 && (
             <Card
               id="profile-card__no-thoughts"
               className="flex items-center justify-center h-48"

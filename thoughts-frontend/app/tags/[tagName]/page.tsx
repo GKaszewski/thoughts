@@ -24,6 +24,7 @@ export default async function TagPage({ params }: TagPageProps) {
   }
 
   const allThoughts = thoughtsResult.value.thoughts;
+  const thoughtThreads = buildThoughtThreads(allThoughts);
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
   const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
@@ -36,9 +37,6 @@ export default async function TagPage({ params }: TagPageProps) {
       .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
   );
 
-  const { topLevelThoughts, repliesByParentId } =
-    buildThoughtThreads(allThoughts);
-
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
       <header className="my-6">
@@ -48,16 +46,15 @@ export default async function TagPage({ params }: TagPageProps) {
         </h1>
       </header>
       <main className="space-y-6">
-        {topLevelThoughts.map((thought) => (
+        {thoughtThreads.map((thought) => (
           <ThoughtThread
             key={thought.id}
             thought={thought}
-            repliesByParentId={repliesByParentId}
             authorDetails={authorDetails}
             currentUser={me}
           />
         ))}
-        {topLevelThoughts.length === 0 && (
+        {thoughtThreads.length === 0 && (
           <p className="text-center text-muted-foreground pt-8">
             No thoughts found for this tag.
           </p>

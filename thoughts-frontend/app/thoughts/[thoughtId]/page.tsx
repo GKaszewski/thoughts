@@ -1,13 +1,12 @@
 import { cookies } from "next/headers";
 import {
-  getThoughtById,
-  getUserThoughts,
+  getThoughtThread,
   getUserProfile,
   getMe,
   Me,
-  Thought,
+  User,
+  ThoughtThread as ThoughtThreadType,
 } from "@/lib/api";
-import { buildThoughtThreads } from "@/lib/utils";
 import { ThoughtThread } from "@/components/thought-thread";
 import { notFound } from "next/navigation";
 
@@ -15,57 +14,43 @@ interface ThoughtPageProps {
   params: { thoughtId: string };
 }
 
-async function findConversationRoot(
-  startThought: Thought,
-  token: string | null
-): Promise<Thought> {
-  let currentThought = startThought;
-  while (currentThought.replyToId) {
-    const parentThought = await getThoughtById(
-      currentThought.replyToId,
-      token
-    ).catch(() => null);
-    if (!parentThought) break;
-    currentThought = parentThought;
+function collectAuthors(thread: ThoughtThreadType): string[] {
+  const authors = new Set<string>([thread.authorUsername]);
+  for (const reply of thread.replies) {
+    collectAuthors(reply).forEach((author) => authors.add(author));
   }
-  return currentThought;
+  return Array.from(authors);
 }
 
 export default async function ThoughtPage({ params }: ThoughtPageProps) {
   const { thoughtId } = params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
-  const initialThought = await getThoughtById(thoughtId, token).catch(
-    () => null
-  );
-
-  if (!initialThought) {
-    notFound();
-  }
-
-  const rootThought = await findConversationRoot(initialThought, token);
-
-  const [thoughtsResult, meResult] = await Promise.allSettled([
-    getUserThoughts(rootThought.authorUsername, token),
+  const [threadResult, meResult] = await Promise.allSettled([
+    getThoughtThread(thoughtId, token),
     token ? getMe(token) : Promise.resolve(null),
   ]);
 
-  if (thoughtsResult.status === "rejected") {
+  if (threadResult.status === "rejected") {
     notFound();
   }
 
-  const allThoughts = thoughtsResult.value.thoughts;
+  const thread = threadResult.value;
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
-  const author = await getUserProfile(rootThought.authorUsername, token).catch(
-    () => null
+  // Fetch details for all authors in the thread efficiently
+  const authorUsernames = collectAuthors(thread);
+  const userProfiles = await Promise.all(
+    authorUsernames.map((username) =>
+      getUserProfile(username, token).catch(() => null)
+    )
   );
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>();
-  if (author) {
-    authorDetails.set(author.username, { avatarUrl: author.avatarUrl });
-  }
 
-  const { repliesByParentId } = buildThoughtThreads(allThoughts);
+  const authorDetails = new Map<string, { avatarUrl?: string | null }>(
+    userProfiles
+      .filter((u): u is User => !!u)
+      .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
+  );
 
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
@@ -74,8 +59,7 @@ export default async function ThoughtPage({ params }: ThoughtPageProps) {
       </header>
       <main>
         <ThoughtThread
-          thought={rootThought}
-          repliesByParentId={repliesByParentId}
+          thought={thread}
           authorDetails={authorDetails}
           currentUser={me}
         />

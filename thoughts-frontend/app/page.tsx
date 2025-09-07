@@ -31,7 +31,10 @@ async function FeedPage({ token }: { token: string }) {
     getMe(token).catch(() => null) as Promise<Me | null>,
   ]);
 
-  const authors = [...new Set(feedData.thoughts.map((t) => t.authorUsername))];
+  const allThoughts = feedData.thoughts;
+  const thoughtThreads = buildThoughtThreads(feedData.thoughts);
+
+  const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
   const userProfiles = await Promise.all(
     authors.map((username) => getUserProfile(username, token).catch(() => null))
   );
@@ -42,12 +45,8 @@ async function FeedPage({ token }: { token: string }) {
       .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
   );
 
-  const { topLevelThoughts, repliesByParentId } = buildThoughtThreads(
-    feedData.thoughts
-  );
-
   const friends = (await getFriends(token)).users.map((user) => user.username);
-  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 8;
+  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 0;
 
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6">
@@ -65,16 +64,15 @@ async function FeedPage({ token }: { token: string }) {
           </header>
           <PostThoughtForm />
           <div className="space-y-6">
-            {topLevelThoughts.map((thought) => (
+            {thoughtThreads.map((thought) => (
               <ThoughtThread
                 key={thought.id}
                 thought={thought}
-                repliesByParentId={repliesByParentId}
                 authorDetails={authorDetails}
                 currentUser={me}
               />
             ))}
-            {topLevelThoughts.length === 0 && (
+            {thoughtThreads.length === 0 && (
               <p className="text-center text-muted-foreground pt-8">
                 Your feed is empty. Follow some users to see their thoughts!
               </p>
