@@ -17,7 +17,7 @@ pub struct UpdateUserParams {
     #[serde(rename = "displayName")]
     pub display_name: Option<String>,
 
-    #[validate(length(max = 160))]
+    #[validate(length(max = 4000))]
     #[schema(example = "Est. 2004")]
     pub bio: Option<String>,
 
