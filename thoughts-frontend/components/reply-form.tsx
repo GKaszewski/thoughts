@@ -1,4 +1,3 @@
-// components/reply-form.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -17,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CreateThoughtSchema, createThought } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Confetti } from "./confetti";
 
 interface ReplyFormProps {
   parentThoughtId: string;
@@ -26,6 +27,7 @@ interface ReplyFormProps {
 export function ReplyForm({ parentThoughtId, onReplySuccess }: ReplyFormProps) {
   const router = useRouter();
   const { token } = useAuth();
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const form = useForm<z.infer<typeof CreateThoughtSchema>>({
     resolver: zodResolver(CreateThoughtSchema),
@@ -46,45 +48,50 @@ export function ReplyForm({ parentThoughtId, onReplySuccess }: ReplyFormProps) {
       await createThought(values, token);
       toast.success("Your reply has been posted!");
       form.reset();
-      onReplySuccess(); // Call the callback
-      router.refresh(); // Refresh the page to show the new reply
-    } catch (err) {
+      setShowConfetti(true);
+      console.log("Showing confetti");
+      onReplySuccess();
+      router.refresh();
+    } catch {
       toast.error("Failed to post reply. Please try again.");
     }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 p-4">
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Textarea
-                  placeholder="Post your reply..."
-                  className="resize-none bg-white glass-effect glossy-efect bottom shadow-fa-sm"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onReplySuccess} // Close button
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Replying..." : "Reply"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+    <>
+      <Confetti fire={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 p-4">
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    placeholder="Post your reply..."
+                    className="resize-none bg-white glass-effect glossy-efect bottom shadow-fa-sm"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onReplySuccess} // Close button
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Replying..." : "Reply"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </>
   );
 }
