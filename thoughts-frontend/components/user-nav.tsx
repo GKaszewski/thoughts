@@ -61,7 +61,11 @@ export function UserNav() {
           <UserAvatar src={user.avatarUrl} alt={user.displayName} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent
+        className="w-56 glossy-effect bottom shadow-fa-md"
+        align="end"
+        forceMount
+      >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">

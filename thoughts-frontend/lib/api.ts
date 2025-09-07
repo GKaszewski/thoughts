@@ -65,11 +65,32 @@ export const SearchResultsSchema = z.object({
   thoughts: z.object({ thoughts: z.array(ThoughtSchema) }),
 });
 
+export const ApiKeySchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  keyPrefix: z.string(),
+  createdAt: z.coerce.date(),
+});
+
+export const ApiKeyResponseSchema = ApiKeySchema.extend({
+  plaintextKey: z.string().optional(),
+});
+
+export const ApiKeyListSchema = z.object({
+  apiKeys: z.array(ApiKeySchema),
+});
+
+export const CreateApiKeySchema = z.object({
+  name: z.string().min(1, "Key name cannot be empty."),
+});
+
 export type User = z.infer<typeof UserSchema>;
 export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type Login = z.infer<typeof LoginSchema>;
+export type ApiKey = z.infer<typeof ApiKeySchema>;
+export type ApiKeyResponse = z.infer<typeof ApiKeyResponseSchema>;
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -246,5 +267,31 @@ export const search = (query: string, token: string | null) =>
     `/search?q=${encodeURIComponent(query)}`,
     {},
     SearchResultsSchema,
+    token
+  );
+
+
+export const getApiKeys = (token: string) =>
+  apiFetch(`/users/me/api-keys`, {}, ApiKeyListSchema, token);
+
+export const createApiKey = (
+  data: z.infer<typeof CreateApiKeySchema>,
+  token: string
+) =>
+  apiFetch(
+    `/users/me/api-keys`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+    ApiKeyResponseSchema,
+    token
+  );
+
+export const deleteApiKey = (keyId: string, token: string) =>
+  apiFetch(
+    `/users/me/api-keys/${keyId}`,
+    { method: "DELETE" },
+    z.null(),
     token
   );

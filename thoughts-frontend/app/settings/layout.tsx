@@ -7,7 +7,10 @@ const sidebarNavItems = [
     title: "Profile",
     href: "/settings/profile",
   },
-  // You can add more links here later, e.g., "Account", "API Keys"
+  {
+    title: "API Keys",
+    href: "/settings/api-keys",
+  },
 ];
 
 export default function SettingsLayout({
@@ -17,7 +20,7 @@ export default function SettingsLayout({
 }) {
   return (
     <div className="container mx-auto max-w-5xl space-y-6 p-10 pb-16">
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 p-4 glass-effect rounded-md shadow-fa-lg">
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
           Manage your account settings and profile.

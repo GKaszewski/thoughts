@@ -29,10 +29,8 @@ export function SettingsNav({ className, items, ...props }: SettingsNavProps) {
           href={item.href}
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            pathname === item.href
-              ? "bg-muted hover:bg-muted"
-              : "hover:bg-transparent hover:underline",
-            "justify-start"
+            pathname === item.href ? "bg-muted" : "hover:underline",
+            "justify-start glass-effect glossy-effect bottom shadow-fa-md"
           )}
         >
           {item.title}

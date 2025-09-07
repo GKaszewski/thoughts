@@ -25,7 +25,7 @@ export async function PopularTags() {
   return (
     <Card className="p-4">
       <CardHeader className="p-0 pb-2">
-        <CardTitle className="text-lg text-shadow-md">Popular Tags</CardTitle>
+        <CardTitle className="text-lg">Popular Tags</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2 p-0">
         {tags.map((tag) => (
