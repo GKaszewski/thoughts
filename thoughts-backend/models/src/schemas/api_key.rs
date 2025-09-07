@@ -8,7 +8,9 @@ use uuid::Uuid;
 pub struct ApiKeySchema {
     pub id: Uuid,
     pub name: String,
+    #[serde(rename = "keyPrefix")]
     pub key_prefix: String,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTimeWithTimeZoneWrapper,
 }
 
@@ -16,7 +18,6 @@ pub struct ApiKeySchema {
 pub struct ApiKeyResponse {
     #[serde(flatten)]
     pub key: ApiKeySchema,
-    /// The full plaintext API key. This is only returned on creation.
     #[serde(skip_serializing_if = "Option::is_none", rename = "plaintextKey")]
     pub plaintext_key: Option<String>,
 }
@@ -37,6 +38,7 @@ impl ApiKeyResponse {
 
 #[derive(Serialize, ToSchema)]
 pub struct ApiKeyListSchema {
+    #[serde(rename = "apiKeys")]
     pub api_keys: Vec<ApiKeySchema>,
 }
 
