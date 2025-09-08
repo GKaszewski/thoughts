@@ -27,6 +27,11 @@ jobs:
           docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
           docker build --target release -t thoughts-frontend:latest --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} ./thoughts-frontend
 
+      - name: List Files in Workspace
+        run: |
+          echo "--- Listing all files recursively ---"
+          ls -lR
+      
       - name: Deploy with Docker Compose
         run: |
           # Use "up" without --build, as images are already built
