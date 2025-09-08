@@ -26,17 +26,8 @@ jobs:
         run: |
           docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
           docker build --target release -t thoughts-frontend:latest --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} ./thoughts-frontend
+          docker build -t custom-proxy:latest ./nginx
 
-      - name: List Files in Workspace
-        run: |
-          echo "--- Listing all files recursively ---"
-          ls -lR
-
-      - name: Dump Environment Variables for Debugging
-        run: |
-          echo "--- All available environment variables ---"
-          env | sort
-      
       - name: Deploy with Docker Compose
         run: |
           # Use "up" without --build, as images are already built
