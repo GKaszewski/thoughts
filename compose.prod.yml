@@ -51,8 +51,6 @@ services:
     container_name: thoughts-proxy
     image: custom-proxy:latest
     restart: unless-stopped
-    volumes:
-      - ${GITHUB_WORKSPACE}/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - frontend
       - backend
