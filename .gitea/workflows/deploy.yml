@@ -22,6 +22,11 @@ jobs:
           echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" >> .env
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
 
+      - name: Dump Environment Variables for Debugging
+        run: |
+          echo "--- All available environment variables ---"
+          env | sort
+
       - name: Build Docker Images Manually
         run: |
           docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
