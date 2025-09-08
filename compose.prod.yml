@@ -19,10 +19,7 @@ services:
 
   backend:
     container_name: thoughts-backend
-    build:
-      context: ./thoughts-backend
-      dockerfile: Dockerfile
-      target: runtime
+    image: thoughts-backend:latest
     restart: unless-stopped
     environment:
       - RUST_LOG=info
@@ -41,12 +38,7 @@ services:
 
   frontend:
     container_name: thoughts-frontend
-    build:
-      context: ./thoughts-frontend
-      dockerfile: Dockerfile
-      target: release
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: thoughts-frontend:latest
     restart: unless-stopped
     depends_on:
       - backend

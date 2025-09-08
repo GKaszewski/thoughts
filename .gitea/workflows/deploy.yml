@@ -14,11 +14,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Check Docker Versions
-        run: |
-          docker --version
-          docker compose version
-
       - name: Create .env file
         run: |
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
@@ -27,12 +22,14 @@ jobs:
           echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" >> .env
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
 
-      - name: Rebuild and Deploy with Docker Compose
-        env:
-          DOCKER_BUILDKIT: 1
+      - name: Build Docker Images Manually
         run: |
-          docker compose -f compose.prod.yml pull
-          docker compose -f compose.prod.yml up -d --build
+          docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
+          docker build --target release -t thoughts-frontend:latest --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} ./thoughts-frontend
 
-          # Clean up any old, unused images to save disk space
+      - name: Deploy with Docker Compose
+        run: |
+          # Use "up" without --build, as images are already built
+          docker compose -f compose.prod.yml up -d
+
           docker image prune -f
