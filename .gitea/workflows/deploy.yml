@@ -31,6 +31,11 @@ jobs:
         run: |
           echo "--- Listing all files recursively ---"
           ls -lR
+
+      - name: Dump Environment Variables for Debugging
+        run: |
+          echo "--- All available environment variables ---"
+          env | sort
       
       - name: Deploy with Docker Compose
         run: |
