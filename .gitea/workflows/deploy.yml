@@ -28,6 +28,8 @@ jobs:
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
 
       - name: Rebuild and Deploy with Docker Compose
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           docker compose -f compose.prod.yml pull
           docker compose -f compose.prod.yml up -d --build
