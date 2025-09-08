@@ -27,7 +27,7 @@ services:
     environment:
       - RUST_LOG=info
       - RUST_BACKTRACE=1
-      - DATABASE_URL=DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
       - HOST=0.0.0.0
       - PORT=8000
       - PREFORK=1
