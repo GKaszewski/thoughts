@@ -93,9 +93,9 @@ services:
   #       condition: service_healthy
   #     backend:
   #       condition: service_healthy
-  #   networks:
-  #     - internal
-  #     - traefik
+  # networks:
+  #   - internal
+  #   - traefik
   #   labels:
   #     - "traefik.enable=true"
   #     - "traefik.http.routers.thoughts.rule=Host(`thoughts.gabrielkaszewski.dev`)"
@@ -109,6 +109,7 @@ volumes:
     driver: local
 networks:
   traefik:
+    name: traefik
     external: true
   internal:
     driver: bridge
