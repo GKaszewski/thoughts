@@ -11,6 +11,7 @@ import {
   CardContent,
   CardAction,
 } from "@/components/ui/card";
+import Cookies from "js-cookie";
 
 interface CustomWindow extends Window {
   MSStream?: unknown;
@@ -26,14 +27,19 @@ export default function InstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Cast window to our custom type instead of 'any'
     const customWindow = window as CustomWindow;
     setIsIOS(
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !customWindow.MSStream
     );
     setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+
+    const dismissed = Cookies.get("install_prompt_dismissed");
+    if (dismissed) {
+      setIsDismissed(true);
+    }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -58,11 +64,17 @@ export default function InstallPrompt() {
       console.log("User accepted the install prompt");
     } else {
       console.log("User dismissed the install prompt");
+      Cookies.set("install_prompt_dismissed", "true", { expires: 7 });
     }
     setDeferredPrompt(null);
   };
 
-  if (isStandalone || (!isIOS && !deferredPrompt)) {
+  const handleCloseClick = () => {
+    setIsStandalone(true);
+    Cookies.set("install_prompt_dismissed", "true", { expires: 7 });
+  };
+
+  if (isStandalone || (!isIOS && !deferredPrompt) || isDismissed) {
     return null;
   }
 
@@ -79,7 +91,7 @@ export default function InstallPrompt() {
               size="sm"
               variant="ghost"
               className="absolute top-2 right-2"
-              onClick={() => setIsStandalone(true)}
+              onClick={handleCloseClick}
             >
               &times;
             </Button>
