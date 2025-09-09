@@ -43,6 +43,7 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Create a router for the API
       - "traefik.http.routers.thoughts-api.rule=Host(`thoughts.gabrielkaszewski.dev`) && PathPrefix(`/api`)"
       - "traefik.http.routers.thoughts-api.entrypoints=web,websecure"
@@ -74,6 +75,7 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Create a router for the main web traffic
       - "traefik.http.routers.thoughts-web.rule=Host(`thoughts.gabrielkaszewski.dev`)"
       - "traefik.http.routers.thoughts-web.entrypoints=web,websecure"
