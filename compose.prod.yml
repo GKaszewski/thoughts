@@ -53,7 +53,7 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://backend:8000
+      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://proxy/api
       - PORT=3000
       - HOSTNAME=0.0.0.0
     networks:
