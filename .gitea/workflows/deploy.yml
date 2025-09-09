@@ -24,8 +24,11 @@ jobs:
 
       - name: Dump Environment Variables for Debugging
         run: |
-          echo "--- All available environment variables ---"
-          env | sort
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
+          echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}"
+          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}"
 
       - name: Build Docker Images Manually
         run: |
