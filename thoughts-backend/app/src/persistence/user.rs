@@ -1,7 +1,8 @@
+use models::queries::pagination::PaginationQuery;
 use sea_orm::prelude::Uuid;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, JoinType, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, TransactionTrait,
 };
 
 use models::domains::{top_friends, user};
@@ -166,9 +167,16 @@ pub async fn get_followers(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model
     get_users_by_ids(db, follower_ids).await
 }
 
-pub async fn get_all_users(db: &DbConn) -> Result<Vec<user::Model>, DbErr> {
-    user::Entity::find()
+pub async fn get_all_users(
+    db: &DbConn,
+    pagination: &PaginationQuery,
+) -> Result<(Vec<user::Model>, u64), DbErr> {
+    let paginator = user::Entity::find()
         .order_by_desc(user::Column::CreatedAt)
-        .all(db)
-        .await
+        .paginate(db, pagination.page_size());
+
+    let total_items = paginator.num_items().await?;
+    let users = paginator.fetch_page(pagination.page() - 1).await?;
+
+    Ok((users, total_items))
 }

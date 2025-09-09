@@ -156,6 +156,37 @@ pub async fn get_feed_for_user(
         .map_err(|e| UserError::Internal(e.to_string()))
 }
 
+pub async fn get_feed_for_users_and_self(
+    db: &DbConn,
+    user_id: Uuid,
+    following_ids: Vec<Uuid>,
+) -> Result<Vec<ThoughtWithAuthor>, DbErr> {
+    let mut authors_to_include = following_ids;
+    authors_to_include.push(user_id);
+
+    thought::Entity::find()
+        .select_only()
+        .column(thought::Column::Id)
+        .column(thought::Column::Content)
+        .column(thought::Column::ReplyToId)
+        .column(thought::Column::CreatedAt)
+        .column(thought::Column::Visibility)
+        .column(thought::Column::AuthorId)
+        .column_as(user::Column::Username, "author_username")
+        .column_as(user::Column::DisplayName, "author_display_name")
+        .join(JoinType::InnerJoin, thought::Relation::User.def())
+        .filter(thought::Column::AuthorId.is_in(authors_to_include))
+        .filter(
+            Condition::any()
+                .add(thought::Column::Visibility.eq(thought::Visibility::Public))
+                .add(thought::Column::Visibility.eq(thought::Visibility::FriendsOnly)),
+        )
+        .order_by_desc(thought::Column::CreatedAt)
+        .into_model::<ThoughtWithAuthor>()
+        .all(db)
+        .await
+}
+
 pub async fn get_thoughts_by_tag_name(
     db: &DbConn,
     tag_name: &str,

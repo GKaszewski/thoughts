@@ -17,8 +17,14 @@ use app::persistence::{
 };
 use app::state::AppState;
 use app::{error::UserError, persistence::user::get_user_by_username};
-use models::schemas::user::{MeSchema, UserListSchema, UserSchema};
-use models::{params::user::UpdateUserParams, schemas::thought::ThoughtListSchema};
+use models::{
+    params::user::UpdateUserParams,
+    schemas::{pagination::PaginatedResponse, thought::ThoughtListSchema},
+};
+use models::{
+    queries::pagination::PaginationQuery,
+    schemas::user::{MeSchema, UserListSchema, UserSchema},
+};
 use models::{queries::user::UserQuery, schemas::thought::ThoughtSchema};
 
 use crate::{error::ApiError, extractor::AuthUser};
@@ -418,16 +424,31 @@ async fn get_user_followers(
 #[utoipa::path(
     get,
     path = "/all",
+    params(PaginationQuery),
     responses(
-        (status = 200, description = "A public list of all users", body = UserListSchema)
+        (status = 200, description = "A public, paginated list of all users", body = PaginatedResponse<UserSchema>)
     ),
     tag = "user"
 )]
 async fn get_all_users_public(
     State(state): State<AppState>,
+    Query(pagination): Query<PaginationQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let users = get_all_users(&state.conn).await?;
-    Ok(Json(UserListSchema::from(users)))
+    let (users, total_items) = get_all_users(&state.conn, &pagination).await?;
+
+    let page = pagination.page();
+    let page_size = pagination.page_size();
+    let total_pages = (total_items as f64 / page_size as f64).ceil() as u64;
+
+    let response = PaginatedResponse {
+        items: users.into_iter().map(UserSchema::from).collect(),
+        page,
+        page_size,
+        total_pages,
+        total_items,
+    };
+
+    Ok(Json(response))
 }
 
 pub fn create_user_router() -> Router<AppState> {

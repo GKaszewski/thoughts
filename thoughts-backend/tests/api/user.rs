@@ -247,23 +247,44 @@ async fn test_update_me_css_and_images() {
 }
 
 #[tokio::test]
-async fn test_get_all_users_public() {
+async fn test_get_all_users_paginated() {
     let app = setup().await;
 
-    create_user_with_password(&app.db, "userA", "password123", "a@example.com").await;
-    create_user_with_password(&app.db, "userB", "password123", "b@example.com").await;
-    create_user_with_password(&app.db, "userC", "password123", "c@example.com").await;
+    for i in 0..25 {
+        create_user_with_password(
+            &app.db,
+            &format!("user{}", i),
+            "password123",
+            &format!("u{}@e.com", i),
+        )
+        .await;
+    }
 
-    let response = make_get_request(app.router.clone(), "/users/all", None).await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-    let v: Value = serde_json::from_slice(&body).unwrap();
-    let users_list = v["users"].as_array().unwrap();
+    let response_p1 = make_get_request(app.router.clone(), "/users/all", None).await;
+    assert_eq!(response_p1.status(), StatusCode::OK);
+    let body_p1 = response_p1.into_body().collect().await.unwrap().to_bytes();
+    let v_p1: Value = serde_json::from_slice(&body_p1).unwrap();
 
     assert_eq!(
-        users_list.len(),
-        3,
-        "Should return a list of all 3 registered users"
+        v_p1["items"].as_array().unwrap().len(),
+        20,
+        "First page should have 20 items"
     );
+    assert_eq!(v_p1["page"], 1);
+    assert_eq!(v_p1["pageSize"], 20);
+    assert_eq!(v_p1["totalPages"], 2);
+    assert_eq!(v_p1["totalItems"], 25);
+
+    let response_p2 = make_get_request(app.router.clone(), "/users/all?page=2", None).await;
+    assert_eq!(response_p2.status(), StatusCode::OK);
+    let body_p2 = response_p2.into_body().collect().await.unwrap().to_bytes();
+    let v_p2: Value = serde_json::from_slice(&body_p2).unwrap();
+
+    assert_eq!(
+        v_p2["items"].as_array().unwrap().len(),
+        5,
+        "Second page should have 5 items"
+    );
+    assert_eq!(v_p2["page"], 2);
+    assert_eq!(v_p2["totalPages"], 2);
 }
