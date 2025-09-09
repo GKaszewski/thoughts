@@ -22,6 +22,11 @@ jobs:
           echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" >> .env
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
 
+      - name: Dump Secret for Debugging
+        run: |
+          echo "The POSTGRES_USER secret (Base64 encoded) is:"
+          echo "${{ secrets.POSTGRES_USER }}" | base64
+
       - name: Build Docker Images Manually
         run: |
           docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
