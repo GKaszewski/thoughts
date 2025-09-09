@@ -40,6 +40,19 @@ services:
       retries: 5
     networks:
       - internal
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Create a router for the API
+      - "traefik.http.routers.thoughts-api.rule=Host(`thoughts.gabrielkaszewski.dev`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.thoughts-api.entrypoints=web,websecure"
+      - "traefik.http.routers.thoughts-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.thoughts-api.service=thoughts-api"
+      # Add a middleware to strip the /api prefix before sending to the backend
+      - "traefik.http.routers.thoughts-api.middlewares=strip-api-prefix"
+      - "traefik.http.middlewares.strip-api-prefix.stripprefix.prefixes=/api"
+      # Create a service for the API that points to the backend container's port
+      - "traefik.http.services.thoughts-api.loadbalancer.server.port=8000"
 
   frontend:
     container_name: thoughts-frontend
@@ -53,29 +66,43 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://proxy/api
-    networks:
-      - internal
-
-  proxy:
-    container_name: thoughts-proxy
-    image: custom-proxy:latest
-    restart: unless-stopped
-    depends_on:
-      frontend:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
+      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://backend:8000
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
     networks:
       - internal
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.thoughts.rule=Host(`thoughts.gabrielkaszewski.dev`)"
-      - "traefik.http.routers.thoughts.entrypoints=web,websecure"
-      - "traefik.http.routers.thoughts.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.thoughts.service=thoughts"
-      - "traefik.http.services.thoughts.loadbalancer.server.port=80"
+      # Create a router for the main web traffic
+      - "traefik.http.routers.thoughts-web.rule=Host(`thoughts.gabrielkaszewski.dev`)"
+      - "traefik.http.routers.thoughts-web.entrypoints=web,websecure"
+      - "traefik.http.routers.thoughts-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.thoughts-web.service=thoughts-web"
+      # Give this router a lower priority so the more specific /api route is matched first
+      - "traefik.http.routers.thoughts-web.priority=1"
+      # Create a service for the web that points to the frontend container's port
+      - "traefik.http.services.thoughts-web.loadbalancer.server.port=3000"
+
+  # proxy:
+  #   container_name: thoughts-proxy
+  #   image: custom-proxy:latest
+  #   restart: unless-stopped
+  #   depends_on:
+  #     frontend:
+  #       condition: service_healthy
+  #     backend:
+  #       condition: service_healthy
+  #   networks:
+  #     - internal
+  #     - traefik
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.thoughts.rule=Host(`thoughts.gabrielkaszewski.dev`)"
+  #     - "traefik.http.routers.thoughts.entrypoints=web,websecure"
+  #     - "traefik.http.routers.thoughts.tls.certresolver=letsencrypt"
+  #     - "traefik.http.routers.thoughts.service=thoughts"
+  #     - "traefik.http.services.thoughts.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
