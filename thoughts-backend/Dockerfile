@@ -35,8 +35,6 @@ WORKDIR /app
 
 COPY --from=builder /app/target/release/thoughts-backend .
 
-COPY .env.example .env
-
 RUN chown -R appuser:appgroup /app
 
 USER appuser
