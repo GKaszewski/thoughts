@@ -288,3 +288,25 @@ async fn test_get_all_users_paginated() {
     assert_eq!(v_p2["page"], 2);
     assert_eq!(v_p2["totalPages"], 2);
 }
+
+#[tokio::test]
+async fn test_get_all_users_count() {
+    let app = setup().await;
+
+    for i in 0..25 {
+        create_user_with_password(
+            &app.db,
+            &format!("user{}", i),
+            "password123",
+            &format!("u{}@e.com", i),
+        )
+        .await;
+    }
+
+    let response = make_get_request(app.router.clone(), "/users/count", None).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(v["count"], 25);
+}

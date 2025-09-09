@@ -328,3 +328,26 @@ export const deleteApiKey = (keyId: string, token: string) =>
 
 export const getThoughtThread = (thoughtId: string, token: string | null) =>
   apiFetch(`/thoughts/${thoughtId}/thread`, {}, ThoughtThreadSchema, token);
+
+
+export const getAllUsers = (page: number = 1, pageSize: number = 20) =>
+  apiFetch(
+    `/users/all?page=${page}&page_size=${pageSize}`,
+    {},
+    z.object({
+      items: z.array(UserSchema),
+      page: z.number(),
+      pageSize: z.number(),
+      totalPages: z.number(),
+      totalItems: z.number(),
+    })
+  );
+
+export const getAllUsersCount = () =>
+  apiFetch(
+    `/users/count`,
+    {},
+    z.object({
+      count: z.number(),
+    })
+  );

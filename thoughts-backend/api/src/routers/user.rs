@@ -451,10 +451,16 @@ async fn get_all_users_public(
     Ok(Json(response))
 }
 
+async fn get_all_users_count(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+    let count = app::persistence::user::get_all_users_count(&state.conn).await?;
+    Ok(Json(json!({ "count": count })))
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
         .route("/all", get(get_all_users_public))
+        .route("/count", get(get_all_users_count))
         .route("/me", get(get_me).put(update_me))
         .nest("/me/api-keys", create_api_key_router())
         .route("/{param}", get(get_user_by_param))

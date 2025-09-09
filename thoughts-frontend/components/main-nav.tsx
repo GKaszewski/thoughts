@@ -10,13 +10,13 @@ export function MainNav() {
   return (
     <nav className="inline-flex md:flex items-center space-x-6 text-sm font-medium">
       <Link
-        href="/"
+        href="/users/all"
         className={cn(
           "transition-colors hover:text-foreground/80",
-          pathname === "/" ? "text-foreground" : "text-foreground/60"
+          pathname === "/users/all" ? "text-foreground" : "text-foreground/60"
         )}
       >
-        Feed
+        Discover
       </Link>
       <SearchInput />
     </nav>

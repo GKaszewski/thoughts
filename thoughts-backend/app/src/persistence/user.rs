@@ -180,3 +180,7 @@ pub async fn get_all_users(
 
     Ok((users, total_items))
 }
+
+pub async fn get_all_users_count(db: &DbConn) -> Result<u64, DbErr> {
+    user::Entity::find().count(db).await
+}

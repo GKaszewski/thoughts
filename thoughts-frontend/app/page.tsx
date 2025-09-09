@@ -14,6 +14,7 @@ import { PopularTags } from "@/components/popular-tags";
 import { ThoughtThread } from "@/components/thought-thread";
 import { buildThoughtThreads } from "@/lib/utils";
 import { TopFriends } from "@/components/top-friends";
+import { UsersCount } from "@/components/users-count";
 
 export default async function Home() {
   const token = (await cookies()).get("auth_token")?.value ?? null;
@@ -92,6 +93,7 @@ async function FeedPage({ token }: { token: string }) {
             )}
             <PopularTags />
             {token && <TopFriends mode="friends" usernames={friends || []} />}
+            <UsersCount />
           </div>
         </aside>
       </div>
