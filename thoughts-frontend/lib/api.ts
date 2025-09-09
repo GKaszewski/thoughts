@@ -168,11 +168,11 @@ export const loginUser = (data: z.infer<typeof LoginSchema>) =>
     body: JSON.stringify(data),
   }, z.object({ token: z.string() }));
 
-  export const getFeed = (token: string) =>
+  export const getFeed = (token: string, page: number = 1, pageSize: number = 20) =>
   apiFetch(
-    "/feed",
+    `/feed?page=${page}&page_size=${pageSize}`,
     {},
-    z.object({ thoughts: z.array(ThoughtSchema) }),
+    z.object({ items: z.array(ThoughtSchema), totalPages: z.number() }),
     token
   );
 

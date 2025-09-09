@@ -1,12 +1,13 @@
 use sea_orm::{
     prelude::Uuid, sea_query::SimpleExpr, ActiveModelTrait, ColumnTrait, Condition, DbConn, DbErr,
-    EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
-    TransactionTrait,
+    EntityTrait, JoinType, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait,
+    Set, TransactionTrait,
 };
 
 use models::{
     domains::{tag, thought, thought_tag, user},
     params::thought::CreateThoughtParams,
+    queries::pagination::PaginationQuery,
     schemas::thought::{ThoughtSchema, ThoughtThreadSchema, ThoughtWithAuthor},
 };
 
@@ -185,6 +186,42 @@ pub async fn get_feed_for_users_and_self(
         .into_model::<ThoughtWithAuthor>()
         .all(db)
         .await
+}
+
+pub async fn get_feed_for_users_and_self_paginated(
+    db: &DbConn,
+    user_id: Uuid,
+    following_ids: Vec<Uuid>,
+    pagination: &PaginationQuery,
+) -> Result<(Vec<ThoughtWithAuthor>, u64), DbErr> {
+    let mut authors_to_include = following_ids;
+    authors_to_include.push(user_id);
+
+    let paginator = thought::Entity::find()
+        .select_only()
+        .column(thought::Column::Id)
+        .column(thought::Column::Content)
+        .column(thought::Column::ReplyToId)
+        .column(thought::Column::CreatedAt)
+        .column(thought::Column::Visibility)
+        .column(thought::Column::AuthorId)
+        .column_as(user::Column::Username, "author_username")
+        .column_as(user::Column::DisplayName, "author_display_name")
+        .join(JoinType::InnerJoin, thought::Relation::User.def())
+        .filter(thought::Column::AuthorId.is_in(authors_to_include))
+        .filter(
+            Condition::any()
+                .add(thought::Column::Visibility.eq(thought::Visibility::Public))
+                .add(thought::Column::Visibility.eq(thought::Visibility::FriendsOnly)),
+        )
+        .order_by_desc(thought::Column::CreatedAt)
+        .into_model::<ThoughtWithAuthor>()
+        .paginate(db, pagination.page_size());
+
+    let total_items = paginator.num_items().await?;
+    let thoughts = paginator.fetch_page(pagination.page() - 1).await?;
+
+    Ok((thoughts, total_items))
 }
 
 pub async fn get_thoughts_by_tag_name(

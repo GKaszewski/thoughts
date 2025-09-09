@@ -16,24 +16,44 @@ import { buildThoughtThreads } from "@/lib/utils";
 import { TopFriends } from "@/components/top-friends";
 import { UsersCount } from "@/components/users-count";
 
-export default async function Home() {
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   if (token) {
-    return <FeedPage token={token} />;
+    return <FeedPage token={token} searchParams={searchParams} />;
   } else {
     return <LandingPage />;
   }
 }
 
-async function FeedPage({ token }: { token: string }) {
+async function FeedPage({
+  token,
+  searchParams,
+}: {
+  token: string;
+  searchParams: { page?: string };
+}) {
+  const page = parseInt(searchParams.page ?? "1", 10);
+
   const [feedData, me] = await Promise.all([
-    getFeed(token),
+    getFeed(token, page),
     getMe(token).catch(() => null) as Promise<Me | null>,
   ]);
 
-  const allThoughts = feedData.thoughts;
-  const thoughtThreads = buildThoughtThreads(feedData.thoughts);
+  const { items: allThoughts, totalPages } = feedData;
+  const thoughtThreads = buildThoughtThreads(allThoughts);
 
   const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
   const userProfiles = await Promise.all(
@@ -84,6 +104,22 @@ async function FeedPage({ token }: { token: string }) {
               </p>
             )}
           </div>
+          <Pagination className="mt-8">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href={page > 1 ? `/?page=${page - 1}` : "#"}
+                  aria-disabled={page <= 1}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  href={page < totalPages ? `/?page=${page + 1}` : "#"}
+                  aria-disabled={page >= totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </main>
 
         <aside className="hidden lg:block lg:col-span-1">
