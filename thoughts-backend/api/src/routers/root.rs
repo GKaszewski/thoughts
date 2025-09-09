@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::get, Router};
+use axum::{extract::State, http::StatusCode, routing::get, Router};
 use sea_orm::{ConnectionTrait, Statement};
 
 use app::state::AppState;
@@ -25,6 +25,12 @@ async fn root_get(state: State<AppState>) -> Result<String, ApiError> {
     result.unwrap().try_get_by(0).map_err(|e| e.into())
 }
 
+async fn health_check() -> StatusCode {
+    StatusCode::OK
+}
+
 pub fn create_root_router() -> Router<AppState> {
-    Router::new().route("/", get(root_get))
+    Router::new()
+        .route("/", get(root_get))
+        .route("/health", get(health_check))
 }
