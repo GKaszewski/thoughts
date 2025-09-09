@@ -39,8 +39,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - internal
       - traefik
+      - internal
     labels:
       - "traefik.enable=true"
       # Create a router for the API
@@ -70,8 +70,8 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
     networks:
-      - internal
       - traefik
+      - internal
     labels:
       - "traefik.enable=true"
       # Create a router for the main web traffic
