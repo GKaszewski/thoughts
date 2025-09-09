@@ -11,7 +11,9 @@ use serde_json::{json, Value};
 use app::persistence::{
     follow,
     thought::get_thoughts_by_user,
-    user::{get_followers, get_following, get_user, search_users, update_user_profile},
+    user::{
+        get_all_users, get_followers, get_following, get_user, search_users, update_user_profile,
+    },
 };
 use app::state::AppState;
 use app::{error::UserError, persistence::user::get_user_by_username};
@@ -413,9 +415,25 @@ async fn get_user_followers(
     Ok(Json(UserListSchema::from(followers_list)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/all",
+    responses(
+        (status = 200, description = "A public list of all users", body = UserListSchema)
+    ),
+    tag = "user"
+)]
+async fn get_all_users_public(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    let users = get_all_users(&state.conn).await?;
+    Ok(Json(UserListSchema::from(users)))
+}
+
 pub fn create_user_router() -> Router<AppState> {
     Router::new()
         .route("/", get(users_get))
+        .route("/all", get(get_all_users_public))
         .route("/me", get(get_me).put(update_me))
         .nest("/me/api-keys", create_api_key_router())
         .route("/{param}", get(get_user_by_param))

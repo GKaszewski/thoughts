@@ -165,3 +165,10 @@ pub async fn get_followers(db: &DbConn, user_id: Uuid) -> Result<Vec<user::Model
     }
     get_users_by_ids(db, follower_ids).await
 }
+
+pub async fn get_all_users(db: &DbConn) -> Result<Vec<user::Model>, DbErr> {
+    user::Entity::find()
+        .order_by_desc(user::Column::CreatedAt)
+        .all(db)
+        .await
+}

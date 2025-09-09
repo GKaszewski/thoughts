@@ -245,3 +245,25 @@ async fn test_update_me_css_and_images() {
     assert_eq!(v["headerUrl"], "https://example.com/new-header.jpg");
     assert_eq!(v["customCss"], "body { color: blue; }");
 }
+
+#[tokio::test]
+async fn test_get_all_users_public() {
+    let app = setup().await;
+
+    create_user_with_password(&app.db, "userA", "password123", "a@example.com").await;
+    create_user_with_password(&app.db, "userB", "password123", "b@example.com").await;
+    create_user_with_password(&app.db, "userC", "password123", "c@example.com").await;
+
+    let response = make_get_request(app.router.clone(), "/users/all", None).await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+    let users_list = v["users"].as_array().unwrap();
+
+    assert_eq!(
+        users_list.len(),
+        3,
+        "Should return a list of all 3 registered users"
+    );
+}
