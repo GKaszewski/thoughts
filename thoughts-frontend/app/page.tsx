@@ -72,7 +72,10 @@ async function FeedPage({
   );
 
   const friends = (await getFriends(token)).users.map((user) => user.username);
-  const shouldDisplayTopFriends = me?.topFriends && me.topFriends.length > 8;
+  const shouldDisplayTopFriends =
+    token && me?.topFriends && me.topFriends.length > 8;
+
+  console.log("Should display top friends:", shouldDisplayTopFriends);
 
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6">
@@ -92,6 +95,13 @@ async function FeedPage({
 
           <div className="block lg:hidden space-y-6">
             <PopularTags />
+            {shouldDisplayTopFriends && (
+              <TopFriends mode="top-friends" usernames={me.topFriends} />
+            )}
+            {!shouldDisplayTopFriends && token && friends.length > 0 && (
+              <TopFriends mode="friends" usernames={friends || []} />
+            )}
+            <UsersCount />
           </div>
 
           <div className="space-y-6">
@@ -129,11 +139,13 @@ async function FeedPage({
 
         <aside className="hidden lg:block lg:col-span-1">
           <div className="sticky top-20 space-y-6">
+            <PopularTags />
             {shouldDisplayTopFriends && (
               <TopFriends mode="top-friends" usernames={me.topFriends} />
             )}
-            <PopularTags />
-            {token && <TopFriends mode="friends" usernames={friends || []} />}
+            {!shouldDisplayTopFriends && token && friends.length > 0 && (
+              <TopFriends mode="friends" usernames={friends || []} />
+            )}
             <UsersCount />
           </div>
         </aside>
