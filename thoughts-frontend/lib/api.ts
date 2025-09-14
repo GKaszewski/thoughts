@@ -176,7 +176,6 @@ export const loginUser = (data: z.infer<typeof LoginSchema>) =>
     token
   );
 
-// --- User API Functions ---
 export const getUserProfile = (username: string, token: string | null) =>
   apiFetch(`/users/${username}`, {}, UserSchema, token);
 

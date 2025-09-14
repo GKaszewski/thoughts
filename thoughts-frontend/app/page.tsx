@@ -23,6 +23,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { redirect } from "next/navigation";
 
 export default async function Home({
   searchParams,
@@ -48,11 +49,15 @@ async function FeedPage({
   const page = parseInt(searchParams.page ?? "1", 10);
 
   const [feedData, me] = await Promise.all([
-    getFeed(token, page),
+    getFeed(token, page).catch(() => null),
     getMe(token).catch(() => null) as Promise<Me | null>,
   ]);
 
-  const { items: allThoughts, totalPages } = feedData;
+  if (!feedData || !me) {
+    redirect("/login");
+  }
+
+  const { items: allThoughts, totalPages } = feedData!;
   const thoughtThreads = buildThoughtThreads(allThoughts);
 
   const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
