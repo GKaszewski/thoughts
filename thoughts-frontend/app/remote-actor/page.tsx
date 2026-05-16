@@ -65,8 +65,11 @@ export default async function RemoteActorPage({
   }
 
   const actor = actorResult.value;
-  const posts =
-    postsResult.status === "fulfilled" ? postsResult.value.items : [];
+  const postsData = postsResult.status === "fulfilled" ? postsResult.value : null;
+  const posts = postsData?.items ?? [];
+  const totalPages = postsData
+    ? Math.ceil(postsData.total / postsData.per_page)
+    : 1;
   const me =
     meResult.status === "fulfilled" ? (meResult.value as Me | null) : null;
   const following =
@@ -77,7 +80,9 @@ export default async function RemoteActorPage({
     <RemoteUserProfile
       key={actor.url}
       actor={actor}
+      handle={handle}
       initialPosts={posts}
+      initialTotalPages={totalPages}
       me={me}
       initialFollowed={initialFollowed}
     />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { UserMinus, UserPlus } from "lucide-react";
-import { followUser, unfollowUser, RemoteActor, Thought, Me } from "@/lib/api";
+import { followUser, unfollowUser, getRemoteActorPosts, RemoteActor, Thought, Me } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,20 +14,42 @@ import { Connections } from "./connections";
 
 interface RemoteUserProfileProps {
   actor: RemoteActor;
+  handle: string;
   initialPosts: Thought[];
+  initialTotalPages: number;
   me: Me | null;
   initialFollowed?: boolean;
 }
 
 export function RemoteUserProfile({
   actor,
+  handle,
   initialPosts,
+  initialTotalPages,
   me,
   initialFollowed = false,
 }: RemoteUserProfileProps) {
   const [followed, setFollowed] = useState(initialFollowed);
   const [followLoading, setFollowLoading] = useState(false);
   const { token } = useAuth();
+
+  const [posts, setPosts] = useState<Thought[]>(initialPosts);
+  const [page, setPage] = useState(1);
+  const [totalPages] = useState(initialTotalPages);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const result = await getRemoteActorPosts(handle, page + 1, token);
+      setPosts((prev) => [...prev, ...result.items]);
+      setPage((p) => p + 1);
+    } catch {
+      toast.error("Failed to load more posts.");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const [followersActive, setFollowersActive] = useState(false);
   const [followingActive, setFollowingActive] = useState(false);
@@ -108,8 +130,20 @@ export function RemoteUserProfile({
             </TabsList>
 
             <TabsContent value="posts" className="space-y-4 mt-4">
-              {initialPosts.length > 0 ? (
-                <ThoughtList thoughts={initialPosts} currentUser={me} />
+              {posts.length > 0 ? (
+                <>
+                  <ThoughtList thoughts={posts} currentUser={me} />
+                  {page < totalPages && (
+                    <Button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      variant="outline"
+                      className="w-full rounded-full"
+                    >
+                      {loadingMore ? "Loading…" : "Load more"}
+                    </Button>
+                  )}
+                </>
               ) : (
                 <Card className="flex items-center justify-center h-48">
                   <p className="text-center text-muted-foreground">
