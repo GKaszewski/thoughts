@@ -194,7 +194,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   @{user.username}
                 </p>
                 {fediverseHandle && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono select-all">
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono select-all break-all">
                     {fediverseHandle}
                   </p>
                 )}
