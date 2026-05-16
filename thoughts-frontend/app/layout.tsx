@@ -53,14 +53,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${frutiger.className} antialiased`}>
-        <Image
-          src="/bg1.avif"
-          alt=""
-          fill
-          priority
-          quality={85}
-          className="fixed inset-0 -z-10 object-cover object-center"
-        />
+        <div className="fixed inset-0 -z-10">
+          <Image
+            src="/bg1.avif"
+            alt=""
+            fill
+            priority
+            quality={85}
+            className="object-cover object-center"
+          />
+        </div>
         <AuthProvider>
           <Header />
           <main className="flex-1">{children}</main>
