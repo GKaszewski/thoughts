@@ -11,12 +11,44 @@ A self-hosted microblogging server with full ActivityPub federation. Write short
 - Content negotiation at `GET /users/{username}` — serves ActivityPub actor JSON or REST profile based on `Accept` header
 - Federation moderation — per-instance domain blocking, per-user actor blocking with `Block` activity delivery, delivery filter excludes blocked actors and blocked-domain inboxes
 - Async event fan-out via NATS JetStream — notifications and AP delivery run in a separate worker process; pull consumer with 1-hour TTL caching
-- JWT authentication (Bearer token)
+- JWT authentication (Bearer token) with API key support for third-party clients
 - OpenAPI documentation at `/docs` (Swagger UI) and `/scalar` (Scalar)
 - Full-text search over thoughts and users via PostgreSQL trigram indexes
 - Top friends — pin up to 5 users as highlighted contacts
-- API keys for third-party client access
 - Home feed, public feed, and per-user thought timelines
+- Rate limiting and registration control
+
+## Federation
+
+Thoughts implements the [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, making it compatible with Mastodon, Misskey, Pleroma, and other Fediverse software.
+
+### Fediverse endpoints
+
+| Endpoint | Description |
+|---|---|
+| `GET /.well-known/webfinger` | WebFinger discovery (`?resource=acct:user@host`) |
+| `GET /.well-known/nodeinfo` | NodeInfo pointer |
+| `GET /nodeinfo/2.0` | NodeInfo 2.0 — software metadata |
+| `GET /users/{username}` | Actor profile (content-negotiated: JSON-LD or REST) |
+| `GET /users/{username}/outbox` | Paginated outbox of `Note` activities |
+| `POST /users/{username}/inbox` | Per-actor inbox |
+| `POST /inbox` | Shared inbox for bulk delivery |
+
+### Federation flow
+
+1. A remote user follows `@you@yourinstance.com` → Mastodon sends a `Follow` activity to `/users/you/inbox`
+2. Thoughts accepts and delivers an `Accept` back to the remote actor's inbox
+3. When you post, Thoughts fans out a `Create(Note)` activity to all remote followers via the NATS worker
+4. Remote posts from people you follow are fetched, cached, and shown in your home feed
+
+### Without NATS
+
+Federation still works without NATS — activities are processed in-process synchronously. The worker is required for async fan-out delivery to remote servers at scale. See [Environment Variables](#environment-variables).
+
+### Instance moderation
+
+- **Domain blocks** — block an entire instance; no activities are delivered to or accepted from blocked domains
+- **Actor blocks** — block individual remote actors; a `Block` activity is delivered and they are filtered from all feeds
 
 ## Architecture
 
@@ -41,24 +73,38 @@ adapters/
   event-transport      — Transport trait + EventPublisherAdapter / MessageSource + EventConsumerAdapter
 ```
 
+The `domain` and `application` crates have zero concrete adapter dependencies. All I/O goes through `&dyn Port` traits, keeping business logic fully testable with in-memory fakes.
+
 ## Prerequisites
 
 - Rust stable (1.80+)
 - PostgreSQL 15+
-- NATS (optional — federation and notifications still work without it, events queue in-process)
+- NATS with JetStream (optional — see [Without NATS](#without-nats))
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in your values:
+Copy `.env.example` to `.env` and fill in your values.
 
-```env
-DATABASE_URL=postgres://postgres:password@localhost:5432/thoughts
-JWT_SECRET=change-me
-BASE_URL=http://localhost:3000
-NATS_URL=nats://localhost:4222   # optional
-```
+### Required
 
-See `.env.example` for all available options.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret used to sign JWT tokens — use a long random string in production |
+| `BASE_URL` | Public URL of the API server — used for ActivityPub actor URLs and canonical links |
+
+### Optional
+
+| Variable | Default | Description |
+|---|---|---|
+| `HOST` | `0.0.0.0` | Interface to bind |
+| `PORT` | `3000` | Port to listen on |
+| `NATS_URL` | — | NATS connection string. If unset, a no-op publisher is used and events are not delivered to the worker |
+| `CORS_ORIGINS` | `*` | Comma-separated allowed origins for CORS, e.g. `https://app.example.com` |
+| `RATE_LIMIT` | disabled | Max requests per minute per IP |
+| `ALLOW_REGISTRATION` | `true` | Set to `false` to close sign-ups |
+| `RUST_ENV` | `development` | Set to `production` to disable ActivityPub debug logging |
+| `RUST_LOG` | `info` | Log level filter (`error`, `warn`, `info`, `debug`, `trace`) |
 
 ## Run
 
@@ -139,7 +185,35 @@ docker build -t thoughts-frontend \
 docker run -p 3000:3000 thoughts-frontend
 ```
 
-See `compose.yml` for a full local development stack.
+### Local development stack
+
+`compose.yml` spins up the full stack: PostgreSQL, NATS (with JetStream and monitoring on port 8222), the API server, the event worker, and the frontend.
+
+```bash
+docker compose up
+```
+
+Services:
+
+| Service | Port | Description |
+|---|---|---|
+| `postgres` | 5432 | PostgreSQL 16 |
+| `nats` | 4222 / 8222 | NATS with JetStream; 8222 is the monitoring endpoint |
+| `api` | 8000 | Thoughts API server |
+| `worker` | — | Event worker (no exposed port) |
+| `frontend` | 3000 | Next.js frontend |
+
+## Contributing
+
+Contributions are welcome. A few guidelines:
+
+- **Run tests before opening a PR.** At minimum: `cargo test -p application` (no database needed). For adapter changes: `cargo test --workspace` with a live database.
+- **Keep the hexagonal boundary.** `domain` and `application` must not import any adapter crate. Use `&dyn Port` traits for all I/O.
+- **No ORM.** The project uses raw `sqlx`. Keep it that way.
+- **ActivityPub changes** — test against a live Mastodon instance if possible, or use the AP debug logs (`RUST_ENV=development`).
+- **Small, focused PRs** are easier to review than large ones.
+
+For significant changes, open an issue first to discuss the approach.
 
 ## License
 
