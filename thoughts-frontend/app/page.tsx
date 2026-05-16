@@ -13,7 +13,11 @@ import { UsersCount } from "@/components/users-count";
 import { PaginationNav } from "@/components/pagination-nav";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { ProfileSkeleton, TagsSkeleton, CountSkeleton } from "@/components/loading-skeleton";
+import {
+  ProfileSkeleton,
+  TagsSkeleton,
+  CountSkeleton,
+} from "@/components/loading-skeleton";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -86,9 +90,7 @@ async function FeedPage({
           </header>
           <ThoughtForm />
 
-          <div className="block lg:hidden space-y-6">
-            {sidebar}
-          </div>
+          <div className="block lg:hidden space-y-6">{sidebar}</div>
 
           <div className="space-y-6">
             {thoughtThreads.map((thought) => (
@@ -99,7 +101,13 @@ async function FeedPage({
               />
             ))}
             {thoughtThreads.length === 0 && (
-              <EmptyState message="Your feed is empty. Follow some users to see their thoughts!" />
+              <EmptyState
+                emoji="💭"
+                title="Your feed is quiet"
+                message="Your feed is empty. Follow some users to see their thoughts!"
+                ctaLabel="Discover people ✨"
+                ctaHref="/users/all"
+              />
             )}
           </div>
           <PaginationNav
@@ -110,9 +118,7 @@ async function FeedPage({
         </main>
 
         <aside className="hidden lg:block lg:col-span-1">
-          <div className="sticky top-20 space-y-6">
-            {sidebar}
-          </div>
+          <div className="sticky top-20 space-y-6">{sidebar}</div>
         </aside>
       </div>
     </div>
@@ -121,28 +127,112 @@ async function FeedPage({
 
 function LandingPage() {
   return (
-    <>
-      <div className="font-sans min-h-screen text-gray-800 flex items-center justify-center">
-        <div className="container mx-auto max-w-2xl p-4 sm:p-6 text-center glass-effect glossy-effect bottom rounded-md shadow-fa-lg">
-          <h1
-            className="text-5xl font-bold"
-            style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}
+    <div className="font-sans min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Ambient orbs */}
+      <div
+        className="orb"
+        style={{
+          width: 280,
+          height: 280,
+          background:
+            "radial-gradient(circle, #ffffff 0%, #87ceeb 60%, transparent 100%)",
+          top: "-80px",
+          left: "-60px",
+        }}
+      />
+      <div
+        className="orb"
+        style={{
+          width: 220,
+          height: 220,
+          background:
+            "radial-gradient(circle, #b2f5ea 0%, #48bb78 60%, transparent 100%)",
+          bottom: "-40px",
+          right: "5%",
+        }}
+      />
+      <div
+        className="orb"
+        style={{
+          width: 160,
+          height: 160,
+          background:
+            "radial-gradient(circle, #e0f2fe 0%, #38bdf8 60%, transparent 100%)",
+          top: "35%",
+          left: "65%",
+        }}
+      />
+
+      {/* Hero card */}
+      <div
+        className="container mx-auto max-w-lg p-4 sm:p-6 text-center relative z-10"
+        style={{
+          background: "rgba(255,255,255,0.28)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.55)",
+          borderRadius: "20px",
+          boxShadow:
+            "0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.6)",
+        }}
+      >
+        {/* Gloss sweep */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "55%",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, transparent 100%)",
+            borderRadius: "20px 20px 0 0",
+            pointerEvents: "none",
+          }}
+        />
+
+        <h1
+          className="text-5xl font-bold relative"
+          style={{
+            textShadow:
+              "0 2px 4px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.1)",
+          }}
+        >
+          Welcome to Thoughts
+        </h1>
+        <p className="text-muted-foreground mt-3 relative">
+          A federated social network for short-form thoughts.
+          <br />
+          Connect with the Fediverse.
+        </p>
+
+        <div className="mt-8 flex justify-center gap-4 relative">
+          <Button asChild className="px-7">
+            <Link href="/login">Login</Link>
+          </Button>
+          <Button asChild variant="secondary" className="px-7">
+            <Link href="/register">Register</Link>
+          </Button>
+        </div>
+
+        {/* Fediverse badge */}
+        <div className="mt-5 relative flex justify-center">
+          <span
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs text-muted-foreground"
+            style={{
+              background: "rgba(255,255,255,0.3)",
+              border: "1px solid rgba(255,255,255,0.5)",
+            }}
           >
-            Welcome to Thoughts
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Throwback to the golden age of microblogging.
-          </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <Button asChild>
-              <Link href="/login">Login</Link>
-            </Button>
-            <Button variant="secondary" asChild>
-              <Link href="/register">Register</Link>
-            </Button>
-          </div>
+            <span
+              className="w-2 h-2 rounded-full bg-emerald-400 inline-block"
+              style={{ boxShadow: "0 0 4px #34d399" }}
+            />
+            Works with Mastodon, Pixelfed &amp; more
+          </span>
         </div>
       </div>
-    </>
+    </div>
   );
 }

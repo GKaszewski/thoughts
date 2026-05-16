@@ -68,7 +68,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               <RemoteUserCard actor={remoteActor} />
             </div>
           ) : (
-            <EmptyState message={`No user found at ${query}`} />
+            <EmptyState emoji="🔍" title="No results" message={`No user found at ${query}`} />
           )
         ) : results ? (
           <Tabs defaultValue="thoughts" className="w-full">
@@ -91,7 +91,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </TabsContent>
           </Tabs>
         ) : (
-          <EmptyState message="No results found or an error occurred." />
+          <EmptyState emoji="🔍" title="No results" message="No results found or an error occurred." />
         )}
       </main>
     </div>

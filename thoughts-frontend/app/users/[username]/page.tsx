@@ -270,7 +270,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 />
               ))}
               {thoughtThreads.length === 0 && (
-                <EmptyState message="This user hasn't posted any public thoughts yet." />
+                <EmptyState emoji="💭" title="Nothing here yet" message="This user hasn't posted any public thoughts yet." />
               )}
             </TabsContent>
             {isOwnProfile && (

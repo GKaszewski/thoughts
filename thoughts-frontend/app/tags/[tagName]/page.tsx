@@ -67,7 +67,7 @@ export default async function TagPage({ params }: TagPageProps) {
           />
         ))}
         {thoughtThreads.length === 0 && (
-          <EmptyState message="No thoughts found for this tag." />
+          <EmptyState emoji="🏷" title="No thoughts here yet" message="No thoughts found for this tag." />
         )}
       </main>
     </div>

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/header";
 import localFont from "next/font/local";
+import Image from "next/image";
 import InstallPrompt from "@/components/install-prompt";
 
 export const metadata: Metadata = {
@@ -52,6 +53,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${frutiger.className} antialiased`}>
+        <Image
+          src="/bg1.avif"
+          alt=""
+          fill
+          priority
+          quality={85}
+          className="fixed inset-0 -z-10 object-cover object-center"
+        />
         <AuthProvider>
           <Header />
           <main className="flex-1">{children}</main>

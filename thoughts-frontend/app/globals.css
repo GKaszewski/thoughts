@@ -48,10 +48,10 @@
   /* Frutiger Aero Gradients */
   --gradient-fa-blue: 135deg, hsl(217 91% 60%) 0%, hsl(200 90% 70%) 100%;
   --gradient-fa-green: 135deg, hsl(155 70% 55%) 0%, hsl(170 80% 65%) 100%;
-  --gradient-fa-card: 180deg, hsl(var(--card)) 0%, hsl(var(--card)) 90%,
-    hsl(var(--card)) 100%;
-  --gradient-fa-gloss: 135deg, rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0) 100%;
+  --gradient-fa-card:
+    180deg, hsl(var(--card)) 0%, hsl(var(--card)) 90%, hsl(var(--card)) 100%;
+  --gradient-fa-gloss:
+    135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%;
 
   --shadow-fa-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-fa-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -183,11 +183,6 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: url("/background.avif");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
   }
 
   .glossy-effect::before {
@@ -310,5 +305,167 @@
     );
     pointer-events: none;
     z-index: 1;
+  }
+}
+
+/* ── Frutiger Aero interaction keyframes ── */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 300px;
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  15% {
+    transform: translateX(-4px) rotate(-1.5deg);
+  }
+  30% {
+    transform: translateX(4px) rotate(1.5deg);
+  }
+  45% {
+    transform: translateX(-3px) rotate(-1deg);
+  }
+  60% {
+    transform: translateX(3px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-1px) rotate(-0.5deg);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+}
+
+@keyframes floatBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmerAero {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+@layer components {
+  .animate-slide-down {
+    overflow: hidden;
+    animation: slideDown 0.22s ease-out forwards;
+  }
+  .animate-shake {
+    animation: shake 0.45s ease-out;
+  }
+  .animate-fade-out {
+    animation: fadeOut 0.3s ease-out forwards;
+  }
+  .animate-float-bob {
+    animation: floatBob 2.8s ease-in-out infinite;
+  }
+
+  /* Aero-tinted shimmer for skeleton loaders */
+  .shimmer-aero {
+    background: linear-gradient(
+      90deg,
+      rgba(96, 165, 250, 0.12) 25%,
+      rgba(96, 165, 250, 0.3) 50%,
+      rgba(96, 165, 250, 0.12) 75%
+    );
+    background-size: 800px 100%;
+    background-repeat: no-repeat;
+    animation: shimmerAero 1.5s infinite linear;
+  }
+
+  /* Widget title icon badges */
+  .widget-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .widget-icon-blue {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    box-shadow:
+      0 2px 4px rgba(37, 99, 235, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+  .widget-icon-green {
+    background: linear-gradient(135deg, #6ee7b7, #10b981);
+    box-shadow:
+      0 2px 4px rgba(16, 185, 129, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+  .widget-icon-purple {
+    background: linear-gradient(135deg, #c4b5fd, #7c3aed);
+    box-shadow:
+      0 2px 4px rgba(124, 58, 237, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Landing page ambient orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /* Gradient avatar fallback */
+  .avatar-gradient {
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    box-shadow:
+      0 0 0 2px white,
+      0 0 0 3.5px rgba(59, 130, 246, 0.45);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-down {
+    animation: none;
+  }
+  .animate-shake {
+    animation: none;
+  }
+  .animate-fade-out {
+    animation: none;
+  }
+  .animate-float-bob {
+    animation: none;
+  }
+  .shimmer-aero {
+    animation: none;
+    background: rgba(96, 165, 250, 0.18);
   }
 }

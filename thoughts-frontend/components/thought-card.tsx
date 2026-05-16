@@ -46,6 +46,18 @@ interface ThoughtCardProps {
   isReply?: boolean;
 }
 
+function renderWithHashtags(content: string) {
+  return content.split(/(#\w+)/g).map((part, i) =>
+    /^#\w+$/.test(part) ? (
+      <span key={i} className="text-primary font-medium">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
+
 export function ThoughtCard({
   thought,
   currentUser,
@@ -54,6 +66,7 @@ export function ThoughtCard({
   const { author } = thought;
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isReplyOpen, setIsReplyOpen] = useState(false);
+  const [deletingState, setDeletingState] = useState<"idle" | "shaking" | "fading">("idle");
   const { token } = useAuth();
   const timeAgo = formatDistanceToNow(new Date(thought.createdAt), {
     addSuffix: true,
@@ -62,14 +75,18 @@ export function ThoughtCard({
   const isAuthor = currentUser?.username === thought.author.username;
 
   const handleDelete = async () => {
+    setIsAlertOpen(false);
+    setDeletingState("shaking");
+    await new Promise((r) => setTimeout(r, 450));
+    setDeletingState("fading");
+    await new Promise((r) => setTimeout(r, 300));
     try {
       await deleteThought(thought.id);
-      toast.success("Thought deleted successfully.");
+      toast.success("Thought deleted.");
     } catch (error) {
       console.error("Failed to delete thought:", error);
+      setDeletingState("idle");
       toast.error("Failed to delete thought.");
-    } finally {
-      setIsAlertOpen(false);
     }
   };
 
@@ -115,7 +132,13 @@ export function ThoughtCard({
           </div>
         )}
       </div>
-      <Card className="mt-2">
+      <Card
+        className={cn(
+          "mt-2 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-fa-lg",
+          deletingState === "shaking" && "animate-shake",
+          deletingState === "fading" && "animate-fade-out pointer-events-none"
+        )}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <Link
             href={`/users/${author.username}`}
@@ -166,7 +189,7 @@ export function ThoughtCard({
         <CardContent>
           {thought.author.local ? (
             <p className="whitespace-pre-wrap break-words text-shadow-sm">
-              {thought.content}
+              {renderWithHashtags(thought.content)}
             </p>
           ) : (
             <div
@@ -185,6 +208,7 @@ export function ThoughtCard({
             <Button
               variant="ghost"
               size="sm"
+              className="rounded-full bg-primary/8 border border-primary/15 text-primary hover:bg-primary/15"
               onClick={() => setIsReplyOpen(!isReplyOpen)}
             >
               <MessageSquare className="mr-2 h-4 w-4" />
@@ -194,7 +218,7 @@ export function ThoughtCard({
         )}
 
         {isReplyOpen && (
-          <div className="border-t m-4 rounded-2xl border-border/50 bg-secondary/20 ">
+          <div className="animate-slide-down border-t m-4 rounded-2xl border-border/50 bg-secondary/20">
             <ThoughtForm
               replyToId={thought.id}
               onSuccess={() => setIsReplyOpen(false)}

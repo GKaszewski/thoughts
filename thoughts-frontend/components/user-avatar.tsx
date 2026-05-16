@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { User } from "lucide-react";
 
 interface UserAvatarProps {
   src?: string | null;
@@ -9,8 +8,10 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ src, alt, className }: UserAvatarProps) {
+  const initial = alt?.trim()[0]?.toUpperCase() ?? "?";
+
   return (
-    <Avatar className={cn("border-2 border-primary/50 shadow-md", className)}>
+    <Avatar className={cn("avatar-gradient", className)}>
       {src && (
         <AvatarImage
           className="object-cover object-center"
@@ -18,8 +19,8 @@ export function UserAvatar({ src, alt, className }: UserAvatarProps) {
           alt={alt ?? "User avatar"}
         />
       )}
-      <AvatarFallback>
-        <User className="h-5 w-5" />
+      <AvatarFallback className="avatar-gradient text-white font-bold text-sm">
+        {initial}
       </AvatarFallback>
     </Avatar>
   );
