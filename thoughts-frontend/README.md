@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Thoughts — Frontend
 
-## Getting Started
+Next.js 15 (App Router) frontend for the [Thoughts](../) self-hosted microblogging server.
 
-First, run the development server:
+## Features
+
+- Post thoughts, reply, boost, and like
+- Home feed, public feed, per-user timelines
+- Browse and follow remote Fediverse actors by `@user@instance` handle
+- Full remote actor profiles — bio, banner, profile fields, posts tab, followers/following tabs
+- Full-text search for local users and thoughts; remote actor lookup via WebFinger
+- Notifications, API key management, profile editing
+- Dark/light theme
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy `.env.local.example` to `.env.local` (or set the variables directly):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SERVER_SIDE_API_URL=http://localhost:8000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`NEXT_PUBLIC_API_URL` is used by client-side fetches (runs in the browser).
+`NEXT_PUBLIC_SERVER_SIDE_API_URL` is used by server-side fetches (runs in Next.js SSR — can point to an internal service URL in Docker).
 
-## Learn More
+## Run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+bun run dev     # development — http://localhost:3000
+bun run build   # production build
+bun run start   # serve production build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.yourdomain.example.com \
+  --build-arg NEXT_PUBLIC_SERVER_SIDE_API_URL=http://thoughts:8000 \
+  -t thoughts-frontend .
+docker run -p 3000:3000 thoughts-frontend
+```

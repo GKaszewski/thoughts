@@ -1,15 +1,36 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { getMe, search, User } from "@/lib/api";
+import { getMe, search, lookupRemoteActor } from "@/lib/api";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}): Promise<Metadata> {
+  const { q } = await searchParams;
+  const title = q ? `Search: "${q}"` : "Search";
+  return {
+    title,
+    description: q
+      ? `Search results for "${q}" on Thoughts`
+      : "Search for people and thoughts on Thoughts",
+  };
+}
+import { EmptyState } from "@/components/empty-state";
 import { UserListCard } from "@/components/user-list-card";
+import { RemoteUserCard } from "@/components/remote-user-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThoughtList } from "@/components/thought-list";
 
+const HANDLE_RE = /^@[\w.-]+@[\w.-]+\.\w+$/;
+
 interface SearchPageProps {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const query = searchParams.q || "";
+  const { q } = await searchParams;
+  const query = q || "";
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   if (!query) {
@@ -23,17 +44,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     );
   }
 
-  const [results, me] = await Promise.all([
-    search(query, token).catch(() => null),
+  const isHandle = HANDLE_RE.test(query);
+
+  const [results, remoteActor, me] = await Promise.all([
+    isHandle ? null : search(query, token).catch(() => null),
+    isHandle ? lookupRemoteActor(query, token).catch(() => null) : null,
     token ? getMe(token).catch(() => null) : null,
   ]);
-
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>();
-  if (results) {
-    results.users.users.forEach((user: User) => {
-      authorDetails.set(user.username, { avatarUrl: user.avatarUrl });
-    });
-  }
 
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
@@ -44,31 +61,37 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </p>
       </header>
       <main>
-        {results ? (
+        {isHandle ? (
+          remoteActor ? (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Remote user</h2>
+              <RemoteUserCard actor={remoteActor} />
+            </div>
+          ) : (
+            <EmptyState message={`No user found at ${query}`} />
+          )
+        ) : results ? (
           <Tabs defaultValue="thoughts" className="w-full">
             <TabsList>
               <TabsTrigger value="thoughts">
-                Thoughts ({results.thoughts.thoughts.length})
+                Thoughts ({results.thoughts.length})
               </TabsTrigger>
               <TabsTrigger value="users">
-                Users ({results.users.users.length})
+                Users ({results.users.length})
               </TabsTrigger>
             </TabsList>
             <TabsContent value="thoughts">
               <ThoughtList
-                thoughts={results.thoughts.thoughts}
-                authorDetails={authorDetails}
+                thoughts={results.thoughts}
                 currentUser={me}
               />
             </TabsContent>
             <TabsContent value="users">
-              <UserListCard users={results.users.users} />
+              <UserListCard users={results.users} />
             </TabsContent>
           </Tabs>
         ) : (
-          <p className="text-center text-muted-foreground pt-8">
-            No results found or an error occurred.
-          </p>
+          <EmptyState message="No results found or an error occurred." />
         )}
       </main>
     </div>

@@ -1,4 +1,10 @@
 // app/(auth)/layout.tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  openGraph: { type: "website" },
+};
+
 export default function AuthLayout({
   children,
 }: {

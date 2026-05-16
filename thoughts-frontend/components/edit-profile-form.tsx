@@ -3,9 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
-import { Me, UpdateProfileSchema, updateProfile } from "@/lib/api";
+import { Me, UpdateProfileSchema } from "@/lib/api";
+import { updateProfile } from "@/app/actions/profile";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -16,19 +15,15 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { TopFriendsCombobox } from "@/components/top-friends-combobox";
 
 interface EditProfileFormProps {
   currentUser: Me;
 }
 
 export function EditProfileForm({ currentUser }: EditProfileFormProps) {
-  const router = useRouter();
-  const { token } = useAuth();
 
   const form = useForm<z.infer<typeof UpdateProfileSchema>>({
     resolver: zodResolver(UpdateProfileSchema),
@@ -38,18 +33,14 @@ export function EditProfileForm({ currentUser }: EditProfileFormProps) {
       avatarUrl: currentUser.avatarUrl ?? undefined,
       headerUrl: currentUser.headerUrl ?? undefined,
       customCss: currentUser.customCss ?? undefined,
-      topFriends: currentUser.topFriends ?? [],
     },
   });
 
   async function onSubmit(values: z.infer<typeof UpdateProfileSchema>) {
-    if (!token) return;
     toast.info("Updating your profile...");
     try {
-      await updateProfile(values, token);
+      await updateProfile(currentUser.username, values);
       toast.success("Profile updated successfully!");
-      router.push(`/users/${currentUser.username}`);
-      router.refresh();
     } catch (err) {
       toast.error(`Failed to update profile. ${err}`);
     }
@@ -131,25 +122,6 @@ export function EditProfileForm({ currentUser }: EditProfileFormProps) {
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              name="topFriends"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Top Friends</FormLabel>
-                  <FormControl>
-                    <TopFriendsCombobox
-                      value={field.value || []}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Select up to 8 of your friends to display on your profile.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

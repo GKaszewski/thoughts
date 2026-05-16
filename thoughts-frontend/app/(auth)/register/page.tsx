@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RegisterSchema, registerUser } from "@/lib/api";
+import Cookies from "js-cookie";
 import { useState } from "react";
 
 export default function RegisterPage() {
@@ -37,9 +38,9 @@ export default function RegisterPage() {
   async function onSubmit(values: z.infer<typeof RegisterSchema>) {
     try {
       setError(null);
-      await registerUser(values);
-      // You can automatically log the user in here or just redirect them
-      router.push("/login");
+      const { token } = await registerUser(values);
+      Cookies.set("auth_token", token, { expires: 7, secure: true });
+      router.push("/");
     } catch {
       setError("Username or email may already be taken.");
     }

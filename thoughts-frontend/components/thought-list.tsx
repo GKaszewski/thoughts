@@ -4,15 +4,10 @@ import { Card, CardContent } from "./ui/card";
 
 interface ThoughtListProps {
   thoughts: Thought[];
-  authorDetails: Map<string, { avatarUrl?: string | null }>;
   currentUser: Me | null;
 }
 
-export function ThoughtList({
-  thoughts,
-  authorDetails,
-  currentUser,
-}: ThoughtListProps) {
+export function ThoughtList({ thoughts, currentUser }: ThoughtListProps) {
   if (thoughts.length === 0) {
     return (
       <p className="text-center text-muted-foreground pt-8">
@@ -25,21 +20,13 @@ export function ThoughtList({
     <Card>
       <CardContent className="divide-y p-0">
         <div className="space-y-6 p-4">
-          {thoughts.map((thought) => {
-            const author = {
-              username: thought.authorUsername,
-              displayName: thought.authorDisplayName,
-              ...authorDetails.get(thought.authorUsername),
-            };
-            return (
-              <ThoughtCard
-                key={thought.id}
-                thought={thought}
-                author={author}
-                currentUser={currentUser}
-              />
-            );
-          })}
+          {thoughts.map((thought) => (
+            <ThoughtCard
+              key={thought.id}
+              thought={thought}
+              currentUser={currentUser}
+            />
+          ))}
         </div>
       </CardContent>
     </Card>

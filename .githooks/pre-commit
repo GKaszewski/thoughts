@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "→ cargo fmt"
+if ! cargo fmt --all -- --check; then
+    echo "  run 'cargo fmt --all' to fix formatting"
+    exit 1
+fi
+
+echo "→ cargo clippy"
+if ! cargo clippy --workspace -- -D warnings; then
+    exit 1
+fi

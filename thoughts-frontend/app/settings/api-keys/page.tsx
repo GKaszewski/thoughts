@@ -10,7 +10,7 @@ export default async function ApiKeysPage() {
   }
 
   const initialApiKeys = await getApiKeys(token).catch(() => ({
-    apiKeys: [],
+    keys: [],
   }));
 
   return (
@@ -21,7 +21,7 @@ export default async function ApiKeysPage() {
           Manage API keys for third-party applications.
         </p>
       </div>
-      <ApiKeyList initialApiKeys={initialApiKeys.apiKeys} />
+      <ApiKeyList initialApiKeys={initialApiKeys.keys} />
     </div>
   );
 }

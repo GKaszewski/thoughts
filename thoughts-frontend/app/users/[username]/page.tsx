@@ -1,12 +1,49 @@
+import type { Metadata } from "next";
 import {
   getFollowersList,
   getFollowingList,
-  getFriends,
   getMe,
+  getRemoteFollowers,
+  getRemoteFollowing,
   getUserProfile,
   getUserThoughts,
   Me,
 } from "@/lib/api";
+
+interface ProfilePageProps {
+  params: Promise<{ username: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const user = await getUserProfile(username, null).catch(() => null);
+  if (!user) return { title: username };
+
+  const name = user.displayName || user.username;
+  const description =
+    user.bio ||
+    `Follow ${name} on Thoughts and across the Fediverse.`;
+
+  return {
+    title: `${name} (@${user.username})`,
+    description,
+    openGraph: {
+      type: "profile",
+      title: `${name} (@${user.username})`,
+      description,
+      images: user.avatarUrl ? [{ url: user.avatarUrl }] : [],
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} (@${user.username})`,
+      description,
+      images: user.avatarUrl ? [user.avatarUrl] : [],
+    },
+  };
+}
+import { EmptyState } from "@/components/empty-state";
 import { UserAvatar } from "@/components/user-avatar";
 import { Calendar, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,17 +51,21 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { FollowButton } from "@/components/follow-button";
 import { TopFriends } from "@/components/top-friends";
+import { Suspense } from "react";
+import { ProfileSkeleton } from "@/components/loading-skeleton";
 import { buildThoughtThreads } from "@/lib/utils";
 import { ThoughtThread } from "@/components/thought-thread";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PendingRequests } from "@/components/federation/pending-requests";
 
 interface ProfilePageProps {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const { username } = params;
+  const { username } = await params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   const userProfilePromise = getUserProfile(username, token);
@@ -55,33 +96,37 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
   const thoughts =
-    thoughtsResult.status === "fulfilled" ? thoughtsResult.value.thoughts : [];
+    thoughtsResult.status === "fulfilled" ? thoughtsResult.value.items : [];
   const thoughtThreads = buildThoughtThreads(thoughts);
 
-  const followersCount =
+  const localFollowersCount =
     followersResult.status === "fulfilled"
-      ? followersResult.value.users.length
+      ? followersResult.value.total
       : 0;
-  const followingCount =
+  const localFollowingCount =
     followingResult.status === "fulfilled"
-      ? followingResult.value.users.length
+      ? followingResult.value.total
       : 0;
 
   const isOwnProfile = me?.username === user.username;
-  const isFollowing =
-    me?.following?.some(
-      (followedUser) => followedUser.username === user.username
-    ) || false;
 
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>();
-  authorDetails.set(user.username, { avatarUrl: user.avatarUrl });
+  const [remoteFollowersCount, remoteFollowingCount] =
+    isOwnProfile && token
+      ? await Promise.all([
+          getRemoteFollowers(token).then((r) => r.length).catch(() => 0),
+          getRemoteFollowing(token).then((r) => r.length).catch(() => 0),
+        ])
+      : [0, 0];
 
-  const friends =
-    typeof token === "string"
-      ? (await getFriends(token)).users.map((user) => user.username)
-      : [];
+  const followersCount = localFollowersCount + remoteFollowersCount;
+  const followingCount = localFollowingCount + remoteFollowingCount;
+  const isFollowing = user.isFollowedByViewer;
 
-  const shouldDisplayTopFriends = token && friends.length > 8;
+  const apiDomain = process.env.NEXT_PUBLIC_API_URL
+    ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
+    : null;
+  const fediverseHandle =
+    user.local && apiDomain ? `@${user.username}@${apiDomain}` : null;
 
   return (
     <div id={`profile-page-${user.username}`}>
@@ -148,6 +193,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 >
                   @{user.username}
                 </p>
+                {fediverseHandle && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono select-all">
+                    {fediverseHandle}
+                  </p>
+                )}
               </div>
 
               <p
@@ -189,15 +239,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               >
                 <Calendar className="h-4 w-4" />
                 <span>
-                  Joined {new Date(user.joinedAt).toLocaleDateString()}
+                  Joined {user.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : "Unknown"}
                 </span>
               </div>
             </Card>
 
-            {shouldDisplayTopFriends && (
-              <TopFriends mode="top-friends" usernames={user.topFriends} />
-            )}
-            {token && <TopFriends mode="friends" usernames={friends || []} />}
+            <Suspense fallback={<ProfileSkeleton />}>
+              <TopFriends username={user.username} />
+            </Suspense>
           </div>
         </aside>
 
@@ -205,24 +254,31 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           id="profile-card__thoughts"
           className="col-span-1 lg:col-span-3 space-y-4"
         >
-          {thoughtThreads.map((thought) => (
-            <ThoughtThread
-              key={thought.id}
-              thought={thought}
-              authorDetails={authorDetails}
-              currentUser={me}
-            />
-          ))}
-          {thoughtThreads.length === 0 && (
-            <Card
-              id="profile-card__no-thoughts"
-              className="flex items-center justify-center h-48"
-            >
-              <p className="text-center text-muted-foreground">
-                This user hasn&apos;t posted any public thoughts yet.
-              </p>
-            </Card>
-          )}
+          <Tabs key={user.id.toString()} defaultValue="thoughts">
+            <TabsList className="mb-4">
+              <TabsTrigger value="thoughts">Thoughts</TabsTrigger>
+              {isOwnProfile && (
+                <TabsTrigger value="federation">Requests</TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent value="thoughts" className="space-y-4">
+              {thoughtThreads.map((thought) => (
+                <ThoughtThread
+                  key={thought.id}
+                  thought={thought}
+                  currentUser={me}
+                />
+              ))}
+              {thoughtThreads.length === 0 && (
+                <EmptyState message="This user hasn't posted any public thoughts yet." />
+              )}
+            </TabsContent>
+            {isOwnProfile && (
+              <TabsContent value="federation">
+                <PendingRequests />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
       </main>
     </div>

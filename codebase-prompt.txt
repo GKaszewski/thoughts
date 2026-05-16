@@ -1,2 +1,0 @@
-uvx files-to-prompt thoughts-backend -e toml -e rs -e md --ignore "*target" -o backend-codebase.txt
-uvx files-to-prompt thoughts-frontend -o frontend-codebase.txt --ignore "*node_modules" --ignore "*.lock"

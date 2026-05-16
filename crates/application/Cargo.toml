@@ -1,0 +1,21 @@
+[package]
+name = "application"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain           = { workspace = true }
+activitypub-base = { workspace = true }
+async-trait      = { workspace = true }
+thiserror   = { workspace = true }
+uuid        = { workspace = true }
+chrono      = { workspace = true }
+sha2        = "0.10"
+hex         = "0.4"
+tracing     = { workspace = true }
+url         = { workspace = true }
+tokio       = { workspace = true }
+
+[dev-dependencies]
+tokio  = { workspace = true, features = ["full"] }
+domain = { workspace = true, features = ["test-helpers"] }

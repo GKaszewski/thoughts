@@ -1,19 +1,14 @@
 import { getAllUsers } from "@/lib/api";
 import { UserListCard } from "@/components/user-list-card";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { PaginationNav } from "@/components/pagination-nav";
 
 export default async function AllUsersPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const page = parseInt(searchParams.page ?? "1", 10);
+  const { page: pageStr } = await searchParams;
+  const page = parseInt(pageStr ?? "1", 10);
   const usersData = await getAllUsers(page).catch(() => null);
 
   if (!usersData) {
@@ -27,7 +22,8 @@ export default async function AllUsersPage({
     );
   }
 
-  const { items, totalPages } = usersData;
+  const { items, total, per_page } = usersData;
+  const totalPages = Math.ceil(total / per_page);
 
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
@@ -39,24 +35,11 @@ export default async function AllUsersPage({
       </header>
       <main>
         <UserListCard users={items} />
-        {totalPages > 1 && (
-          <Pagination className="mt-8">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href={page > 1 ? `/users/all?page=${page - 1}` : "#"}
-                  aria-disabled={page <= 1}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  href={page < totalPages ? `/users/all?page=${page + 1}` : "#"}
-                  aria-disabled={page >= totalPages}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+        <PaginationNav
+          page={page}
+          totalPages={totalPages}
+          buildHref={(p) => `/users/all?page=${p}`}
+        />
       </main>
     </div>
   );

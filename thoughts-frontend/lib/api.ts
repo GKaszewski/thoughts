@@ -1,84 +1,102 @@
 import { z } from "zod";
 
 export const UserSchema = z.object({
-  id: z.uuid(),
+  id: z.string().uuid(),
   username: z.string(),
   displayName: z.string().nullable(),
   bio: z.string().nullable(),
-  avatarUrl: z.url().nullable(),
-  headerUrl: z.url().nullable(),
+  avatarUrl: z.string().nullable(),
+  headerUrl: z.string().nullable(),
   customCss: z.string().nullable(),
-  topFriends: z.array(z.string()),
-  joinedAt: z.coerce.date(),
+  local: z.boolean(),
+  isFollowedByViewer: z.boolean(),
+  joinedAt: z.coerce.date().nullable(),
 });
 
-export const MeSchema = z.object({
-  id: z.uuid(),
-  username: z.string(),
-  displayName: z.string().nullable(),
-  bio: z.string().nullable(),
-  avatarUrl: z.url().nullable(),
-  headerUrl: z.url().nullable(),
-  customCss: z.string().nullable(),
-  topFriends: z.array(z.string()),
-  joinedAt: z.coerce.date(),
-  following: z.array(UserSchema),
+export const MeSchema = UserSchema;
+
+export const ProfileFieldSchema = z.object({
+  name: z.string(),
+  value: z.string(),
 });
+export type ProfileField = z.infer<typeof ProfileFieldSchema>;
+
+export const RemoteActorSchema = z.object({
+  handle: z.string(),
+  displayName: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  url: z.string(),
+  bio: z.string().nullable(),
+  bannerUrl: z.string().nullable(),
+  alsoKnownAs: z.string().nullable(),
+  outboxUrl: z.string().nullable(),
+  followersUrl: z.string().nullable(),
+  followingUrl: z.string().nullable(),
+  attachment: z.array(ProfileFieldSchema),
+});
+export type RemoteActor = z.infer<typeof RemoteActorSchema>;
 
 export const ThoughtSchema = z.object({
-  id: z.uuid(),
-  authorUsername: z.string(),
-  authorDisplayName: z.string().nullable(),
+  id: z.string().uuid(),
   content: z.string(),
-  visibility: z.enum(["Public", "FriendsOnly", "Private"]),
-  replyToId: z.uuid().nullable(),
+  author: UserSchema,
+  replyToId: z.string().uuid().nullable(),
+  replyToUrl: z.string().url().nullable().optional(),
+  visibility: z.string(),
+  contentWarning: z.string().nullable(),
+  sensitive: z.boolean(),
+  likeCount: z.number(),
+  boostCount: z.number(),
+  replyCount: z.number(),
+  likedByViewer: z.boolean(),
+  boostedByViewer: z.boolean(),
   createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date().nullable(),
 });
 
 export const RegisterSchema = z.object({
   username: z.string().min(3),
-  email: z.email(),
+  email: z.string().email(),
   password: z.string().min(6),
 });
 
 export const LoginSchema = z.object({
-  username: z.string().min(3),
+  email: z.string().email(),
   password: z.string().min(6),
 });
 
 export const CreateThoughtSchema = z.object({
   content: z.string().min(1).max(128),
-  visibility: z.enum(["Public", "FriendsOnly", "Private"]).optional(),
-  replyToId: z.string().uuid().optional(),
+  visibility: z.enum(["public", "followers", "unlisted", "direct"]).optional(),
+  inReplyToId: z.string().uuid().optional(),
 });
 
 export const UpdateProfileSchema = z.object({
   displayName: z.string().max(50).optional(),
   bio: z.string().max(4000).optional(),
-  avatarUrl: z.url().or(z.literal("")).optional(),
-  headerUrl: z.url().or(z.literal("")).optional(),
+  avatarUrl: z.string().optional(),
+  headerUrl: z.string().optional(),
   customCss: z.string().optional(),
-  topFriends: z.array(z.string()).max(8).optional(),
 });
 
 export const SearchResultsSchema = z.object({
-  users: z.object({ users: z.array(UserSchema) }),
-  thoughts: z.object({ thoughts: z.array(ThoughtSchema) }),
+  query: z.string(),
+  thoughts: z.array(ThoughtSchema),
+  users: z.array(UserSchema),
 });
 
 export const ApiKeySchema = z.object({
-  id: z.uuid(),
+  id: z.string().uuid(),
   name: z.string(),
-  keyPrefix: z.string(),
   createdAt: z.coerce.date(),
 });
 
 export const ApiKeyResponseSchema = ApiKeySchema.extend({
-  plaintextKey: z.string().optional(),
+  key: z.string().optional(),
 });
 
 export const ApiKeyListSchema = z.object({
-  apiKeys: z.array(ApiKeySchema),
+  keys: z.array(ApiKeySchema),
 });
 
 export const CreateApiKeySchema = z.object({
@@ -87,41 +105,59 @@ export const CreateApiKeySchema = z.object({
 
 export const ThoughtThreadSchema: z.ZodType<{
   id: string;
-  authorUsername: string;
-  authorDisplayName: string | null;
   content: string;
-  visibility: "Public" | "FriendsOnly" | "Private";
+  author: z.infer<typeof UserSchema>;
   replyToId: string | null;
+  visibility: string;
+  contentWarning: string | null;
+  sensitive: boolean;
+  likeCount: number;
+  boostCount: number;
+  replyCount: number;
+  likedByViewer: boolean;
+  boostedByViewer: boolean;
   createdAt: Date;
+  updatedAt: Date | null;
   replies: ThoughtThread[];
 }> = z.object({
-  id: z.uuid(),
-  authorUsername: z.string(),
-  authorDisplayName: z.string().nullable(),
+  id: z.string().uuid(),
   content: z.string(),
-  visibility: z.enum(["Public", "FriendsOnly", "Private"]),
-  replyToId: z.uuid().nullable(),
+  author: UserSchema,
+  replyToId: z.string().uuid().nullable(),
+  visibility: z.string(),
+  contentWarning: z.string().nullable(),
+  sensitive: z.boolean(),
+  likeCount: z.number(),
+  boostCount: z.number(),
+  replyCount: z.number(),
+  likedByViewer: z.boolean(),
+  boostedByViewer: z.boolean(),
   createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date().nullable(),
   replies: z.lazy(() => z.array(ThoughtThreadSchema)),
 });
 
 export type User = z.infer<typeof UserSchema>;
 export type Me = z.infer<typeof MeSchema>;
 export type Thought = z.infer<typeof ThoughtSchema>;
+export type ThoughtThread = z.infer<typeof ThoughtThreadSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type Login = z.infer<typeof LoginSchema>;
 export type ApiKey = z.infer<typeof ApiKeySchema>;
 export type ApiKeyResponse = z.infer<typeof ApiKeyResponseSchema>;
-export type ThoughtThread = z.infer<typeof ThoughtThreadSchema>;
 
 const API_BASE_URL =
   typeof window === "undefined"
-    ? process.env.NEXT_PUBLIC_SERVER_SIDE_API_URL // Server-side
-    : process.env.NEXT_PUBLIC_API_URL; // Client-side
+    ? process.env.NEXT_PUBLIC_SERVER_SIDE_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
+
+type ApiFetchOptions = Omit<RequestInit, 'next'> & {
+  next?: { tags?: string[]; revalidate?: number | false }
+}
 
 async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: ApiFetchOptions = {},
   schema: z.ZodType<T>,
   token?: string | null
 ): Promise<T> {
@@ -129,25 +165,27 @@ async function apiFetch<T>(
     throw new Error("API_BASE_URL is not defined");
   }
 
+  const { next, ...restOptions } = options;
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
+    ...(restOptions.headers as Record<string, string>),
   };
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const fullUrl = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(fullUrl, {
-    ...options,
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...restOptions,
     headers,
+    ...(next ? { next } : {}),
   });
 
   if (!response.ok) {
     throw new Error(`API request failed with status ${response.status}`);
   }
-  
+
   if (response.status === 204) {
     return null as T;
   }
@@ -156,197 +194,274 @@ async function apiFetch<T>(
   return schema.parse(data);
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────
+
 export const registerUser = (data: z.infer<typeof RegisterSchema>) =>
-  apiFetch("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(data),
-  }, UserSchema);
+  apiFetch(
+    "/auth/register",
+    { method: "POST", body: JSON.stringify(data) },
+    z.object({ token: z.string(), user: UserSchema })
+  );
 
 export const loginUser = (data: z.infer<typeof LoginSchema>) =>
-  apiFetch("/auth/login", {
-    method: "POST",
-    body: JSON.stringify(data),
-  }, z.object({ token: z.string() }));
+  apiFetch("/auth/login", { method: "POST", body: JSON.stringify(data) }, z.object({ token: z.string() }));
 
-  export const getFeed = (token: string, page: number = 1, pageSize: number = 20) =>
-  apiFetch(
-    `/feed?page=${page}&page_size=${pageSize}`,
-    {},
-    z.object({ items: z.array(ThoughtSchema), totalPages: z.number() }),
-    token
-  );
+// ── Current user ──────────────────────────────────────────────────────────
+
+export const getMe = (token: string) =>
+  apiFetch("/users/me", { next: { tags: ['me'] } }, MeSchema, token);
+
+export const updateProfile = (data: z.infer<typeof UpdateProfileSchema>, token: string) =>
+  apiFetch("/users/me", { method: "PATCH", body: JSON.stringify(data) }, UserSchema, token);
+
+export const getMeFollowingList = (token: string) =>
+  apiFetch("/users/me/following", { next: { tags: ['me'] } }, z.object({ total: z.number(), items: z.array(UserSchema) }), token);
+
+// ── Users ─────────────────────────────────────────────────────────────────
 
 export const getUserProfile = (username: string, token: string | null) =>
-  apiFetch(`/users/${username}`, {}, UserSchema, token);
-
-export const getUserThoughts = (username: string, token: string | null) =>
-  apiFetch(
-    `/users/${username}/thoughts`,
-    {},
-    z.object({ thoughts: z.array(ThoughtSchema) }),
-    token
-  );
-
-export const createThought = (
-  data: z.infer<typeof CreateThoughtSchema>,
-  token: string
-) =>
-  apiFetch(
-    "/thoughts",
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-    ThoughtSchema,
-    token
-  );
-
-  export const followUser = (username: string, token: string) =>
-  apiFetch(
-    `/users/${username}/follow`,
-    { method: "POST" },
-    z.null(), // Expect a 204 No Content response, which we treat as null
-    token
-  );
-
-export const unfollowUser = (username: string, token: string) =>
-  apiFetch(
-    `/users/${username}/follow`,
-    { method: "DELETE" },
-    z.null(), // Expect a 204 No Content response
-    token
-  );
-
-  export const getMe = (token: string) =>
-  apiFetch("/users/me", {}, MeSchema, token);
-
-  export const getPopularTags = () =>
-  apiFetch(
-    "/tags/popular",
-    {},
-    z.array(z.string()) // Expect an array of strings
-  );
-
-  export const deleteThought = (thoughtId: string, token: string) =>
-  apiFetch(
-    `/thoughts/${thoughtId}`,
-    { method: "DELETE" },
-    z.null(), // Expect a 204 No Content response
-    token
-  );
-
-export const updateProfile = (
-  data: z.infer<typeof UpdateProfileSchema>,
-  token: string
-) =>
-  apiFetch(
-    "/users/me",
-    {
-      method: "PUT",
-      body: JSON.stringify(data),
-    },
-    UserSchema, // Expect the updated user object back
-    token
-  );
-
-  export const getThoughtsByTag = (tagName: string, token: string | null) =>
-  apiFetch(
-    `/tags/${tagName}`,
-    {},
-    z.object({ thoughts: z.array(ThoughtSchema) }),
-    token
-  );
-
-export const getThoughtById = (thoughtId: string, token: string | null) =>
-  apiFetch(
-    `/thoughts/${thoughtId}`,
-    {},
-    ThoughtSchema, // Expect a single thought object
-    token
-  );
-
-  export const getFollowingList = (username: string, token: string | null) =>
-  apiFetch(
-    `/users/${username}/following`,
-    {},
-    z.object({ users: z.array(UserSchema) }),
-    token
-  );
+  apiFetch(`/users/${username}`, { next: { tags: [`profile:${username}`] } }, UserSchema, token);
 
 export const getFollowersList = (username: string, token: string | null) =>
+  apiFetch(`/users/${username}/followers`, { next: { tags: [`profile:${username}`] } }, z.object({ total: z.number(), items: z.array(UserSchema) }), token);
+
+export const getFollowingList = (username: string, token: string | null) =>
+  apiFetch(`/users/${username}/following`, { next: { tags: [`profile:${username}`] } }, z.object({ total: z.number(), items: z.array(UserSchema) }), token);
+
+export const getTopFriends = (username: string, token: string | null) =>
   apiFetch(
-    `/users/${username}/followers`,
-    {},
-    z.object({ users: z.array(UserSchema) }),
+    `/users/${username}/top-friends`,
+    { next: { tags: [`profile:${username}`] } },
+    z.object({ topFriends: z.array(UserSchema) }),
     token
   );
 
-  export const getFriends = (token: string) =>
+export const followUser = (username: string, token: string) =>
+  apiFetch(`/users/${username}/follow`, { method: "POST" }, z.null(), token);
+
+export const unfollowUser = (username: string, token: string) =>
+  apiFetch(`/users/${username}/follow`, { method: "DELETE" }, z.null(), token);
+
+export const markNotificationRead = (id: string, token: string) =>
   apiFetch(
-    "/friends",
-    {},
-    z.object({ users: z.array(UserSchema) }),
-    token
-  );
-
-
-
-export const search = (query: string, token: string | null) =>
-  apiFetch(
-    `/search?q=${encodeURIComponent(query)}`,
-    {},
-    SearchResultsSchema,
-    token
-  );
-
-
-export const getApiKeys = (token: string) =>
-  apiFetch(`/users/me/api-keys`, {}, ApiKeyListSchema, token);
-
-export const createApiKey = (
-  data: z.infer<typeof CreateApiKeySchema>,
-  token: string
-) =>
-  apiFetch(
-    `/users/me/api-keys`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-    ApiKeyResponseSchema,
-    token
-  );
-
-export const deleteApiKey = (keyId: string, token: string) =>
-  apiFetch(
-    `/users/me/api-keys/${keyId}`,
-    { method: "DELETE" },
+    `/notifications/${id}`,
+    { method: "PATCH", body: JSON.stringify({ read: true }) },
     z.null(),
     token
   );
 
-export const getThoughtThread = (thoughtId: string, token: string | null) =>
-  apiFetch(`/thoughts/${thoughtId}/thread`, {}, ThoughtThreadSchema, token);
+export const markAllNotificationsRead = (token: string) =>
+  apiFetch(
+    "/notifications",
+    { method: "PATCH", body: JSON.stringify({ read: true }) },
+    z.null(),
+    token
+  );
 
+export const lookupRemoteActor = (handle: string, token: string | null) =>
+  apiFetch(
+    `/users/lookup?handle=${encodeURIComponent(handle)}`,
+    { next: { tags: [`remote-actor:${handle}`] } },
+    RemoteActorSchema,
+    token
+  );
+
+export const getRemoteActorPosts = (
+  handle: string,
+  page: number,
+  token: string | null
+) =>
+  apiFetch(
+    `/federation/actors/${encodeURIComponent(handle)}/posts?page=${page}&per_page=20`,
+    { next: { tags: [`remote-actor:${handle}`] } },
+    z.object({
+      total: z.number(),
+      page: z.number(),
+      per_page: z.number(),
+      items: z.array(ThoughtSchema),
+    }),
+    token
+  );
+
+export const ActorConnectionSchema = z.object({
+  handle: z.string(),
+  displayName: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  url: z.string(),
+});
+export type ActorConnection = z.infer<typeof ActorConnectionSchema>;
+
+const ActorConnectionPageSchema = z.object({
+  items: z.array(ActorConnectionSchema),
+  page: z.number(),
+  hasMore: z.boolean(),
+});
+
+export const getActorFollowers = (
+  handle: string,
+  page: number,
+  token: string | null
+) =>
+  apiFetch(
+    `/federation/actors/${encodeURIComponent(handle)}/followers-list?page=${page}`,
+    { next: { tags: [`remote-actor:${handle}`] } },
+    ActorConnectionPageSchema,
+    token
+  );
+
+export const getActorFollowing = (
+  handle: string,
+  page: number,
+  token: string | null
+) =>
+  apiFetch(
+    `/federation/actors/${encodeURIComponent(handle)}/following-list?page=${page}`,
+    { next: { tags: [`remote-actor:${handle}`] } },
+    ActorConnectionPageSchema,
+    token
+  );
 
 export const getAllUsers = (page: number = 1, pageSize: number = 20) =>
   apiFetch(
-    `/users/all?page=${page}&page_size=${pageSize}`,
-    {},
-    z.object({
-      items: z.array(UserSchema),
-      page: z.number(),
-      pageSize: z.number(),
-      totalPages: z.number(),
-      totalItems: z.number(),
-    })
+    `/users?page=${page}&per_page=${pageSize}`,
+    { next: { tags: ['users'] } },
+    z.object({ items: z.array(UserSchema), total: z.number(), page: z.number(), per_page: z.number() })
+      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.per_page) }))
   );
 
 export const getAllUsersCount = () =>
+  apiFetch("/users/count", { next: { tags: ['users'] } }, z.object({ count: z.number() }));
+
+// ── Thoughts ──────────────────────────────────────────────────────────────
+
+export const getFeed = (token: string, page: number = 1, pageSize: number = 20) =>
   apiFetch(
-    `/users/count`,
-    {},
-    z.object({
-      count: z.number(),
-    })
+    `/feed?page=${page}&per_page=${pageSize}`,
+    { next: { tags: ['feed'] } },
+    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() })
+      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.per_page) })),
+    token
+  );
+
+export const getUserThoughts = (username: string, token: string | null) =>
+  apiFetch(
+    `/users/${username}/thoughts`,
+    { next: { tags: [`profile:${username}`] } },
+    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() }),
+    token
+  );
+
+export const createThought = (data: z.infer<typeof CreateThoughtSchema>, token: string) =>
+  apiFetch("/thoughts", { method: "POST", body: JSON.stringify(data) }, ThoughtSchema, token);
+
+export const deleteThought = (thoughtId: string, token: string) =>
+  apiFetch(`/thoughts/${thoughtId}`, { method: "DELETE" }, z.null(), token);
+
+export const getThoughtById = (thoughtId: string, token: string | null) =>
+  apiFetch(`/thoughts/${thoughtId}`, { next: { tags: [`thought:${thoughtId}`] } }, ThoughtSchema, token);
+
+export const getThoughtThread = async (thoughtId: string, token: string | null): Promise<ThoughtThread> => {
+  const thoughts = await apiFetch(`/thoughts/${thoughtId}/thread`, { next: { tags: [`thought:${thoughtId}`] } }, z.array(ThoughtSchema), token);
+  type T = z.infer<typeof ThoughtSchema>;
+  const repliesMap: Record<string, T[]> = {};
+  for (const t of thoughts) {
+    if (t.replyToId) {
+      (repliesMap[t.replyToId] ??= []).push(t);
+    }
+  }
+  function build(t: T): ThoughtThread {
+    return { ...t, replies: (repliesMap[t.id] ?? []).map(build) };
+  }
+  const root = thoughts.find((t) => t.id === thoughtId) ?? thoughts[0];
+  if (!root) throw new Error("Thread not found");
+  return build(root);
+};
+
+// ── Tags ──────────────────────────────────────────────────────────────────
+
+export const getThoughtsByTag = (tagName: string, token: string | null) =>
+  apiFetch(
+    `/tags/${tagName}`,
+    { next: { tags: [`tag:${tagName}`, 'feed'] } },
+    z.object({ tag: z.string(), items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() }),
+    token
+  );
+
+export const getPopularTags = () =>
+  apiFetch(
+    "/tags/popular",
+    { next: { tags: ['tags:popular'] } },
+    z.object({ tags: z.array(z.object({ name: z.string(), thought_count: z.number() })) })
+      .transform((d) => d.tags.map((t) => t.name))
+  );
+
+// ── Search ────────────────────────────────────────────────────────────────
+
+export const search = (query: string, token: string | null) =>
+  apiFetch(`/search?q=${encodeURIComponent(query)}`, { next: { tags: ['search'] } }, SearchResultsSchema, token);
+
+// ── API Keys ──────────────────────────────────────────────────────────────
+
+export const getApiKeys = (token: string) =>
+  apiFetch("/api-keys", { next: { tags: ['api-keys'] } }, z.object({ keys: z.array(ApiKeySchema) }), token);
+
+export const createApiKey = (data: z.infer<typeof CreateApiKeySchema>, token: string) =>
+  apiFetch("/api-keys", { method: "POST", body: JSON.stringify(data) }, ApiKeyResponseSchema, token);
+
+export const deleteApiKey = (keyId: string, token: string) =>
+  apiFetch(`/api-keys/${keyId}`, { method: "DELETE" }, z.null(), token);
+
+// ── Legacy alias used by top-friends-combobox ─────────────────────────────
+
+export const getFriends = (token: string) =>
+  getMeFollowingList(token).then((r) => ({ users: r.items }));
+
+// ── Federation management ─────────────────────────────────────────────────
+
+export const getPendingFollowRequests = (token: string) =>
+  apiFetch(
+    "/federation/me/followers/pending",
+    { next: { tags: ['federation:pending'] } },
+    z.array(RemoteActorSchema),
+    token
+  );
+
+export const acceptFollowRequest = (actorUrl: string, token: string) =>
+  apiFetch(
+    "/federation/me/followers/accept",
+    { method: "POST", body: JSON.stringify({ actor_url: actorUrl }) },
+    z.null(),
+    token
+  );
+
+export const rejectFollowRequest = (actorUrl: string, token: string) =>
+  apiFetch(
+    "/federation/me/followers",
+    { method: "DELETE", body: JSON.stringify({ actor_url: actorUrl }) },
+    z.null(),
+    token
+  );
+
+export const getRemoteFollowers = (token: string) =>
+  apiFetch(
+    "/federation/me/followers",
+    { next: { tags: ['federation:followers'] } },
+    z.array(RemoteActorSchema),
+    token
+  );
+
+export const getRemoteFollowing = (token: string) =>
+  apiFetch(
+    "/federation/me/following",
+    { next: { tags: ['federation:following'] } },
+    z.array(RemoteActorSchema),
+    token
+  );
+
+export const unfollowRemoteActor = (handle: string, token: string) =>
+  apiFetch(
+    "/federation/me/following",
+    { method: "DELETE", body: JSON.stringify({ handle }) },
+    z.null(),
+    token
   );

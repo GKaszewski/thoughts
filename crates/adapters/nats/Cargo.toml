@@ -1,0 +1,17 @@
+[package]
+name = "nats"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain           = { workspace = true }
+event-payload    = { workspace = true }
+event-transport  = { workspace = true }
+async-nats       = { workspace = true }
+async-stream     = { workspace = true }
+serde_json       = { workspace = true }
+futures          = { workspace = true }
+tokio            = { workspace = true }
+async-trait      = { workspace = true }
+tracing          = { workspace = true }
+uuid             = { workspace = true }

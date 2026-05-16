@@ -64,7 +64,7 @@ export function ApiKeyList({ initialApiKeys }: ApiKeyListProps) {
     try {
       const newKeyResponse = await createApiKey(values, token);
       setKeys((prev) => [...prev, newKeyResponse]);
-      setNewKey(newKeyResponse.plaintextKey ?? null);
+      setNewKey(newKeyResponse.key ?? null);
       form.reset();
       toast.success("API Key created successfully.");
     } catch {
@@ -113,7 +113,7 @@ export function ApiKeyList({ initialApiKeys }: ApiKeyListProps) {
                         {`Created on ${format(key.createdAt, "PPP")}`}
                       </p>
                       <p className="text-xs font-mono text-muted-foreground mt-1">
-                        {`${key.keyPrefix}...`}
+                        {key.id}
                       </p>
                     </div>
                   </div>

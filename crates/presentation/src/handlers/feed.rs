@@ -1,0 +1,279 @@
+use crate::{
+    deps_struct,
+    errors::ApiError,
+    extractors::{AuthUser, Deps, OptionalAuthUser},
+    handlers::auth::to_user_response,
+};
+use api_types::requests::{PaginationQuery, SearchQuery};
+use api_types::responses::ThoughtResponse;
+use application::use_cases::feed::get_home_feed;
+use application::use_cases::profile::{get_user_by_id_or_username, get_user_by_username};
+use axum::{
+    extract::{Path, Query},
+    http::{header, HeaderMap},
+    response::{IntoResponse, Response},
+    Json,
+};
+use domain::{
+    models::feed::PageParams,
+    ports::{FederationActionPort, FeedQuery, FeedRepository, FollowRepository, SearchPort, TagRepository, UserRepository},
+};
+
+deps_struct!(FeedDeps {
+    feed: FeedRepository,
+    follows: FollowRepository,
+    search: SearchPort,
+    federation: FederationActionPort,
+    users: UserRepository,
+    tags: TagRepository,
+});
+
+pub fn to_thought_response(e: &domain::models::feed::FeedEntry) -> ThoughtResponse {
+    ThoughtResponse {
+        id: e.thought.id.as_uuid(),
+        content: e.thought.content.as_str().to_string(),
+        author: to_user_response(&e.author),
+        in_reply_to_id: e.thought.in_reply_to_id.as_ref().map(|id| id.as_uuid()),
+        in_reply_to_url: None,
+        visibility: e.thought.visibility.as_str().to_string(),
+        content_warning: e.thought.content_warning.clone(),
+        sensitive: e.thought.sensitive,
+        like_count: e.stats.like_count,
+        boost_count: e.stats.boost_count,
+        reply_count: e.stats.reply_count,
+        liked_by_viewer: e.viewer.as_ref().map(|v| v.liked).unwrap_or(false),
+        boosted_by_viewer: e.viewer.as_ref().map(|v| v.boosted).unwrap_or(false),
+        created_at: e.thought.created_at,
+        updated_at: e.thought.updated_at,
+    }
+}
+
+#[utoipa::path(
+    get, path = "/feed",
+    params(PaginationQuery),
+    responses((status = 200, description = "Home feed")),
+    security(("bearer_auth" = []))
+)]
+pub async fn home_feed(
+    Deps(d): Deps<FeedDeps>,
+    AuthUser(uid): AuthUser,
+    Query(q): Query<PaginationQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = get_home_feed(&*d.feed, &*d.follows, &uid, page).await?;
+    Ok(Json(serde_json::json!({
+        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
+        "total": result.total,
+        "page": result.page,
+        "per_page": result.per_page,
+    })))
+}
+
+#[utoipa::path(
+    get, path = "/feed/public",
+    params(PaginationQuery),
+    responses((status = 200, description = "Public feed"))
+)]
+pub async fn public_feed(
+    Deps(d): Deps<FeedDeps>,
+    OptionalAuthUser(viewer): OptionalAuthUser,
+    Query(q): Query<PaginationQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = d.feed.query(&FeedQuery::public(page, viewer)).await?;
+    Ok(Json(serde_json::json!({
+        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
+        "total": result.total,
+        "page": result.page,
+        "per_page": result.per_page,
+    })))
+}
+
+#[utoipa::path(
+    get, path = "/search",
+    params(SearchQuery),
+    responses((status = 200, description = "Search results: thoughts and users"))
+)]
+pub async fn search_handler(
+    Deps(d): Deps<FeedDeps>,
+    OptionalAuthUser(viewer): OptionalAuthUser,
+    Query(q): Query<SearchQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let page = PageParams {
+        page: q.page.unwrap_or(api_types::requests::DEFAULT_PAGE),
+        per_page: q.per_page.unwrap_or(api_types::requests::DEFAULT_PER_PAGE),
+    };
+    let query = q.q.trim().to_string();
+
+    let (thoughts_result, users_result) = tokio::join!(
+        d.search.search_thoughts(&query, &page, viewer.as_ref()),
+        d.search.search_users(&query, &page),
+    );
+
+    let thoughts = thoughts_result?
+        .items
+        .iter()
+        .map(to_thought_response)
+        .collect::<Vec<_>>();
+
+    let users = users_result?
+        .items
+        .into_iter()
+        .map(|u| to_user_response(&u))
+        .collect::<Vec<_>>();
+
+    Ok(Json(serde_json::json!({
+        "query": query,
+        "thoughts": thoughts,
+        "users": users,
+    })))
+}
+
+pub async fn get_following_handler(
+    Deps(d): Deps<FeedDeps>,
+    Path(param): Path<String>,
+    Query(q): Query<PaginationQuery>,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    let accept = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    if accept.contains("application/activity+json") {
+        let user = get_user_by_id_or_username(&*d.users, &param).await?;
+        let user_id = user.id;
+        let page = q.page().try_into().ok();
+        let json = d
+            .federation
+            .following_collection_json(&user_id, page)
+            .await?;
+        return Ok(([(header::CONTENT_TYPE, "application/activity+json")], json).into_response());
+    }
+
+    let user = get_user_by_username(&*d.users, &param).await?;
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = d.follows.list_following(&user.id, &page).await?;
+    Ok(Json(serde_json::json!({
+        "total": result.total,
+        "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
+    }))
+    .into_response())
+}
+
+pub async fn get_followers_handler(
+    Deps(d): Deps<FeedDeps>,
+    Path(param): Path<String>,
+    Query(q): Query<PaginationQuery>,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    let accept = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    if accept.contains("application/activity+json") {
+        let user = get_user_by_id_or_username(&*d.users, &param).await?;
+        let user_id = user.id;
+        let page = q.page().try_into().ok();
+        let json = d
+            .federation
+            .followers_collection_json(&user_id, page)
+            .await?;
+        return Ok(([(header::CONTENT_TYPE, "application/activity+json")], json).into_response());
+    }
+
+    let user = get_user_by_username(&*d.users, &param).await?;
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = d.follows.list_followers(&user.id, &page).await?;
+    Ok(Json(serde_json::json!({
+        "total": result.total,
+        "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
+    }))
+    .into_response())
+}
+
+#[utoipa::path(
+    get, path = "/users/{username}/thoughts",
+    params(
+        ("username" = String, Path, description = "Username"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "User's public thoughts"))
+)]
+pub async fn user_thoughts_handler(
+    Deps(d): Deps<FeedDeps>,
+    Path(username): Path<String>,
+    OptionalAuthUser(viewer): OptionalAuthUser,
+    Query(q): Query<PaginationQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let user = get_user_by_username(&*d.users, &username).await?;
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = d.feed.query(&FeedQuery::user(user.id.clone(), page, viewer)).await?;
+    Ok(Json(serde_json::json!({
+        "total": result.total,
+        "page": result.page,
+        "per_page": result.per_page,
+        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>()
+    })))
+}
+
+pub async fn get_popular_tags(
+    Deps(d): Deps<FeedDeps>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let limit: usize = params
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(api_types::requests::DEFAULT_PER_PAGE as usize);
+    let tags = d.tags.popular_tags(limit.min(api_types::requests::MAX_PER_PAGE as usize)).await?;
+    Ok(Json(serde_json::json!({
+        "tags": tags.iter().map(|(name, count)| serde_json::json!({
+            "name": name,
+            "thought_count": count,
+        })).collect::<Vec<_>>()
+    })))
+}
+
+#[utoipa::path(
+    get, path = "/tags/{name}",
+    params(
+        ("name" = String, Path, description = "Tag name"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Thoughts with this tag"))
+)]
+pub async fn tag_thoughts_handler(
+    Deps(d): Deps<FeedDeps>,
+    Path(tag_name): Path<String>,
+    OptionalAuthUser(viewer): OptionalAuthUser,
+    Query(q): Query<PaginationQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = d.feed.query(&FeedQuery::tag(&tag_name, page, viewer)).await?;
+    Ok(Json(serde_json::json!({
+        "tag": tag_name,
+        "total": result.total,
+        "page": result.page,
+        "per_page": result.per_page,
+        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
+    })))
+}

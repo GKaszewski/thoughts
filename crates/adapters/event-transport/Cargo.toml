@@ -1,0 +1,15 @@
+[package]
+name = "event-transport"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain        = { workspace = true }
+event-payload = { workspace = true }
+serde_json    = { workspace = true }
+async-trait   = { workspace = true }
+tracing       = { workspace = true }
+futures       = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }

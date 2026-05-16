@@ -7,8 +7,25 @@ import localFont from "next/font/local";
 import InstallPrompt from "@/components/install-prompt";
 
 export const metadata: Metadata = {
-  title: "Thoughts",
-  description: "A social network for sharing thoughts",
+  title: {
+    default: "Thoughts",
+    template: "%s · Thoughts",
+  },
+  description:
+    "A federated social network for short-form thoughts. Follow people across Mastodon, Pixelfed, and the wider Fediverse.",
+  openGraph: {
+    type: "website",
+    siteName: "Thoughts",
+    title: "Thoughts",
+    description:
+      "A federated social network for short-form thoughts. Follow people across the Fediverse.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Thoughts",
+    description:
+      "A federated social network for short-form thoughts. Follow people across the Fediverse.",
+  },
 };
 
 const frutiger = localFont({

@@ -1,0 +1,23 @@
+[package]
+name = "domain"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+test-helpers = ["dep:sha2", "dep:hex"]
+
+[dependencies]
+async-trait = { workspace = true }
+thiserror   = { workspace = true }
+uuid        = { workspace = true }
+chrono      = { workspace = true }
+serde       = { workspace = true }
+futures     = { workspace = true }
+url         = { workspace = true }
+sha2        = { version = "0.10", optional = true }
+hex         = { version = "0.4", optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+sha2  = "0.10"
+hex   = "0.4"

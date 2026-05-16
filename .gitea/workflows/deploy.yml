@@ -1,41 +1,19 @@
-name: Build and Deploy Thoughts
+name: deploy
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
-  build-and-deploy-local:
+  deploy:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Create .env file
-        run: |
-          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
-          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
-          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
-          echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" >> .env
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
-
-      - name: Build Docker Images Manually
-        run: |
-          docker build --target runtime -t thoughts-backend:latest ./thoughts-backend
-          docker build --target release -t thoughts-frontend:latest --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} ./thoughts-frontend
-          docker build -t custom-proxy:latest ./nginx
-
-      - name: Deploy with Docker Compose
-        run: |
-          docker compose -f compose.prod.yml down
-
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
-          AUTH_SECRET=${{ secrets.AUTH_SECRET }} \
-          docker compose -f compose.prod.yml up -d
-
-          docker image prune -f
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            docker pull registry.gabrielkaszewski.dev/thoughts:latest
+            docker pull registry.gabrielkaszewski.dev/thoughts-frontend:latest
+            docker compose -f /opt/thoughts/docker-compose.yml up -d

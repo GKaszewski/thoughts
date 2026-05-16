@@ -1,51 +1,25 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserAvatar } from "./user-avatar";
-import { getUserProfile, User } from "@/lib/api";
+import { getTopFriends } from "@/lib/api";
 import { cookies } from "next/headers";
 
 interface TopFriendsProps {
-  mode: "friends" | "top-friends";
-  usernames: string[];
+  username: string;
 }
 
-export async function TopFriends({
-  mode = "top-friends",
-  usernames,
-}: TopFriendsProps) {
+export async function TopFriends({ username }: TopFriendsProps) {
   const token = (await cookies()).get("auth_token")?.value ?? null;
+  const data = await getTopFriends(username, token).catch(() => ({ topFriends: [] }));
+  const friends = data.topFriends;
 
-  if (usernames.length === 0) {
-    return (
-      <Card className="p-4">
-        <CardHeader className="p-0 pb-2">
-          <CardTitle className="text-lg text-shadow-md">Top Friends</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <p className="text-sm text-muted-foreground">
-            No top friends to display.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const friendsResults = await Promise.allSettled(
-    usernames.map((username) => getUserProfile(username, token))
-  );
-
-  const friends = friendsResults
-    .filter(
-      (result): result is PromiseFulfilledResult<User> =>
-        result.status === "fulfilled"
-    )
-    .map((result) => result.value);
+  if (friends.length === 0) return null;
 
   return (
     <Card id="top-friends" className="p-4">
       <CardHeader id="top-friends__header" className="p-0 pb-2">
         <CardTitle id="top-friends__title" className="text-lg text-shadow-md">
-          {mode === "top-friends" ? "Top Friends" : "Friends"}
+          Top Friends
         </CardTitle>
       </CardHeader>
       <CardContent id="top-friends__content" className="p-0">
@@ -59,7 +33,7 @@ export async function TopFriends({
             <UserAvatar src={friend.avatarUrl} alt={friend.username} />
             <span
               id={`top-friends__name-${friend.id}`}
-              className="text-xs truncate w-full group-hover:underline font-medium text-shadow-sm"
+              className="text-xs truncate w-full font-medium text-shadow-sm"
             >
               {friend.displayName || friend.username}
             </span>

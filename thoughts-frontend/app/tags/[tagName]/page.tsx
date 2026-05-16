@@ -1,17 +1,40 @@
 // app/tags/[tagName]/page.tsx
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { getThoughtsByTag, getUserProfile, getMe, Me, User } from "@/lib/api";
+import { getThoughtsByTag, getMe, Me } from "@/lib/api";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ tagName: string }>;
+}): Promise<Metadata> {
+  const { tagName } = await params;
+  return {
+    title: `#${tagName}`,
+    description: `Thoughts tagged with #${tagName}`,
+    openGraph: {
+      title: `#${tagName} · Thoughts`,
+      description: `Thoughts tagged with #${tagName}`,
+    },
+    twitter: {
+      card: "summary",
+      title: `#${tagName} · Thoughts`,
+      description: `Thoughts tagged with #${tagName}`,
+    },
+  };
+}
+import { EmptyState } from "@/components/empty-state";
 import { buildThoughtThreads } from "@/lib/utils";
 import { ThoughtThread } from "@/components/thought-thread";
 import { notFound } from "next/navigation";
 import { Hash } from "lucide-react";
 
 interface TagPageProps {
-  params: { tagName: string };
+  params: Promise<{ tagName: string }>;
 }
 
 export default async function TagPage({ params }: TagPageProps) {
-  const { tagName } = params;
+  const { tagName } = await params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   const [thoughtsResult, meResult] = await Promise.allSettled([
@@ -23,19 +46,9 @@ export default async function TagPage({ params }: TagPageProps) {
     notFound();
   }
 
-  const allThoughts = thoughtsResult.value.thoughts;
+  const allThoughts = thoughtsResult.value.items;
   const thoughtThreads = buildThoughtThreads(allThoughts);
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
-
-  const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
-  const userProfiles = await Promise.all(
-    authors.map((username) => getUserProfile(username, token).catch(() => null))
-  );
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>(
-    userProfiles
-      .filter((u): u is User => !!u)
-      .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
-  );
 
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
@@ -50,14 +63,11 @@ export default async function TagPage({ params }: TagPageProps) {
           <ThoughtThread
             key={thought.id}
             thought={thought}
-            authorDetails={authorDetails}
             currentUser={me}
           />
         ))}
         {thoughtThreads.length === 0 && (
-          <p className="text-center text-muted-foreground pt-8">
-            No thoughts found for this tag.
-          </p>
+          <EmptyState message="No thoughts found for this tag." />
         )}
       </main>
     </div>

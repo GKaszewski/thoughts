@@ -4,6 +4,9 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+ARG NEXT_PUBLIC_SERVER_SIDE_API_URL
+ENV NEXT_PUBLIC_SERVER_SIDE_API_URL=$NEXT_PUBLIC_SERVER_SIDE_API_URL
+
 # Install dependencies with Bun for speed
 COPY --chown=node:node package.json bun.lock ./
 RUN npm install -g bun

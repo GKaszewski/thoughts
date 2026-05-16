@@ -1,29 +1,57 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import {
+  getThoughtById,
   getThoughtThread,
-  getUserProfile,
   getMe,
   Me,
-  User,
   ThoughtThread as ThoughtThreadType,
 } from "@/lib/api";
 import { ThoughtThread } from "@/components/thought-thread";
 import { notFound } from "next/navigation";
 
 interface ThoughtPageProps {
-  params: { thoughtId: string };
+  params: Promise<{ thoughtId: string }>;
 }
 
-function collectAuthors(thread: ThoughtThreadType): string[] {
-  const authors = new Set<string>([thread.authorUsername]);
-  for (const reply of thread.replies) {
-    collectAuthors(reply).forEach((author) => authors.add(author));
-  }
-  return Array.from(authors);
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
+
+export async function generateMetadata({
+  params,
+}: ThoughtPageProps): Promise<Metadata> {
+  const { thoughtId } = await params;
+  const thought = await getThoughtById(thoughtId, null).catch(() => null);
+  if (!thought) return { title: "Thought" };
+
+  const author = thought.author.displayName || thought.author.username;
+  const preview = stripHtml(thought.content).slice(0, 120);
+  const description = preview || `A thought by ${author}`;
+
+  return {
+    title: `${author}: "${preview.slice(0, 60)}${preview.length > 60 ? "…" : ""}"`,
+    description,
+    openGraph: {
+      type: "article",
+      title: `${author} on Thoughts`,
+      description,
+      images: thought.author.avatarUrl
+        ? [{ url: thought.author.avatarUrl }]
+        : [],
+      publishedTime: thought.createdAt.toISOString(),
+    },
+    twitter: {
+      card: "summary",
+      title: `${author} on Thoughts`,
+      description,
+      images: thought.author.avatarUrl ? [thought.author.avatarUrl] : [],
+    },
+  };
 }
 
 export default async function ThoughtPage({ params }: ThoughtPageProps) {
-  const { thoughtId } = params;
+  const { thoughtId } = await params;
   const token = (await cookies()).get("auth_token")?.value ?? null;
 
   const [threadResult, meResult] = await Promise.allSettled([
@@ -38,20 +66,6 @@ export default async function ThoughtPage({ params }: ThoughtPageProps) {
   const thread = threadResult.value;
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
-  // Fetch details for all authors in the thread efficiently
-  const authorUsernames = collectAuthors(thread);
-  const userProfiles = await Promise.all(
-    authorUsernames.map((username) =>
-      getUserProfile(username, token).catch(() => null)
-    )
-  );
-
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>(
-    userProfiles
-      .filter((u): u is User => !!u)
-      .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
-  );
-
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">
       <header className="my-6">
@@ -60,7 +74,6 @@ export default async function ThoughtPage({ params }: ThoughtPageProps) {
       <main>
         <ThoughtThread
           thought={thread}
-          authorDetails={authorDetails}
           currentUser={me}
         />
       </main>

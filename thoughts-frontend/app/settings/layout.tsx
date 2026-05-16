@@ -11,6 +11,10 @@ const sidebarNavItems = [
     title: "API Keys",
     href: "/settings/api-keys",
   },
+  {
+    title: "Federation",
+    href: "/settings/federation",
+  },
 ];
 
 export default function SettingsLayout({

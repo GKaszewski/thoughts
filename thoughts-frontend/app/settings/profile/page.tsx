@@ -1,5 +1,11 @@
 // app/settings/profile/page.tsx
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
+
+export const metadata: Metadata = {
+  title: "Edit profile",
+  description: "Update your Thoughts profile",
+};
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/api";
 import { EditProfileForm } from "@/components/edit-profile-form";

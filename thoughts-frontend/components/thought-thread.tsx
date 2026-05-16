@@ -3,28 +3,19 @@ import { ThoughtCard } from "./thought-card";
 
 interface ThoughtThreadProps {
   thought: ThoughtThreadType;
-  authorDetails: Map<string, { avatarUrl?: string | null }>;
   currentUser: Me | null;
   isReply?: boolean;
 }
 
 export function ThoughtThread({
   thought,
-  authorDetails,
   currentUser,
   isReply = false,
 }: ThoughtThreadProps) {
-  const author = {
-    username: thought.authorUsername,
-    displayName: thought.authorDisplayName,
-    ...authorDetails.get(thought.authorUsername),
-  };
-
   return (
     <div id={`thought-thread-${thought.id}`} className="flex flex-col gap-0">
       <ThoughtCard
         thought={thought}
-        author={author}
         currentUser={currentUser}
         isReply={isReply}
       />
@@ -38,7 +29,6 @@ export function ThoughtThread({
             <ThoughtThread
               key={reply.id}
               thought={reply}
-              authorDetails={authorDetails}
               currentUser={currentUser}
               isReply={true}
             />

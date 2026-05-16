@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
@@ -43,7 +43,7 @@ export default function LoginPage() {
       setToken(token);
       router.push("/"); // Redirect to homepage on successful login
     } catch {
-      setError("Invalid username or password.");
+      setError("Invalid email or password.");
     }
   }
 
@@ -61,12 +61,12 @@ export default function LoginPage() {
             {/* ... Form fields for username and password ... */}
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="frutiger" {...field} />
+                    <Input type="email" placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

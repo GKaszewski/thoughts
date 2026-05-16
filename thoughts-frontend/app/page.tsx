@@ -1,13 +1,8 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import {
-  getFeed,
-  getFriends,
-  getMe,
-  getUserProfile,
-  Me,
-  User,
-} from "@/lib/api";
-import { PostThoughtForm } from "@/components/post-thought-form";
+import { getFeed, getMe, Me } from "@/lib/api";
+import { ThoughtForm } from "@/components/thought-form";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PopularTags } from "@/components/popular-tags";
@@ -15,25 +10,26 @@ import { ThoughtThread } from "@/components/thought-thread";
 import { buildThoughtThreads } from "@/lib/utils";
 import { TopFriends } from "@/components/top-friends";
 import { UsersCount } from "@/components/users-count";
-
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { PaginationNav } from "@/components/pagination-nav";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { ProfileSkeleton, TagsSkeleton, CountSkeleton } from "@/components/loading-skeleton";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Your home timeline — thoughts from people you follow",
+};
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: Promise<{ page?: string }>;
 }) {
   const token = (await cookies()).get("auth_token")?.value ?? null;
+  const resolvedSearchParams = await searchParams;
 
   if (token) {
-    return <FeedPage token={token} searchParams={searchParams} />;
+    return <FeedPage token={token} searchParams={resolvedSearchParams} />;
   } else {
     return <LandingPage />;
   }
@@ -60,29 +56,26 @@ async function FeedPage({
   const { items: allThoughts, totalPages } = feedData!;
   const thoughtThreads = buildThoughtThreads(allThoughts);
 
-  const authors = [...new Set(allThoughts.map((t) => t.authorUsername))];
-  const userProfiles = await Promise.all(
-    authors.map((username) => getUserProfile(username, token).catch(() => null))
+  const sidebar = (
+    <>
+      <Suspense fallback={<ProfileSkeleton />}>
+        <TopFriends username={me.username} />
+      </Suspense>
+      <Suspense fallback={<TagsSkeleton />}>
+        <PopularTags />
+      </Suspense>
+      <Suspense fallback={<CountSkeleton />}>
+        <UsersCount />
+      </Suspense>
+    </>
   );
-
-  const authorDetails = new Map<string, { avatarUrl?: string | null }>(
-    userProfiles
-      .filter((u): u is User => !!u)
-      .map((user) => [user.username, { avatarUrl: user.avatarUrl }])
-  );
-
-  const friends = (await getFriends(token)).users.map((user) => user.username);
-  const shouldDisplayTopFriends =
-    token && me?.topFriends && me.topFriends.length > 8;
-
-  console.log("Should display top friends:", shouldDisplayTopFriends);
 
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="hidden lg:block lg:col-span-1">
           <div className="sticky top-20 space-y-6 glass-effect glossy-effect bottom rounded-md p-4">
-            <h2 className="text-lg font-semibold">Filters & Sorting</h2>
+            <h2 className="text-lg font-semibold">Filters &amp; Sorting</h2>
             <p className="text-sm text-muted-foreground">Coming soon...</p>
           </div>
         </aside>
@@ -91,17 +84,10 @@ async function FeedPage({
           <header className="mb-6">
             <h1 className="text-3xl font-bold text-shadow-sm">Your Feed</h1>
           </header>
-          <PostThoughtForm />
+          <ThoughtForm />
 
           <div className="block lg:hidden space-y-6">
-            <PopularTags />
-            {shouldDisplayTopFriends && (
-              <TopFriends mode="top-friends" usernames={me.topFriends} />
-            )}
-            {!shouldDisplayTopFriends && token && friends.length > 0 && (
-              <TopFriends mode="friends" usernames={friends || []} />
-            )}
-            <UsersCount />
+            {sidebar}
           </div>
 
           <div className="space-y-6">
@@ -109,44 +95,23 @@ async function FeedPage({
               <ThoughtThread
                 key={thought.id}
                 thought={thought}
-                authorDetails={authorDetails}
                 currentUser={me}
               />
             ))}
             {thoughtThreads.length === 0 && (
-              <p className="text-center text-muted-foreground pt-8">
-                Your feed is empty. Follow some users to see their thoughts!
-              </p>
+              <EmptyState message="Your feed is empty. Follow some users to see their thoughts!" />
             )}
           </div>
-          <Pagination className="mt-8">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href={page > 1 ? `/?page=${page - 1}` : "#"}
-                  aria-disabled={page <= 1}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  href={page < totalPages ? `/?page=${page + 1}` : "#"}
-                  aria-disabled={page >= totalPages}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <PaginationNav
+            page={page}
+            totalPages={totalPages}
+            buildHref={(p) => `/?page=${p}`}
+          />
         </main>
 
         <aside className="hidden lg:block lg:col-span-1">
           <div className="sticky top-20 space-y-6">
-            <PopularTags />
-            {shouldDisplayTopFriends && (
-              <TopFriends mode="top-friends" usernames={me.topFriends} />
-            )}
-            {!shouldDisplayTopFriends && token && friends.length > 0 && (
-              <TopFriends mode="friends" usernames={friends || []} />
-            )}
-            <UsersCount />
+            {sidebar}
           </div>
         </aside>
       </div>

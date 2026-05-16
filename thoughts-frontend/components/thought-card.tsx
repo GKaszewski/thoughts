@@ -7,11 +7,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { UserAvatar } from "./user-avatar";
-import { deleteThought, Me, Thought } from "@/lib/api";
-import { formatDistanceToNow } from "date-fns";
+import { Me, Thought } from "@/lib/api";
+import { deleteThought } from "@/app/actions/thoughts";
+import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -36,43 +36,35 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
-import { ReplyForm } from "@/components/reply-form";
+import { ThoughtForm } from "@/components/thought-form";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface ThoughtCardProps {
   thought: Thought;
-  author: {
-    username: string;
-    displayName?: string | null;
-    avatarUrl?: string | null;
-  };
   currentUser: Me | null;
   isReply?: boolean;
 }
 
 export function ThoughtCard({
   thought,
-  author,
   currentUser,
   isReply = false,
 }: ThoughtCardProps) {
+  const { author } = thought;
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const { token } = useAuth();
-  const router = useRouter();
   const timeAgo = formatDistanceToNow(new Date(thought.createdAt), {
     addSuffix: true,
   });
 
-  const isAuthor = currentUser?.username === thought.authorUsername;
+  const isAuthor = currentUser?.username === thought.author.username;
 
   const handleDelete = async () => {
-    if (!token) return;
     try {
-      await deleteThought(thought.id, token);
+      await deleteThought(thought.id);
       toast.success("Thought deleted successfully.");
-      router.refresh();
     } catch (error) {
       console.error("Failed to delete thought:", error);
       toast.error("Failed to delete thought.");
@@ -106,6 +98,22 @@ export function ThoughtCard({
             </span>
           </div>
         )}
+        {!thought.replyToId && thought.replyToUrl && (
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <CornerUpLeft className="h-4 w-4 text-primary/70" />
+            <span>
+              Replying to{" "}
+              <a
+                href={thought.replyToUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline text-primary text-shadow-sm"
+              >
+                original post ↗
+              </a>
+            </span>
+          </div>
+        )}
       </div>
       <Card className="mt-2">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -121,9 +129,13 @@ export function ThoughtCard({
               <span className="font-bold">
                 {author.displayName || author.username}
               </span>
-              <span className="text-sm text-muted-foreground text-shadow-sm">
+              <time
+                dateTime={new Date(thought.createdAt).toISOString()}
+                title={format(new Date(thought.createdAt), "PPP p")}
+                className="text-sm text-muted-foreground text-shadow-sm"
+              >
                 {timeAgo}
-              </span>
+              </time>
             </div>
           </Link>
           <DropdownMenu>
@@ -152,9 +164,20 @@ export function ThoughtCard({
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap break-words text-shadow-sm">
-            {thought.content}
-          </p>
+          {thought.author.local ? (
+            <p className="whitespace-pre-wrap break-words text-shadow-sm">
+              {thought.content}
+            </p>
+          ) : (
+            <div
+              className="text-sm break-words [&_a]:underline [&_a]:text-primary [&_p]:mb-2 [&_.media-notice]:text-muted-foreground [&_.media-notice]:italic"
+              dangerouslySetInnerHTML={{
+                __html:
+                  thought.content.trim() ||
+                  '<p class="media-notice">📎 Media attachment — not supported</p>',
+              }}
+            />
+          )}
         </CardContent>
 
         {token && (
@@ -172,9 +195,9 @@ export function ThoughtCard({
 
         {isReplyOpen && (
           <div className="border-t m-4 rounded-2xl border-border/50 bg-secondary/20 ">
-            <ReplyForm
-              parentThoughtId={thought.id}
-              onReplySuccess={() => setIsReplyOpen(false)}
+            <ThoughtForm
+              replyToId={thought.id}
+              onSuccess={() => setIsReplyOpen(false)}
             />
           </div>
         )}

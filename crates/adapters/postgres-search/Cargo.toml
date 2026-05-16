@@ -1,0 +1,17 @@
+[package]
+name = "postgres-search"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain      = { workspace = true }
+postgres    = { workspace = true }
+sqlx        = { workspace = true }
+uuid        = { workspace = true }
+chrono      = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tokio    = { workspace = true, features = ["full"] }
+sqlx     = { workspace = true, features = ["migrate"] }
+postgres = { workspace = true }

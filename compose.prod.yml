@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: thoughts-db
     restart: unless-stopped
     environment:
@@ -17,19 +17,21 @@ services:
     networks:
       - internal
 
-  backend:
-    container_name: thoughts-backend
-    image: thoughts-backend:latest
+  api:
+    container_name: thoughts-api
+    image: registry.gabrielkaszewski.dev/thoughts:latest
     restart: unless-stopped
     environment:
-      - RUST_LOG=info
-      - RUST_BACKTRACE=1
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
-      - HOST=0.0.0.0
-      - PORT=8000
-      - PREFORK=1
-      - AUTH_SECRET=${AUTH_SECRET}
-      - BASE_URL=https://thoughts.gabrielkaszewski.dev
+      RUST_LOG: info
+      RUST_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      HOST: 0.0.0.0
+      PORT: 8000
+      JWT_SECRET: ${JWT_SECRET}
+      BASE_URL: ${BASE_URL}
+      NATS_URL: nats://k_nats:4222
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
     depends_on:
       database:
         condition: service_healthy
@@ -40,34 +42,51 @@ services:
       retries: 5
     networks:
       - internal
+      - shared-services
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.thoughts-api.rule=Host(`api.thoughts.gabrielkaszewski.dev`)"
+      - "traefik.http.routers.thoughts-api.entrypoints=web,websecure"
+      - "traefik.http.routers.thoughts-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.thoughts-api.service=thoughts-api"
+      - "traefik.http.services.thoughts-api.loadbalancer.server.port=8000"
+
+  worker:
+    container_name: thoughts-worker
+    image: registry.gabrielkaszewski.dev/thoughts:latest
+    entrypoint: ["./thoughts-worker"]
+    restart: unless-stopped
+    environment:
+      RUST_LOG: info
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${POSTGRES_DB}
+      BASE_URL: ${BASE_URL}
+      NATS_URL: nats://k_nats:4222
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+      - shared-services
 
   frontend:
     container_name: thoughts-frontend
-    image: thoughts-frontend:latest
+    image: registry.gabrielkaszewski.dev/thoughts-frontend:latest
     restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_SERVER_SIDE_API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: https://api.thoughts.gabrielkaszewski.dev
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
     depends_on:
-      - backend
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
-    environment:
-      - NEXT_PUBLIC_SERVER_SIDE_API_URL=http://proxy/api
-      - PORT=3000
-      - HOSTNAME=0.0.0.0
-    networks:
-      - internal
-
-  proxy:
-    container_name: thoughts-proxy
-    image: custom-proxy:latest
-    restart: unless-stopped
-    depends_on:
-      frontend:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
     networks:
       - internal
       - traefik
@@ -78,14 +97,16 @@ services:
       - "traefik.http.routers.thoughts.entrypoints=web,websecure"
       - "traefik.http.routers.thoughts.tls.certresolver=letsencrypt"
       - "traefik.http.routers.thoughts.service=thoughts"
-      - "traefik.http.services.thoughts.loadbalancer.server.port=80"
+      - "traefik.http.services.thoughts.loadbalancer.server.port=3000"
 
 volumes:
   postgres_data:
     driver: local
+
 networks:
+  shared-services:
+    external: true
   traefik:
-    name: traefik
     external: true
   internal:
     driver: bridge
