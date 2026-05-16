@@ -343,9 +343,9 @@ export const getFeed = (token: string, page: number = 1, pageSize: number = 20) 
     token
   );
 
-export const getUserThoughts = (username: string, token: string | null) =>
+export const getUserThoughts = (username: string, token: string | null, page = 1) =>
   apiFetch(
-    `/users/${username}/thoughts`,
+    `/users/${username}/thoughts?page=${page}`,
     { next: { tags: [`profile:${username}`] } },
     z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() }),
     token

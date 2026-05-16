@@ -53,8 +53,7 @@ import { FollowButton } from "@/components/follow-button";
 import { TopFriends } from "@/components/top-friends";
 import { Suspense } from "react";
 import { ProfileSkeleton } from "@/components/loading-skeleton";
-import { buildThoughtThreads } from "@/lib/utils";
-import { ThoughtThread } from "@/components/thought-thread";
+import { UserThoughtsList } from "@/components/user-thoughts-list";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,9 +94,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const user = userResult.value;
   const me = meResult.status === "fulfilled" ? (meResult.value as Me) : null;
 
-  const thoughts =
-    thoughtsResult.status === "fulfilled" ? thoughtsResult.value.items : [];
-  const thoughtThreads = buildThoughtThreads(thoughts);
+  const thoughtsData = thoughtsResult.status === "fulfilled" ? thoughtsResult.value : null;
+  const thoughts = thoughtsData?.items ?? [];
+  const totalPages = thoughtsData
+    ? Math.ceil(thoughtsData.total / thoughtsData.per_page)
+    : 1;
 
   const localFollowersCount =
     followersResult.status === "fulfilled"
@@ -262,16 +263,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               )}
             </TabsList>
             <TabsContent value="thoughts" className="space-y-4">
-              {thoughtThreads.map((thought) => (
-                <ThoughtThread
-                  key={thought.id}
-                  thought={thought}
-                  currentUser={me}
-                />
-              ))}
-              {thoughtThreads.length === 0 && (
-                <EmptyState emoji="💭" title="Nothing here yet" message="This user hasn't posted any public thoughts yet." />
-              )}
+              <UserThoughtsList
+                username={username}
+                initialThoughts={thoughts}
+                totalPages={totalPages}
+                me={me}
+              />
             </TabsContent>
             {isOwnProfile && (
               <TabsContent value="federation">
