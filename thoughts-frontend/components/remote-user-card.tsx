@@ -18,6 +18,19 @@ interface RemoteUserCardProps {
   };
 }
 
+function resolveProfileHref(handle: string): string {
+  const apiDomain = process.env.NEXT_PUBLIC_API_URL
+    ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
+    : null;
+  const clean = handle.startsWith("@") ? handle.slice(1) : handle;
+  const atIdx = clean.indexOf("@");
+  const domain = atIdx !== -1 ? clean.slice(atIdx + 1) : null;
+  const username = atIdx !== -1 ? clean.slice(0, atIdx) : clean;
+  return apiDomain && domain === apiDomain
+    ? `/users/${username}`
+    : `/remote-actor?handle=@${clean}`;
+}
+
 export function RemoteUserCard({ actor }: RemoteUserCardProps) {
   const [followed, setFollowed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +56,7 @@ export function RemoteUserCard({ actor }: RemoteUserCardProps) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <Link
-        href={`/users/@${actor.handle}`}
+        href={resolveProfileHref(actor.handle)}
         className="flex items-center gap-3 hover:opacity-80"
       >
         <UserAvatar src={actor.avatarUrl} alt={actor.displayName ?? actor.handle} />
