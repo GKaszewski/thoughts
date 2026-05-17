@@ -239,6 +239,5 @@ impl MessageSource for NatsMessageSource {
     }
 }
 
-
 #[cfg(test)]
 mod tests;

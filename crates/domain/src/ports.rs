@@ -58,7 +58,8 @@ pub trait UserReader: Send + Sync {
     async fn find_by_email(&self, email: &Email) -> Result<Option<User>, DomainError>;
     async fn list_with_stats(&self) -> Result<Vec<UserSummary>, DomainError>;
     async fn count(&self) -> Result<i64, DomainError>;
-    async fn list_paginated(&self, page: PageParams) -> Result<Paginated<UserSummary>, DomainError>;
+    async fn list_paginated(&self, page: PageParams)
+        -> Result<Paginated<UserSummary>, DomainError>;
     async fn find_by_ids(&self, ids: &[UserId]) -> Result<HashMap<UserId, User>, DomainError>;
 }
 
@@ -353,19 +354,43 @@ pub struct FeedQuery {
 
 impl FeedQuery {
     pub fn home(viewer_id: UserId, following_ids: Vec<UserId>, page: PageParams) -> Self {
-        Self { scope: FeedScope::Home { following_ids }, page, viewer_id: Some(viewer_id) }
+        Self {
+            scope: FeedScope::Home { following_ids },
+            page,
+            viewer_id: Some(viewer_id),
+        }
     }
     pub fn public(page: PageParams, viewer_id: Option<UserId>) -> Self {
-        Self { scope: FeedScope::Public, page, viewer_id }
+        Self {
+            scope: FeedScope::Public,
+            page,
+            viewer_id,
+        }
     }
     pub fn tag(tag_name: impl Into<String>, page: PageParams, viewer_id: Option<UserId>) -> Self {
-        Self { scope: FeedScope::Tag { tag_name: tag_name.into() }, page, viewer_id }
+        Self {
+            scope: FeedScope::Tag {
+                tag_name: tag_name.into(),
+            },
+            page,
+            viewer_id,
+        }
     }
     pub fn user(user_id: UserId, page: PageParams, viewer_id: Option<UserId>) -> Self {
-        Self { scope: FeedScope::User { user_id }, page, viewer_id }
+        Self {
+            scope: FeedScope::User { user_id },
+            page,
+            viewer_id,
+        }
     }
     pub fn search(query: impl Into<String>, page: PageParams, viewer_id: Option<UserId>) -> Self {
-        Self { scope: FeedScope::Search { query: query.into() }, page, viewer_id }
+        Self {
+            scope: FeedScope::Search {
+                query: query.into(),
+            },
+            page,
+            viewer_id,
+        }
     }
 }
 
@@ -391,7 +416,6 @@ pub trait SearchPort: Send + Sync {
         page: &PageParams,
     ) -> Result<Paginated<User>, DomainError>;
 }
-
 
 #[async_trait]
 pub trait FederationSchedulerPort: Send + Sync {

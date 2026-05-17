@@ -141,7 +141,8 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             "direct"
         };
 
-        let thought_id = self.repo
+        let thought_id = self
+            .repo
             .accept_note(
                 ap_id.as_str(),
                 &author_id,

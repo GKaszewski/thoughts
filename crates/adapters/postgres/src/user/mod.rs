@@ -139,7 +139,10 @@ impl UserReader for PgUserRepository {
             .into_domain()
     }
 
-    async fn list_paginated(&self, page: PageParams) -> Result<Paginated<UserSummary>, DomainError> {
+    async fn list_paginated(
+        &self,
+        page: PageParams,
+    ) -> Result<Paginated<UserSummary>, DomainError> {
         #[derive(sqlx::FromRow)]
         struct Row {
             id: uuid::Uuid,
@@ -187,7 +190,12 @@ impl UserReader for PgUserRepository {
                 following_count: r.following_count,
             })
             .collect();
-        Ok(Paginated { items, total, page: page.page, per_page: page.per_page })
+        Ok(Paginated {
+            items,
+            total,
+            page: page.page,
+            per_page: page.per_page,
+        })
     }
 
     async fn find_by_ids(&self, ids: &[UserId]) -> Result<HashMap<UserId, User>, DomainError> {
@@ -195,18 +203,19 @@ impl UserReader for PgUserRepository {
             return Ok(HashMap::new());
         }
         let uuids: Vec<uuid::Uuid> = ids.iter().map(|id| id.as_uuid()).collect();
-        let rows = sqlx::query_as::<_, UserRow>(
-            &format!("{USER_SELECT} WHERE id = ANY($1)")
-        )
-        .bind(&uuids[..])
-        .fetch_all(&self.pool)
-        .await
-        .into_domain()?;
+        let rows = sqlx::query_as::<_, UserRow>(&format!("{USER_SELECT} WHERE id = ANY($1)"))
+            .bind(&uuids[..])
+            .fetch_all(&self.pool)
+            .await
+            .into_domain()?;
 
-        Ok(rows.into_iter().map(|r| {
-            let user = User::from(r);
-            (user.id.clone(), user)
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| {
+                let user = User::from(r);
+                (user.id.clone(), user)
+            })
+            .collect())
     }
 }
 

@@ -8,11 +8,7 @@ use application::use_cases::notifications::{
     count_unread_notifications, list_notifications as uc_list_notifications,
     mark_all_notifications_read, mark_notification_read as uc_mark_notification_read,
 };
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::Path, http::StatusCode, Json};
 use domain::{
     models::feed::PageParams, ports::NotificationRepository, value_objects::NotificationId,
 };

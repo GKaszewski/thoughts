@@ -254,12 +254,11 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .into_domain()?;
 
         // SELECT the id — works whether the INSERT was a no-op or not (idempotent).
-        let row: (uuid::Uuid,) =
-            sqlx::query_as("SELECT id FROM thoughts WHERE ap_id=$1")
-                .bind(ap_id)
-                .fetch_one(&self.pool)
-                .await
-                .into_domain()?;
+        let row: (uuid::Uuid,) = sqlx::query_as("SELECT id FROM thoughts WHERE ap_id=$1")
+            .bind(ap_id)
+            .fetch_one(&self.pool)
+            .await
+            .into_domain()?;
         Ok(ThoughtId::from_uuid(row.0))
     }
 

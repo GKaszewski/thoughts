@@ -44,7 +44,11 @@ async fn main() {
             Ok(envelope) => {
                 let event = &envelope.event;
                 let event_type = event_payload::EventPayload::from(event).subject();
-                tracing::info!(event_type, delivery = envelope.delivery_count, "received event");
+                tracing::info!(
+                    event_type,
+                    delivery = envelope.delivery_count,
+                    "received event"
+                );
 
                 let n = infra.handlers.notification.handle(event).await;
                 let f = infra.handlers.federation.handle(event).await;

@@ -83,17 +83,30 @@ impl UserReader for TestStore {
             .count() as i64)
     }
 
-    async fn list_paginated(&self, page: PageParams) -> Result<Paginated<UserSummary>, DomainError> {
+    async fn list_paginated(
+        &self,
+        page: PageParams,
+    ) -> Result<Paginated<UserSummary>, DomainError> {
         let all = self.list_with_stats().await?;
         let total = all.len() as i64;
         let start = page.offset() as usize;
-        let items: Vec<UserSummary> = all.into_iter().skip(start).take(page.limit() as usize).collect();
-        Ok(Paginated { items, total, page: page.page, per_page: page.per_page })
+        let items: Vec<UserSummary> = all
+            .into_iter()
+            .skip(start)
+            .take(page.limit() as usize)
+            .collect();
+        Ok(Paginated {
+            items,
+            total,
+            page: page.page,
+            per_page: page.per_page,
+        })
     }
 
     async fn find_by_ids(&self, ids: &[UserId]) -> Result<HashMap<UserId, User>, DomainError> {
         let g = self.users.lock().unwrap();
-        let map = g.iter()
+        let map = g
+            .iter()
             .filter(|u| ids.contains(&u.id))
             .map(|u| (u.id.clone(), u.clone()))
             .collect();
@@ -294,7 +307,16 @@ impl EngagementRepository for TestStore {
         &self,
         thought_ids: &[ThoughtId],
         viewer_id: Option<&UserId>,
-    ) -> Result<HashMap<ThoughtId, (crate::models::feed::EngagementStats, Option<crate::models::feed::ViewerContext>)>, DomainError> {
+    ) -> Result<
+        HashMap<
+            ThoughtId,
+            (
+                crate::models::feed::EngagementStats,
+                Option<crate::models::feed::ViewerContext>,
+            ),
+        >,
+        DomainError,
+    > {
         use crate::models::feed::{EngagementStats, ViewerContext};
         let likes = self.likes.lock().unwrap();
         let boosts = self.boosts.lock().unwrap();
@@ -304,12 +326,29 @@ impl EngagementRepository for TestStore {
         for tid in thought_ids {
             let like_count = likes.iter().filter(|l| &l.thought_id == tid).count() as i64;
             let boost_count = boosts.iter().filter(|b| &b.thought_id == tid).count() as i64;
-            let reply_count = thoughts.iter().filter(|t| t.in_reply_to_id.as_ref() == Some(tid)).count() as i64;
+            let reply_count = thoughts
+                .iter()
+                .filter(|t| t.in_reply_to_id.as_ref() == Some(tid))
+                .count() as i64;
             let viewer = viewer_id.map(|vid| ViewerContext {
-                liked: likes.iter().any(|l| &l.thought_id == tid && &l.user_id == vid),
-                boosted: boosts.iter().any(|b| &b.thought_id == tid && &b.user_id == vid),
+                liked: likes
+                    .iter()
+                    .any(|l| &l.thought_id == tid && &l.user_id == vid),
+                boosted: boosts
+                    .iter()
+                    .any(|b| &b.thought_id == tid && &b.user_id == vid),
             });
-            result.insert(tid.clone(), (EngagementStats { like_count, boost_count, reply_count }, viewer));
+            result.insert(
+                tid.clone(),
+                (
+                    EngagementStats {
+                        like_count,
+                        boost_count,
+                        reply_count,
+                    },
+                    viewer,
+                ),
+            );
         }
         Ok(result)
     }
@@ -763,7 +802,10 @@ impl RemoteActorConnectionRepository for TestStore {
 
 #[async_trait]
 impl FeedRepository for TestStore {
-    async fn query(&self, _q: &crate::ports::FeedQuery) -> Result<Paginated<FeedEntry>, DomainError> {
+    async fn query(
+        &self,
+        _q: &crate::ports::FeedQuery,
+    ) -> Result<Paginated<FeedEntry>, DomainError> {
         Ok(Paginated {
             items: vec![],
             total: 0,

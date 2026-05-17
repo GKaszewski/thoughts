@@ -1666,10 +1666,7 @@ impl domain::ports::FederationSchedulerPort for ActivityPubService {
                 let empty = vec![];
                 let items = val["orderedItems"].as_array().unwrap_or(&empty);
                 for item in items {
-                    let actor_url = item
-                        .as_str()
-                        .or_else(|| item["id"].as_str())
-                        .unwrap_or("");
+                    let actor_url = item.as_str().or_else(|| item["id"].as_str()).unwrap_or("");
                     if !actor_url.is_empty() {
                         all_urls.push(actor_url.to_string());
                     }

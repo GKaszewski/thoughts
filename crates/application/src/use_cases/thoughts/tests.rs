@@ -31,9 +31,16 @@ async fn create_thought_saves_and_stages_outbox_event() {
     let outbox = TestOutbox::default();
     let u = user();
     store.users.lock().unwrap().push(u.clone());
-    let out = create_thought(&store, &store, &store, &NoOpEventPublisher, &outbox, input(u.id.clone()))
-        .await
-        .unwrap();
+    let out = create_thought(
+        &store,
+        &store,
+        &store,
+        &NoOpEventPublisher,
+        &outbox,
+        input(u.id.clone()),
+    )
+    .await
+    .unwrap();
     assert_eq!(out.thought.content.as_str(), "hello");
     let staged = outbox.staged();
     assert_eq!(staged.len(), 1);
@@ -64,7 +71,9 @@ async fn delete_thought_stages_outbox_event() {
 
     let staged = outbox.staged();
     assert_eq!(staged.len(), 1);
-    assert!(matches!(&staged[0], DomainEvent::ThoughtDeleted { thought_id, .. } if *thought_id == tid));
+    assert!(
+        matches!(&staged[0], DomainEvent::ThoughtDeleted { thought_id, .. } if *thought_id == tid)
+    );
 }
 
 #[tokio::test]
@@ -82,9 +91,15 @@ async fn delete_own_thought_succeeds() {
     )
     .await
     .unwrap();
-    delete_thought(&store, &NoOpEventPublisher, &NoOpOutboxWriter, &out.thought.id, &u.id)
-        .await
-        .unwrap();
+    delete_thought(
+        &store,
+        &NoOpEventPublisher,
+        &NoOpOutboxWriter,
+        &out.thought.id,
+        &u.id,
+    )
+    .await
+    .unwrap();
     assert!(store.thoughts.lock().unwrap().is_empty());
 }
 
@@ -113,9 +128,15 @@ async fn delete_other_thought_returns_not_found() {
     )
     .await
     .unwrap();
-    let err = delete_thought(&store, &NoOpEventPublisher, &NoOpOutboxWriter, &out.thought.id, &bob.id)
-        .await
-        .unwrap_err();
+    let err = delete_thought(
+        &store,
+        &NoOpEventPublisher,
+        &NoOpOutboxWriter,
+        &out.thought.id,
+        &bob.id,
+    )
+    .await
+    .unwrap_err();
     assert!(matches!(err, DomainError::NotFound));
 }
 
@@ -124,9 +145,16 @@ async fn edit_thought_changes_content_and_emits_event() {
     let store = TestStore::default();
     let alice = user();
     store.users.lock().unwrap().push(alice.clone());
-    let out = create_thought(&store, &store, &store, &NoOpEventPublisher, &NoOpOutboxWriter, input(alice.id.clone()))
-        .await
-        .unwrap();
+    let out = create_thought(
+        &store,
+        &store,
+        &store,
+        &NoOpEventPublisher,
+        &NoOpOutboxWriter,
+        input(alice.id.clone()),
+    )
+    .await
+    .unwrap();
     let tid = out.thought.id.clone();
 
     edit_thought(&store, &store, &tid, &alice.id, "updated".to_string())
@@ -222,9 +250,13 @@ fn make_thought(user_id: UserId) -> Thought {
 async fn get_thought_view_returns_feed_entry() {
     let store = TestStore::default();
     let user = make_user();
-    <TestStore as UserWriter>::save(&store, &user).await.unwrap();
+    <TestStore as UserWriter>::save(&store, &user)
+        .await
+        .unwrap();
     let thought = make_thought(user.id.clone());
-    <TestStore as ThoughtRepository>::save(&store, &thought).await.unwrap();
+    <TestStore as ThoughtRepository>::save(&store, &thought)
+        .await
+        .unwrap();
 
     let entry = get_thought_view(&store, &store, &store, &thought.id, None)
         .await
@@ -248,9 +280,13 @@ async fn get_thought_view_returns_not_found_for_missing_thought() {
 async fn get_thread_views_batches_correctly() {
     let store = TestStore::default();
     let user = make_user();
-    <TestStore as UserWriter>::save(&store, &user).await.unwrap();
+    <TestStore as UserWriter>::save(&store, &user)
+        .await
+        .unwrap();
     let root = make_thought(user.id.clone());
-    <TestStore as ThoughtRepository>::save(&store, &root).await.unwrap();
+    <TestStore as ThoughtRepository>::save(&store, &root)
+        .await
+        .unwrap();
     let reply = Thought::new_local(
         ThoughtId::new(),
         user.id.clone(),
@@ -260,7 +296,9 @@ async fn get_thread_views_batches_correctly() {
         None,
         false,
     );
-    <TestStore as ThoughtRepository>::save(&store, &reply).await.unwrap();
+    <TestStore as ThoughtRepository>::save(&store, &reply)
+        .await
+        .unwrap();
 
     let entries = get_thread_views(&store, &store, &store, &root.id, None)
         .await

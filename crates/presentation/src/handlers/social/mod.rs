@@ -1,3 +1,4 @@
+use crate::handlers::auth::to_user_response;
 use crate::{
     deps_struct,
     errors::ApiError,
@@ -5,14 +6,9 @@ use crate::{
 };
 use api_types::requests::SetTopFriendsRequest;
 use api_types::responses::TopFriendsResponse;
-use crate::handlers::auth::to_user_response;
 use application::use_cases::profile::{get_top_friends, get_user_by_username, set_top_friends};
 use application::use_cases::social::*;
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::Path, http::StatusCode, Json};
 use domain::{
     ports::{
         BlockRepository, BoostRepository, EventPublisher, FederationActionPort, FollowRepository,

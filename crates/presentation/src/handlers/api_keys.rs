@@ -8,11 +8,7 @@ use api_types::{
     responses::{ApiKeyResponse, CreatedApiKeyResponse},
 };
 use application::use_cases::api_keys::{create_api_key, delete_api_key, list_api_keys};
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::Path, http::StatusCode, Json};
 use domain::{ports::ApiKeyRepository, value_objects::ApiKeyId};
 use uuid::Uuid;
 

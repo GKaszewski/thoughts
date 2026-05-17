@@ -106,11 +106,7 @@ impl ActivityPubRepository for TestApRepo {
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }
-    async fn apply_note_update(
-        &self,
-        _ap_id: &str,
-        _new_content: &str,
-    ) -> Result<(), DomainError> {
+    async fn apply_note_update(&self, _ap_id: &str, _new_content: &str) -> Result<(), DomainError> {
         Ok(())
     }
     async fn retract_note(&self, _ap_id: &str) -> Result<(), DomainError> {

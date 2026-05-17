@@ -4,6 +4,7 @@ use crate::{
     handlers::feed::to_thought_response,
     state::AppState,
 };
+use activitypub_base::ActivityPubRepository;
 use api_types::{
     requests::PaginationQuery,
     responses::{ActorConnectionPageResponse, ActorConnectionResponse},
@@ -15,7 +16,6 @@ use axum::{
     extract::{Path, Query},
     Json,
 };
-use activitypub_base::ActivityPubRepository;
 use domain::{
     models::feed::PageParams,
     ports::{

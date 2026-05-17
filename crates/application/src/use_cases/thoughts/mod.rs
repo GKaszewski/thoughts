@@ -5,7 +5,10 @@ use domain::{
         feed::{EngagementStats, FeedEntry},
         thought::{Thought, Visibility},
     },
-    ports::{EngagementRepository, EventPublisher, OutboxWriter, TagRepository, ThoughtRepository, UserReader},
+    ports::{
+        EngagementRepository, EventPublisher, OutboxWriter, TagRepository, ThoughtRepository,
+        UserReader,
+    },
     value_objects::{Content, ThoughtId, UserId},
 };
 
@@ -133,10 +136,20 @@ pub async fn get_thought_view(
         .await?
         .ok_or(DomainError::NotFound)?;
     let mut map = engagement.get_for_thoughts(&[id.clone()], viewer).await?;
-    let (stats, viewer_ctx) = map.remove(id).unwrap_or(
-        (EngagementStats { like_count: 0, boost_count: 0, reply_count: 0 }, None)
-    );
-    Ok(FeedEntry { thought, author, stats, viewer: viewer_ctx })
+    let (stats, viewer_ctx) = map.remove(id).unwrap_or((
+        EngagementStats {
+            like_count: 0,
+            boost_count: 0,
+            reply_count: 0,
+        },
+        None,
+    ));
+    Ok(FeedEntry {
+        thought,
+        author,
+        stats,
+        viewer: viewer_ctx,
+    })
 }
 
 /// Fetches a thread (root + replies) enriched with authors + real engagement stats.
@@ -169,10 +182,20 @@ pub async fn get_thread_views(
             .get(&thought.user_id)
             .cloned()
             .ok_or(DomainError::NotFound)?;
-        let (stats, viewer_ctx) = engagement_map.remove(&thought.id).unwrap_or(
-            (EngagementStats { like_count: 0, boost_count: 0, reply_count: 0 }, None)
-        );
-        entries.push(FeedEntry { thought, author, stats, viewer: viewer_ctx });
+        let (stats, viewer_ctx) = engagement_map.remove(&thought.id).unwrap_or((
+            EngagementStats {
+                like_count: 0,
+                boost_count: 0,
+                reply_count: 0,
+            },
+            None,
+        ));
+        entries.push(FeedEntry {
+            thought,
+            author,
+            stats,
+            viewer: viewer_ctx,
+        });
     }
     Ok(entries)
 }

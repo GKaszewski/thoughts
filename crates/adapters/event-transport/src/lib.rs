@@ -109,6 +109,5 @@ impl<S: MessageSource> EventConsumer for EventConsumerAdapter<S> {
     }
 }
 
-
 #[cfg(test)]
 mod tests;

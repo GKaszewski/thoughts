@@ -1,8 +1,4 @@
-use crate::{
-    deps_struct,
-    errors::ApiError,
-    extractors::Deps,
-};
+use crate::{deps_struct, errors::ApiError, extractors::Deps};
 use api_types::{
     requests::{LoginRequest, RegisterRequest},
     responses::{AuthResponse, ErrorResponse, UserResponse},

@@ -356,6 +356,5 @@ impl TryFrom<EventPayload> for DomainEvent {
     }
 }
 
-
 #[cfg(test)]
 mod tests;

@@ -18,7 +18,13 @@ impl ApiKeyRepository for FakeApiKeyRepo {
         Ok(())
     }
     async fn find_by_hash(&self, hash: &str) -> Result<Option<ApiKey>, DomainError> {
-        Ok(self.0.lock().unwrap().iter().find(|k| k.key_hash == hash).cloned())
+        Ok(self
+            .0
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|k| k.key_hash == hash)
+            .cloned())
     }
     async fn list_for_user(&self, _uid: &UserId) -> Result<Vec<ApiKey>, DomainError> {
         Ok(vec![])

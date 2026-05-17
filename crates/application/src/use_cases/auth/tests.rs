@@ -3,7 +3,10 @@ use async_trait::async_trait;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
-    models::{feed::{PageParams, Paginated, UserSummary}, user::User},
+    models::{
+        feed::{PageParams, Paginated, UserSummary},
+        user::User,
+    },
     ports::{AuthService, GeneratedToken, PasswordHasher, UserReader, UserWriter},
     testing::{NoOpEventPublisher, TestStore},
     value_objects::{Email, PasswordHash, UserId, Username},
@@ -19,10 +22,7 @@ impl UserReader for ConflictOnSaveStore {
     async fn find_by_id(&self, id: &UserId) -> Result<Option<User>, DomainError> {
         self.0.find_by_id(id).await
     }
-    async fn find_by_username(
-        &self,
-        username: &Username,
-    ) -> Result<Option<User>, DomainError> {
+    async fn find_by_username(&self, username: &Username) -> Result<Option<User>, DomainError> {
         self.0.find_by_username(username).await
     }
     async fn find_by_email(&self, email: &Email) -> Result<Option<User>, DomainError> {
@@ -34,10 +34,16 @@ impl UserReader for ConflictOnSaveStore {
     async fn count(&self) -> Result<i64, DomainError> {
         self.0.count().await
     }
-    async fn list_paginated(&self, page: PageParams) -> Result<Paginated<UserSummary>, DomainError> {
+    async fn list_paginated(
+        &self,
+        page: PageParams,
+    ) -> Result<Paginated<UserSummary>, DomainError> {
         self.0.list_paginated(page).await
     }
-    async fn find_by_ids(&self, ids: &[UserId]) -> Result<std::collections::HashMap<UserId, User>, DomainError> {
+    async fn find_by_ids(
+        &self,
+        ids: &[UserId],
+    ) -> Result<std::collections::HashMap<UserId, User>, DomainError> {
         self.0.find_by_ids(ids).await
     }
 }
@@ -57,7 +63,14 @@ impl UserWriter for ConflictOnSaveStore {
         custom_css: Option<String>,
     ) -> Result<(), DomainError> {
         self.0
-            .update_profile(user_id, display_name, bio, avatar_url, header_url, custom_css)
+            .update_profile(
+                user_id,
+                display_name,
+                bio,
+                avatar_url,
+                header_url,
+                custom_css,
+            )
             .await
     }
 }
@@ -67,10 +80,7 @@ impl UserReader for EmailConflictOnSaveStore {
     async fn find_by_id(&self, id: &UserId) -> Result<Option<User>, DomainError> {
         self.0.find_by_id(id).await
     }
-    async fn find_by_username(
-        &self,
-        username: &Username,
-    ) -> Result<Option<User>, DomainError> {
+    async fn find_by_username(&self, username: &Username) -> Result<Option<User>, DomainError> {
         self.0.find_by_username(username).await
     }
     async fn find_by_email(&self, email: &Email) -> Result<Option<User>, DomainError> {
@@ -82,10 +92,16 @@ impl UserReader for EmailConflictOnSaveStore {
     async fn count(&self) -> Result<i64, DomainError> {
         self.0.count().await
     }
-    async fn list_paginated(&self, page: PageParams) -> Result<Paginated<UserSummary>, DomainError> {
+    async fn list_paginated(
+        &self,
+        page: PageParams,
+    ) -> Result<Paginated<UserSummary>, DomainError> {
         self.0.list_paginated(page).await
     }
-    async fn find_by_ids(&self, ids: &[UserId]) -> Result<std::collections::HashMap<UserId, User>, DomainError> {
+    async fn find_by_ids(
+        &self,
+        ids: &[UserId],
+    ) -> Result<std::collections::HashMap<UserId, User>, DomainError> {
         self.0.find_by_ids(ids).await
     }
 }
@@ -105,7 +121,14 @@ impl UserWriter for EmailConflictOnSaveStore {
         custom_css: Option<String>,
     ) -> Result<(), DomainError> {
         self.0
-            .update_profile(user_id, display_name, bio, avatar_url, header_url, custom_css)
+            .update_profile(
+                user_id,
+                display_name,
+                bio,
+                avatar_url,
+                header_url,
+                custom_css,
+            )
             .await
     }
 }

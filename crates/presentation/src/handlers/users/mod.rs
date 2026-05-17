@@ -191,9 +191,7 @@ pub async fn get_users(
     })))
 }
 
-pub async fn get_user_count(
-    Deps(d): Deps<UsersDeps>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+pub async fn get_user_count(Deps(d): Deps<UsersDeps>) -> Result<Json<serde_json::Value>, ApiError> {
     let count = d.users.count().await?;
     Ok(Json(serde_json::json!({ "count": count })))
 }

@@ -8,7 +8,11 @@ use std::sync::Arc;
 use activitypub::ThoughtsObjectHandler;
 use activitypub_base::service::ActivityPubService;
 use auth::ApiKeyServiceImpl;
-use domain::{errors::DomainError, events::DomainEvent, ports::{EventPublisher, OutboxWriter}};
+use domain::{
+    errors::DomainError,
+    events::DomainEvent,
+    ports::{EventPublisher, OutboxWriter},
+};
 use event_transport::EventPublisherAdapter;
 use nats::NatsTransport;
 use postgres::activitypub::PgActivityPubRepository;
@@ -130,9 +134,9 @@ pub async fn build(cfg: &Config) -> Infrastructure {
         ap_repo: Arc::new(PgActivityPubRepository::new(pool.clone())),
         remote_actor_connections: Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         federation_scheduler: ap_service.clone() as Arc<dyn domain::ports::FederationSchedulerPort>,
-        api_key_auth: Arc::new(ApiKeyServiceImpl::new(
-            Arc::new(postgres::api_key::PgApiKeyRepository::new(pool.clone())),
-        )),
+        api_key_auth: Arc::new(ApiKeyServiceImpl::new(Arc::new(
+            postgres::api_key::PgApiKeyRepository::new(pool.clone()),
+        ))),
         engagement: Arc::new(PgEngagementRepository::new(pool.clone())),
     };
 

@@ -57,7 +57,11 @@ impl OutboxRelay {
             let payload: EventPayload = match serde_json::from_value(row.payload.clone()) {
                 Ok(p) => p,
                 Err(e) => {
-                    tracing::error!(seq = row.seq, event_type = row.event_type, "outbox: failed to deserialize payload: {e}");
+                    tracing::error!(
+                        seq = row.seq,
+                        event_type = row.event_type,
+                        "outbox: failed to deserialize payload: {e}"
+                    );
                     // Mark delivered to avoid blocking; investigate manually.
                     sqlx::query(
                         "UPDATE outbox_events \
@@ -75,7 +79,10 @@ impl OutboxRelay {
             let domain_event = match DomainEvent::try_from(payload) {
                 Ok(ev) => ev,
                 Err(e) => {
-                    tracing::error!(seq = row.seq, "outbox: failed to convert to DomainEvent: {e}");
+                    tracing::error!(
+                        seq = row.seq,
+                        "outbox: failed to convert to DomainEvent: {e}"
+                    );
                     sqlx::query(
                         "UPDATE outbox_events \
                          SET delivered = true, delivered_at = now() \
@@ -100,7 +107,11 @@ impl OutboxRelay {
                     .execute(&mut *tx)
                     .await?;
                     tx.commit().await?;
-                    tracing::info!(seq = row.seq, event_type = row.event_type, "outbox: delivered");
+                    tracing::info!(
+                        seq = row.seq,
+                        event_type = row.event_type,
+                        "outbox: delivered"
+                    );
                 }
                 Err(e) => {
                     tracing::warn!(seq = row.seq, "outbox: publish failed (will retry): {e}");

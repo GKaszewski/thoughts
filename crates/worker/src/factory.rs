@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use activitypub::ThoughtsObjectHandler;
 use activitypub_base::ActivityPubService;
-use application::services::{FederationEventService, NotificationEventService};
 use activitypub_base::{ActivityPubRepository, OutboundFederationPort};
+use application::services::{FederationEventService, NotificationEventService};
 use domain::ports::EventPublisher;
 use postgres::activitypub::PgActivityPubRepository;
 use postgres_federation::{PostgresApUserRepository, PostgresFederationRepository};

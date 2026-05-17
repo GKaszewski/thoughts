@@ -18,7 +18,7 @@ pub mod user;
 pub mod webfinger;
 
 pub use activitypub_federation::kinds::object::NoteType;
-pub use ap_ports::{ActorApUrls, ActivityPubRepository, OutboxEntry, OutboundFederationPort};
+pub use ap_ports::{ActivityPubRepository, ActorApUrls, OutboundFederationPort, OutboxEntry};
 pub use content::ApObjectHandler;
 pub use data::FederationData;
 pub use error::Error;

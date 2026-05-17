@@ -16,7 +16,10 @@ use axum::{
 };
 use domain::{
     models::feed::PageParams,
-    ports::{FederationActionPort, FeedQuery, FeedRepository, FollowRepository, SearchPort, TagRepository, UserRepository},
+    ports::{
+        FederationActionPort, FeedQuery, FeedRepository, FollowRepository, SearchPort,
+        TagRepository, UserRepository,
+    },
 };
 
 deps_struct!(FeedDeps {
@@ -224,7 +227,10 @@ pub async fn user_thoughts_handler(
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.feed.query(&FeedQuery::user(user.id.clone(), page, viewer)).await?;
+    let result = d
+        .feed
+        .query(&FeedQuery::user(user.id.clone(), page, viewer))
+        .await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
         "page": result.page,
@@ -241,7 +247,10 @@ pub async fn get_popular_tags(
         .get("limit")
         .and_then(|v| v.parse().ok())
         .unwrap_or(api_types::requests::DEFAULT_PER_PAGE as usize);
-    let tags = d.tags.popular_tags(limit.min(api_types::requests::MAX_PER_PAGE as usize)).await?;
+    let tags = d
+        .tags
+        .popular_tags(limit.min(api_types::requests::MAX_PER_PAGE as usize))
+        .await?;
     Ok(Json(serde_json::json!({
         "tags": tags.iter().map(|(name, count)| serde_json::json!({
             "name": name,
@@ -268,7 +277,10 @@ pub async fn tag_thoughts_handler(
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.feed.query(&FeedQuery::tag(&tag_name, page, viewer)).await?;
+    let result = d
+        .feed
+        .query(&FeedQuery::tag(&tag_name, page, viewer))
+        .await?;
     Ok(Json(serde_json::json!({
         "tag": tag_name,
         "total": result.total,

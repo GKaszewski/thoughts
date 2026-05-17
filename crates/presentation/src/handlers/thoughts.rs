@@ -9,18 +9,16 @@ use api_types::{
     responses::ErrorResponse,
 };
 use application::use_cases::thoughts::{
-    create_thought, delete_thought, edit_thought, get_thread_views, get_thought_view,
+    create_thought, delete_thought, edit_thought, get_thought_view, get_thread_views,
     CreateThoughtInput,
 };
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::Path, http::StatusCode, response::IntoResponse, Json};
 use domain::{
     models::feed::{EngagementStats, FeedEntry, ViewerContext},
-    ports::{EngagementRepository, EventPublisher, OutboxWriter, TagRepository, ThoughtRepository, UserRepository},
+    ports::{
+        EngagementRepository, EventPublisher, OutboxWriter, TagRepository, ThoughtRepository,
+        UserRepository,
+    },
     value_objects::ThoughtId,
 };
 use uuid::Uuid;
@@ -74,8 +72,15 @@ pub async fn post_thought(
     let entry = FeedEntry {
         thought: out.thought,
         author,
-        stats: EngagementStats { like_count: 0, boost_count: 0, reply_count: 0 },
-        viewer: Some(ViewerContext { liked: false, boosted: false }),
+        stats: EngagementStats {
+            like_count: 0,
+            boost_count: 0,
+            reply_count: 0,
+        },
+        viewer: Some(ViewerContext {
+            liked: false,
+            boosted: false,
+        }),
     };
     Ok((StatusCode::CREATED, Json(to_thought_response(&entry))))
 }
@@ -101,7 +106,9 @@ pub async fn get_thought_handler(
         viewer.as_ref(),
     )
     .await?;
-    Ok(Json(serde_json::to_value(to_thought_response(&entry)).unwrap()))
+    Ok(Json(
+        serde_json::to_value(to_thought_response(&entry)).unwrap(),
+    ))
 }
 
 #[utoipa::path(
@@ -119,7 +126,14 @@ pub async fn delete_thought_handler(
     AuthUser(uid): AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    delete_thought(&*d.thoughts, &*d.events, &*d.outbox, &ThoughtId::from_uuid(id), &uid).await?;
+    delete_thought(
+        &*d.thoughts,
+        &*d.events,
+        &*d.outbox,
+        &ThoughtId::from_uuid(id),
+        &uid,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

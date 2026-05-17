@@ -34,21 +34,16 @@ pub async fn register(
     }
     let hash = hasher.hash(&input.password).await?;
     let user = User::new_local(UserId::new(), username, email, hash);
-    users
-        .save(&user)
-        .await
-        .map_err(|e| match e {
-            DomainError::UniqueViolation { field: "username" } => {
-                DomainError::Conflict("username taken".into())
-            }
-            DomainError::UniqueViolation { field: "email" } => {
-                DomainError::Conflict("email taken".into())
-            }
-            DomainError::UniqueViolation { .. } => {
-                DomainError::Conflict("already exists".into())
-            }
-            other => other,
-        })?;
+    users.save(&user).await.map_err(|e| match e {
+        DomainError::UniqueViolation { field: "username" } => {
+            DomainError::Conflict("username taken".into())
+        }
+        DomainError::UniqueViolation { field: "email" } => {
+            DomainError::Conflict("email taken".into())
+        }
+        DomainError::UniqueViolation { .. } => DomainError::Conflict("already exists".into()),
+        other => other,
+    })?;
     events
         .publish(&DomainEvent::UserRegistered {
             user_id: user.id.clone(),

@@ -1,7 +1,7 @@
 use super::*;
+use crate::testing::TestApRepo;
 use activitypub_base::{ActorApUrls, OutboundFederationPort};
 use async_trait::async_trait;
-use crate::testing::TestApRepo;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
@@ -56,21 +56,12 @@ impl OutboundFederationPort for SpyPort {
         self.announced.lock().unwrap().push(ap_id.to_string());
         Ok(())
     }
-    async fn broadcast_undo_announce(
-        &self,
-        _: &UserId,
-        ap_id: &str,
-    ) -> Result<(), DomainError> {
+    async fn broadcast_undo_announce(&self, _: &UserId, ap_id: &str) -> Result<(), DomainError> {
         self.undo_announced.lock().unwrap().push(ap_id.to_string());
         Ok(())
     }
 
-    async fn broadcast_like(
-        &self,
-        _: &UserId,
-        ap_id: &str,
-        _: &str,
-    ) -> Result<(), DomainError> {
+    async fn broadcast_like(&self, _: &UserId, ap_id: &str, _: &str) -> Result<(), DomainError> {
         self.liked.lock().unwrap().push(ap_id.to_string());
         Ok(())
     }
@@ -123,7 +114,11 @@ fn svc(store: &TestStore, spy: Arc<SpyPort>) -> FederationEventService {
     }
 }
 
-fn svc_with_ap(store: &TestStore, ap_repo: TestApRepo, spy: Arc<SpyPort>) -> FederationEventService {
+fn svc_with_ap(
+    store: &TestStore,
+    ap_repo: TestApRepo,
+    spy: Arc<SpyPort>,
+) -> FederationEventService {
     FederationEventService {
         thoughts: Arc::new(store.clone()),
         users: Arc::new(store.clone()),
