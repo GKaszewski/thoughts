@@ -6,7 +6,7 @@ const THOUGHTS_PATH_PREFIX: &str = "/thoughts/";
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use activitypub_base::{AcceptNoteInput, ActivityPubRepository, ActorApUrls, OutboxEntry};
+use activitypub::{AcceptNoteInput, ActivityPubRepository, ActorApUrls, OutboxEntry};
 use domain::{
     errors::DomainError,
     models::thought::{Thought, Visibility},

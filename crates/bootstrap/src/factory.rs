@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 
 use activitypub::ThoughtsObjectHandler;
-use activitypub_base::service::ActivityPubService;
+use k_ap::ActivityPubService;
 use auth::ApiKeyServiceImpl;
 use domain::{
     errors::DomainError,

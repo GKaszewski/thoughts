@@ -1,5 +1,5 @@
 use super::*;
-use activitypub_base::{AcceptNoteInput, ActivityPubRepository};
+use activitypub::{AcceptNoteInput, ActivityPubRepository};
 
 #[sqlx::test(migrations = "./migrations")]
 async fn intern_remote_actor_is_idempotent(pool: sqlx::PgPool) {

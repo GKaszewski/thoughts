@@ -1,5 +1,5 @@
-/// Test helpers for application-layer tests that need activitypub_base traits.
-use activitypub_base::{ActivityPubRepository, ActorApUrls, OutboxEntry};
+/// Test helpers for application-layer tests that need activitypub traits.
+use activitypub::{ActivityPubRepository, ActorApUrls, OutboxEntry};
 use async_trait::async_trait;
 use domain::{
     errors::DomainError,
@@ -95,7 +95,7 @@ impl ActivityPubRepository for TestApRepo {
     }
     async fn accept_note(
         &self,
-        _input: activitypub_base::AcceptNoteInput<'_>,
+        _input: activitypub::AcceptNoteInput<'_>,
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }

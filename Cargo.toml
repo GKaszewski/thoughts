@@ -9,7 +9,6 @@ members = [
     "crates/adapters/postgres",
     "crates/adapters/postgres-search",
     "crates/adapters/postgres-federation",
-    "crates/adapters/activitypub-base",
     "crates/adapters/activitypub",
     "crates/adapters/auth",
     "crates/adapters/nats",
@@ -46,7 +45,6 @@ api-types        = { path = "crates/api-types" }
 postgres         = { path = "crates/adapters/postgres" }
 postgres-search  = { path = "crates/adapters/postgres-search" }
 postgres-federation = { path = "crates/adapters/postgres-federation" }
-activitypub-base = { path = "crates/adapters/activitypub-base" }
 activitypub      = { path = "crates/adapters/activitypub" }
 auth             = { path = "crates/adapters/auth" }
 nats             = { path = "crates/adapters/nats" }

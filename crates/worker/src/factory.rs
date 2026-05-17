@@ -4,8 +4,8 @@ use sqlx::PgPool;
 use std::sync::Arc;
 
 use activitypub::ThoughtsObjectHandler;
-use activitypub_base::ActivityPubService;
-use activitypub_base::{ActivityPubRepository, OutboundFederationPort};
+use activitypub::{ActivityPubRepository, OutboundFederationPort};
+use k_ap::ActivityPubService;
 use application::services::{FederationEventService, NotificationEventService};
 use domain::ports::EventPublisher;
 use postgres::activitypub::PgActivityPubRepository;

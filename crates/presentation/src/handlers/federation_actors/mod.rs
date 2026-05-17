@@ -4,7 +4,7 @@ use crate::{
     handlers::feed::to_thought_response,
     state::AppState,
 };
-use activitypub_base::ActivityPubRepository;
+use activitypub::ActivityPubRepository;
 use api_types::{
     requests::PaginationQuery,
     responses::{ActorConnectionPageResponse, ActorConnectionResponse},

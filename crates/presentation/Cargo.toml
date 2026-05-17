@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 domain           = { workspace = true }
-activitypub-base = { workspace = true }
+activitypub      = { workspace = true }
 application      = { workspace = true }
 api-types   = { workspace = true }
 axum        = { workspace = true }

@@ -1,6 +1,6 @@
 use super::*;
 use crate::testing::TestApRepo;
-use activitypub_base::{ActorApUrls, OutboundFederationPort};
+use activitypub::{ActorApUrls, OutboundFederationPort};
 use async_trait::async_trait;
 use domain::{
     errors::DomainError,

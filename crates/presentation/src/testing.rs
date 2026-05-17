@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use activitypub_base::{ActivityPubRepository, ActorApUrls, OutboxEntry};
+use activitypub::{ActivityPubRepository, ActorApUrls, OutboxEntry};
 use async_trait::async_trait;
 use domain::{
     errors::DomainError,
@@ -68,7 +68,7 @@ impl ActivityPubRepository for NoOpApRepo {
     }
     async fn accept_note(
         &self,
-        _input: activitypub_base::AcceptNoteInput<'_>,
+        _input: activitypub::AcceptNoteInput<'_>,
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }

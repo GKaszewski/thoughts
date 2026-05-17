@@ -1,4 +1,4 @@
-use activitypub_base::ActivityPubRepository;
+use activitypub::ActivityPubRepository;
 use domain::ports::*;
 use std::sync::Arc;
 

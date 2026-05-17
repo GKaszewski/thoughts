@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 domain           = { workspace = true }
-activitypub-base = { workspace = true }
+activitypub      = { workspace = true }
 event-payload    = { workspace = true }
 sqlx             = { workspace = true }
 uuid        = { workspace = true }

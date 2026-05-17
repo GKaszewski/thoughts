@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use activitypub_base::{
+use k_ap::{
     ApUser, ApUserRepository, BlockedDomain, FederationRepository, Follower, FollowerStatus,
     FollowingStatus, RemoteActor,
 };

@@ -1,4 +1,4 @@
-use activitypub_base::{ActivityPubRepository, OutboundFederationPort};
+use activitypub::{ActivityPubRepository, OutboundFederationPort};
 use domain::{
     errors::DomainError,
     events::DomainEvent,
