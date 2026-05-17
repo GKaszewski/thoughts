@@ -3,7 +3,7 @@ use postgres::remote_actor_connections::PgRemoteActorConnectionRepository;
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use activitypub::ThoughtsObjectHandler;
+use activitypub::{ApFederationAdapter, ThoughtsObjectHandler};
 use activitypub::{ActivityPubRepository, OutboundFederationPort};
 use k_ap::ActivityPubService;
 use application::services::{FederationEventService, NotificationEventService};
@@ -39,7 +39,9 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
     ));
 
     // ActivityPub service (for federation fan-out)
-    let ap_service = Arc::new(
+    let connections_repo_worker =
+        Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
+    let raw_ap_service = Arc::new(
         ActivityPubService::builder(
             Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
@@ -53,13 +55,13 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
                 Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
             )),
             base_url,
-            Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
         .software_name("thoughts")
         .build()
         .await
         .expect("ActivityPubService build failed"),
     );
+    let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo_worker));
     let ap_outbound = ap_service.clone() as Arc<dyn OutboundFederationPort>;
     let ap_repo_worker =
         Arc::new(PgActivityPubRepository::new(pool.clone())) as Arc<dyn ActivityPubRepository>;

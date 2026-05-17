@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-k-ap                   = { git = "https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git", tag = "v0.1.0" }
+k-ap                   = { git = "https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git", tag = "v0.1.2" }
 domain                 = { workspace = true }
 url                    = { workspace = true }
 serde                  = { workspace = true }
@@ -15,3 +15,7 @@ uuid                   = { workspace = true }
 async-trait            = { workspace = true }
 tracing                = { workspace = true }
 activitypub_federation = "0.7.0-beta.11"
+reqwest                = { workspace = true }
+futures                = { workspace = true }
+tokio                  = { workspace = true }
+axum                   = { workspace = true }

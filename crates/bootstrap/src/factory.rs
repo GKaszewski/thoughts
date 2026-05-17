@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use activitypub::ThoughtsObjectHandler;
+use activitypub::{ApFederationAdapter, ThoughtsObjectHandler};
 use k_ap::ActivityPubService;
 use auth::ApiKeyServiceImpl;
 use domain::{
@@ -27,7 +27,7 @@ use crate::config::Config;
 /// Everything the binary needs to start serving.
 pub struct Infrastructure {
     pub state: AppState,
-    pub ap_service: Arc<ActivityPubService>,
+    pub ap_service: Arc<ApFederationAdapter>,
 }
 
 struct NoOpEventPublisher;
@@ -72,7 +72,9 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     };
 
     // 3. ActivityPub federation
-    let ap_service = Arc::new(
+    let connections_repo =
+        Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
+    let raw_ap_service = Arc::new(
         ActivityPubService::builder(
             Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
@@ -86,7 +88,6 @@ pub async fn build(cfg: &Config) -> Infrastructure {
                 Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
             )),
             cfg.base_url.clone(),
-            Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
         .allow_registration(cfg.allow_registration)
         .software_name("thoughts")
@@ -95,6 +96,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
         .await
         .expect("Failed to build ActivityPubService"),
     );
+    let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo));
 
     // 4. Application state
     let state = AppState {
