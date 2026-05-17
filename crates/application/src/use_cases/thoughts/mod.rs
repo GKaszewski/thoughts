@@ -3,7 +3,7 @@ use domain::{
     events::DomainEvent,
     models::{
         feed::{EngagementStats, FeedEntry},
-        thought::{Thought, Visibility},
+        thought::{NewThought, Thought, Visibility},
     },
     ports::{
         EngagementRepository, EventPublisher, OutboxWriter, TagRepository, ThoughtRepository,
@@ -46,15 +46,15 @@ pub async fn create_thought(
         Some("direct") => Visibility::Direct,
         _ => Visibility::Public,
     };
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        input.user_id,
-        content.clone(),
-        input.in_reply_to_id.clone(),
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: input.user_id,
+        content: content.clone(),
+        in_reply_to_id: input.in_reply_to_id.clone(),
         visibility,
-        input.content_warning,
-        input.sensitive,
-    );
+        content_warning: input.content_warning,
+        sensitive: input.sensitive,
+    });
     thoughts.save(&thought).await?;
 
     // Extract and attach hashtags from content.

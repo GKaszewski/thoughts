@@ -73,7 +73,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
 
     // 3. ActivityPub federation
     let ap_service = Arc::new(
-        ActivityPubService::new(
+        ActivityPubService::builder(
             Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
                 pool.clone(),
@@ -86,12 +86,12 @@ pub async fn build(cfg: &Config) -> Infrastructure {
                 Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
             )),
             cfg.base_url.clone(),
-            cfg.allow_registration,
-            "thoughts".to_string(),
-            cfg.debug,
-            None,
             Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
+        .allow_registration(cfg.allow_registration)
+        .software_name("thoughts")
+        .debug(cfg.debug)
+        .build()
         .await
         .expect("Failed to build ActivityPubService"),
     );

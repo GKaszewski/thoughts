@@ -17,8 +17,9 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use domain::ports::{
-    EventPublisher, FederationActionPort, FollowRepository, SearchPort, UserRepository,
+use domain::{
+    models::user::UpdateProfileInput,
+    ports::{EventPublisher, FederationActionPort, FollowRepository, SearchPort, UserRepository},
 };
 use std::sync::Arc;
 
@@ -96,11 +97,13 @@ pub async fn patch_profile(
         &*d.users,
         &*d.events,
         &uid,
-        body.display_name,
-        body.bio,
-        body.avatar_url,
-        body.header_url,
-        body.custom_css,
+        UpdateProfileInput {
+            display_name: body.display_name,
+            bio: body.bio,
+            avatar_url: body.avatar_url,
+            header_url: body.header_url,
+            custom_css: body.custom_css,
+        },
     )
     .await?;
     let user = fetch_user(&*d.users, &uid).await?;

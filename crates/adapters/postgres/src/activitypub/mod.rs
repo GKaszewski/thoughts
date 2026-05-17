@@ -6,7 +6,7 @@ const THOUGHTS_PATH_PREFIX: &str = "/thoughts/";
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use activitypub_base::{ActivityPubRepository, ActorApUrls, OutboxEntry};
+use activitypub_base::{AcceptNoteInput, ActivityPubRepository, ActorApUrls, OutboxEntry};
 use domain::{
     errors::DomainError,
     models::thought::{Thought, Visibility},
@@ -210,17 +210,17 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .map(|_| ())
     }
 
-    async fn accept_note(
-        &self,
-        ap_id: &str,
-        author_id: &UserId,
-        content: &str,
-        published: DateTime<Utc>,
-        sensitive: bool,
-        content_warning: Option<String>,
-        visibility: &str,
-        in_reply_to: Option<&str>,
-    ) -> Result<ThoughtId, DomainError> {
+    async fn accept_note(&self, input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError> {
+        let AcceptNoteInput {
+            ap_id,
+            author_id,
+            content,
+            published,
+            sensitive,
+            content_warning,
+            visibility,
+            in_reply_to,
+        } = input;
         let capped: String = content.chars().take(MAX_REMOTE_CONTENT_CHARS).collect();
         let (in_reply_to_id, in_reply_to_url) = match in_reply_to {
             Some(url) => {

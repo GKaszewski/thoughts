@@ -2,7 +2,7 @@ use super::*;
 use domain::{
     models::{
         notification::NotificationKind,
-        thought::{Thought, Visibility},
+        thought::{NewThought, Thought, Visibility},
         user::User,
     },
     testing::TestStore,
@@ -24,15 +24,15 @@ async fn like_creates_notification_for_thought_author() {
     let store = TestStore::default();
     let alice = alice();
     let bob_id = UserId::new();
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("hello").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("hello").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {
         thoughts: Arc::new(store.clone()),
@@ -54,15 +54,15 @@ async fn like_creates_notification_for_thought_author() {
 async fn self_like_creates_no_notification() {
     let store = TestStore::default();
     let alice = alice();
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("hello").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("hello").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {
         thoughts: Arc::new(store.clone()),
@@ -103,15 +103,15 @@ async fn reply_creates_notification_for_original_author() {
     let store = TestStore::default();
     let alice = alice();
     let bob_id = UserId::new();
-    let original = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("original").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let original = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("original").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     store.thoughts.lock().unwrap().push(original.clone());
     let svc = NotificationEventService {
         thoughts: Arc::new(store.clone()),
@@ -133,15 +133,15 @@ async fn reply_creates_notification_for_original_author() {
 async fn self_reply_creates_no_notification() {
     let store = TestStore::default();
     let alice = alice();
-    let original = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("original").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let original = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("original").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     store.thoughts.lock().unwrap().push(original.clone());
     let svc = NotificationEventService {
         thoughts: Arc::new(store.clone()),
@@ -161,15 +161,15 @@ async fn self_reply_creates_no_notification() {
 async fn self_boost_creates_no_notification() {
     let store = TestStore::default();
     let alice = alice();
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("hello").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("hello").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {
         thoughts: Arc::new(store.clone()),

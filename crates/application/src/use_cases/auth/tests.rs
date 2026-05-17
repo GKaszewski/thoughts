@@ -5,7 +5,7 @@ use domain::{
     events::DomainEvent,
     models::{
         feed::{PageParams, Paginated, UserSummary},
-        user::User,
+        user::{UpdateProfileInput, User},
     },
     ports::{AuthService, GeneratedToken, PasswordHasher, UserReader, UserWriter},
     testing::{NoOpEventPublisher, TestStore},
@@ -56,22 +56,9 @@ impl UserWriter for ConflictOnSaveStore {
     async fn update_profile(
         &self,
         user_id: &UserId,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        custom_css: Option<String>,
+        input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
-        self.0
-            .update_profile(
-                user_id,
-                display_name,
-                bio,
-                avatar_url,
-                header_url,
-                custom_css,
-            )
-            .await
+        self.0.update_profile(user_id, input).await
     }
 }
 
@@ -114,22 +101,9 @@ impl UserWriter for EmailConflictOnSaveStore {
     async fn update_profile(
         &self,
         user_id: &UserId,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        custom_css: Option<String>,
+        input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
-        self.0
-            .update_profile(
-                user_id,
-                display_name,
-                bio,
-                avatar_url,
-                header_url,
-                custom_css,
-            )
-            .await
+        self.0.update_profile(user_id, input).await
     }
 }
 

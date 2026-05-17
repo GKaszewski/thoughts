@@ -46,24 +46,26 @@ impl Visibility {
     }
 }
 
+pub struct NewThought {
+    pub id: ThoughtId,
+    pub user_id: UserId,
+    pub content: Content,
+    pub in_reply_to_id: Option<ThoughtId>,
+    pub visibility: Visibility,
+    pub content_warning: Option<String>,
+    pub sensitive: bool,
+}
+
 impl Thought {
-    pub fn new_local(
-        id: ThoughtId,
-        user_id: UserId,
-        content: Content,
-        in_reply_to_id: Option<ThoughtId>,
-        visibility: Visibility,
-        content_warning: Option<String>,
-        sensitive: bool,
-    ) -> Self {
+    pub fn new_local(p: NewThought) -> Self {
         Self {
-            id,
-            user_id,
-            content,
-            in_reply_to_id,
-            visibility,
-            content_warning,
-            sensitive,
+            id: p.id,
+            user_id: p.user_id,
+            content: p.content,
+            in_reply_to_id: p.in_reply_to_id,
+            visibility: p.visibility,
+            content_warning: p.content_warning,
+            sensitive: p.sensitive,
             local: true,
             created_at: Utc::now(),
             updated_at: None,

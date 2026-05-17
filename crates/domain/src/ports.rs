@@ -12,7 +12,7 @@ use crate::{
         tag::Tag,
         thought::Thought,
         top_friend::TopFriend,
-        user::User,
+        user::{UpdateProfileInput, User},
     },
     value_objects::{
         ApiKeyId, Content, Email, NotificationId, PasswordHash, ThoughtId, UserId, Username,
@@ -69,11 +69,7 @@ pub trait UserWriter: Send + Sync {
     async fn update_profile(
         &self,
         user_id: &UserId,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        custom_css: Option<String>,
+        input: UpdateProfileInput,
     ) -> Result<(), DomainError>;
 }
 

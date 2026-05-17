@@ -30,30 +30,31 @@ pub struct ThoughtNote {
     pub tag: Vec<serde_json::Value>,
 }
 
+pub struct ThoughtNoteInput {
+    pub id: Url,
+    pub actor_url: Url,
+    pub content: String,
+    pub published: DateTime<Utc>,
+    pub in_reply_to: Option<Url>,
+    pub sensitive: bool,
+    pub summary: Option<String>,
+    pub followers_url: Url,
+}
+
 impl ThoughtNote {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_public(
-        id: Url,
-        actor_url: Url,
-        content: String,
-        published: DateTime<Utc>,
-        in_reply_to: Option<Url>,
-        sensitive: bool,
-        summary: Option<String>,
-        followers_url: Url,
-    ) -> Self {
+    pub fn new_public(p: ThoughtNoteInput) -> Self {
         Self {
             kind: Default::default(),
-            url: Some(id.clone()),
-            id,
-            attributed_to: actor_url,
-            content,
-            published,
+            url: Some(p.id.clone()),
+            id: p.id,
+            attributed_to: p.actor_url,
+            content: p.content,
+            published: p.published,
             to: vec![AS_PUBLIC.to_string()],
-            cc: vec![followers_url.to_string()],
-            in_reply_to,
-            sensitive,
-            summary,
+            cc: vec![p.followers_url.to_string()],
+            in_reply_to: p.in_reply_to,
+            sensitive: p.sensitive,
+            summary: p.summary,
             tag: Vec::new(),
         }
     }

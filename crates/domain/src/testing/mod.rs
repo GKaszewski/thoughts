@@ -10,7 +10,7 @@ use crate::{
         tag::Tag,
         thought::Thought,
         top_friend::TopFriend,
-        user::User,
+        user::{UpdateProfileInput, User},
     },
     ports::*,
     value_objects::{
@@ -125,11 +125,7 @@ impl UserWriter for TestStore {
     async fn update_profile(
         &self,
         user_id: &UserId,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        custom_css: Option<String>,
+        input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
         if let Some(u) = self
             .users
@@ -138,11 +134,11 @@ impl UserWriter for TestStore {
             .iter_mut()
             .find(|u| &u.id == user_id)
         {
-            u.display_name = display_name;
-            u.bio = bio;
-            u.avatar_url = avatar_url;
-            u.header_url = header_url;
-            u.custom_css = custom_css;
+            u.display_name = input.display_name;
+            u.bio = input.bio;
+            u.avatar_url = input.avatar_url;
+            u.header_url = input.header_url;
+            u.custom_css = input.custom_css;
         }
         Ok(())
     }

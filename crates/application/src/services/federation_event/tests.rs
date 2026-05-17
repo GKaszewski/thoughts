@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
-    models::thought::{Thought, Visibility},
+    models::thought::{NewThought, Thought, Visibility},
     models::user::User,
     testing::TestStore,
     value_objects::*,
@@ -92,15 +92,15 @@ fn alice() -> User {
 }
 
 fn local_thought(author_id: UserId) -> Thought {
-    Thought::new_local(
-        ThoughtId::new(),
-        author_id,
-        Content::new_local("hello").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    )
+    Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: author_id,
+        content: Content::new_local("hello").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    })
 }
 
 fn svc(store: &TestStore, spy: Arc<SpyPort>) -> FederationEventService {
@@ -275,15 +275,15 @@ async fn boost_of_remote_thought_announces_remote_ap_id() {
 async fn direct_thought_created_does_not_broadcast() {
     let store = TestStore::default();
     let alice = alice();
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("private").unwrap(),
-        None,
-        Visibility::Direct,
-        None,
-        false,
-    );
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("private").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Direct,
+        content_warning: None,
+        sensitive: false,
+    });
     store.users.lock().unwrap().push(alice.clone());
     store.thoughts.lock().unwrap().push(thought.clone());
 
@@ -304,15 +304,15 @@ async fn direct_thought_created_does_not_broadcast() {
 async fn followers_only_thought_does_not_broadcast_publicly() {
     let store = TestStore::default();
     let alice = alice();
-    let thought = Thought::new_local(
-        ThoughtId::new(),
-        alice.id.clone(),
-        Content::new_local("for followers").unwrap(),
-        None,
-        Visibility::Followers,
-        None,
-        false,
-    );
+    let thought = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: alice.id.clone(),
+        content: Content::new_local("for followers").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Followers,
+        content_warning: None,
+        sensitive: false,
+    });
     store.users.lock().unwrap().push(alice.clone());
     store.thoughts.lock().unwrap().push(thought.clone());
 

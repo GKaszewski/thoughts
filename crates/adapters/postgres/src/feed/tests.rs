@@ -3,7 +3,7 @@ use crate::{thought::PgThoughtRepository, user::PgUserRepository};
 use domain::{
     models::{
         feed::PageParams,
-        thought::{Thought, Visibility},
+        thought::{NewThought, Thought, Visibility},
         user::User,
     },
     ports::{FeedQuery, ThoughtRepository, UserWriter},
@@ -20,15 +20,15 @@ async fn seed(pool: &sqlx::PgPool, username: &str, content: &str) -> (User, Thou
         PasswordHash("h".into()),
     );
     urepo.save(&u).await.unwrap();
-    let t = Thought::new_local(
-        ThoughtId::new(),
-        u.id.clone(),
-        Content::new_local(content).unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let t = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: u.id.clone(),
+        content: Content::new_local(content).unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     trepo.save(&t).await.unwrap();
     (u, t)
 }

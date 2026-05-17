@@ -3,7 +3,10 @@ const MAX_TOP_FRIENDS: usize = 8;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
-    models::{top_friend::TopFriend, user::User},
+    models::{
+        top_friend::TopFriend,
+        user::{UpdateProfileInput, User},
+    },
     ports::{EventPublisher, TopFriendRepository, UserReader, UserWriter},
     value_objects::{UserId, Username},
 };
@@ -41,27 +44,13 @@ pub async fn get_user_by_id_or_username(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn update_profile(
     users: &dyn UserWriter,
     events: &dyn EventPublisher,
     user_id: &UserId,
-    display_name: Option<String>,
-    bio: Option<String>,
-    avatar_url: Option<String>,
-    header_url: Option<String>,
-    custom_css: Option<String>,
+    input: UpdateProfileInput,
 ) -> Result<(), DomainError> {
-    users
-        .update_profile(
-            user_id,
-            display_name,
-            bio,
-            avatar_url,
-            header_url,
-            custom_css,
-        )
-        .await?;
+    users.update_profile(user_id, input).await?;
     events
         .publish(&DomainEvent::ProfileUpdated {
             user_id: user_id.clone(),

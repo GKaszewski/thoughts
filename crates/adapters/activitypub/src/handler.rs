@@ -7,9 +7,9 @@ use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use url::Url;
 
-use crate::note::ThoughtNote;
+use crate::note::{ThoughtNote, ThoughtNoteInput};
 use crate::urls::ThoughtsUrls;
-use activitypub_base::{ActivityPubRepository, ApObjectHandler};
+use activitypub_base::{AcceptNoteInput, ActivityPubRepository, ApObjectHandler};
 use domain::ports::{EventPublisher, TagRepository};
 use domain::value_objects::UserId;
 
@@ -58,16 +58,16 @@ impl ApObjectHandler for ThoughtsObjectHandler {
                     .thought
                     .in_reply_to_id
                     .map(|id| self.urls.thought_url(id.as_uuid()));
-                let note = ThoughtNote::new_public(
-                    note_url.clone(),
+                let note = ThoughtNote::new_public(ThoughtNoteInput {
+                    id: note_url.clone(),
                     actor_url,
-                    e.thought.content.as_str().to_owned(),
-                    e.thought.created_at,
+                    content: e.thought.content.as_str().to_owned(),
+                    published: e.thought.created_at,
                     in_reply_to,
-                    e.thought.sensitive,
-                    e.thought.content_warning,
-                    followers,
-                );
+                    sensitive: e.thought.sensitive,
+                    summary: e.thought.content_warning,
+                    followers_url: followers,
+                });
                 Ok((note_url, serde_json::to_value(&note)?))
             })
             .collect()
@@ -96,16 +96,16 @@ impl ApObjectHandler for ThoughtsObjectHandler {
                     .thought
                     .in_reply_to_id
                     .map(|id| self.urls.thought_url(id.as_uuid()));
-                let note = ThoughtNote::new_public(
-                    note_url.clone(),
+                let note = ThoughtNote::new_public(ThoughtNoteInput {
+                    id: note_url.clone(),
                     actor_url,
-                    e.thought.content.as_str().to_owned(),
-                    created_at,
+                    content: e.thought.content.as_str().to_owned(),
+                    published: created_at,
                     in_reply_to,
-                    e.thought.sensitive,
-                    e.thought.content_warning,
-                    followers,
-                );
+                    sensitive: e.thought.sensitive,
+                    summary: e.thought.content_warning,
+                    followers_url: followers,
+                });
                 Ok((note_url, serde_json::to_value(&note)?, created_at))
             })
             .collect()
@@ -143,16 +143,16 @@ impl ApObjectHandler for ThoughtsObjectHandler {
 
         let thought_id = self
             .repo
-            .accept_note(
-                ap_id.as_str(),
-                &author_id,
-                &note.content,
-                note.published,
-                note.sensitive,
-                note.summary,
+            .accept_note(AcceptNoteInput {
+                ap_id: ap_id.as_str(),
+                author_id: &author_id,
+                content: &note.content,
+                published: note.published,
+                sensitive: note.sensitive,
+                content_warning: note.summary,
                 visibility,
-                note.in_reply_to.as_ref().map(|u| u.as_str()),
-            )
+                in_reply_to: note.in_reply_to.as_ref().map(|u| u.as_str()),
+            })
             .await
             .map_err(|e| anyhow!("{e}"))?;
 

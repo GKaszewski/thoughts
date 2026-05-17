@@ -3,7 +3,7 @@ use crate::{thought::PgThoughtRepository, user::PgUserRepository};
 use domain::ports::{ThoughtRepository, UserWriter};
 use domain::{
     models::{
-        thought::{Thought, Visibility},
+        thought::{NewThought, Thought, Visibility},
         user::User,
     },
     value_objects::*,
@@ -29,15 +29,15 @@ async fn attach_and_list(pool: sqlx::PgPool) {
         PasswordHash("h".into()),
     );
     urepo.save(&u).await.unwrap();
-    let t = Thought::new_local(
-        ThoughtId::new(),
-        u.id.clone(),
-        Content::new_local("hi").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    );
+    let t = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: u.id.clone(),
+        content: Content::new_local("hi").unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     trepo.save(&t).await.unwrap();
     let repo = PgTagRepository::new(pool);
     let tag = repo.find_or_create("greetings").await.unwrap();

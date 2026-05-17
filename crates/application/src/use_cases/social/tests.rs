@@ -1,7 +1,7 @@
 use super::*;
 use domain::{
     models::{
-        thought::{Thought, Visibility},
+        thought::{NewThought, Thought, Visibility},
         user::User,
     },
     testing::TestStore,
@@ -22,15 +22,19 @@ async fn like_and_unlike() {
     let store = TestStore::default();
     let alice = user("alice");
     let tid = ThoughtId::new();
-    store.thoughts.lock().unwrap().push(Thought::new_local(
-        tid.clone(),
-        alice.id.clone(),
-        Content::new_local("hi").unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    ));
+    store
+        .thoughts
+        .lock()
+        .unwrap()
+        .push(Thought::new_local(NewThought {
+            id: tid.clone(),
+            user_id: alice.id.clone(),
+            content: Content::new_local("hi").unwrap(),
+            in_reply_to_id: None,
+            visibility: Visibility::Public,
+            content_warning: None,
+            sensitive: false,
+        }));
     like_thought(&store, &store, &alice.id, &tid).await.unwrap();
     assert_eq!(store.likes.lock().unwrap().len(), 1);
     unlike_thought(&store, &store, &alice.id, &tid)

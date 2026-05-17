@@ -1,6 +1,15 @@
 use crate::value_objects::{Email, PasswordHash, UserId, Username};
 use chrono::{DateTime, Utc};
 
+#[derive(Debug, Default, Clone)]
+pub struct UpdateProfileInput {
+    pub display_name: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+    pub header_url: Option<String>,
+    pub custom_css: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct User {
     pub id: UserId,

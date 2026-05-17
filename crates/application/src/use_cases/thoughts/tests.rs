@@ -222,7 +222,7 @@ async fn create_reply_sets_in_reply_to_id() {
 
 // enrichment_tests (combined from second cfg(test) block)
 
-use domain::models::thought::{Thought, Visibility};
+use domain::models::thought::{NewThought, Thought, Visibility};
 use domain::ports::{ThoughtRepository, UserWriter};
 
 fn make_user() -> User {
@@ -235,15 +235,15 @@ fn make_user() -> User {
 }
 
 fn make_thought(user_id: UserId) -> Thought {
-    Thought::new_local(
-        ThoughtId::new(),
+    Thought::new_local(NewThought {
+        id: ThoughtId::new(),
         user_id,
-        Content::new_local(String::from("hello")).unwrap(),
-        None,
-        Visibility::Public,
-        None,
-        false,
-    )
+        content: Content::new_local(String::from("hello")).unwrap(),
+        in_reply_to_id: None,
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    })
 }
 
 #[tokio::test]
@@ -287,15 +287,15 @@ async fn get_thread_views_batches_correctly() {
     <TestStore as ThoughtRepository>::save(&store, &root)
         .await
         .unwrap();
-    let reply = Thought::new_local(
-        ThoughtId::new(),
-        user.id.clone(),
-        Content::new_local(String::from("reply")).unwrap(),
-        Some(root.id.clone()),
-        Visibility::Public,
-        None,
-        false,
-    );
+    let reply = Thought::new_local(NewThought {
+        id: ThoughtId::new(),
+        user_id: user.id.clone(),
+        content: Content::new_local(String::from("reply")).unwrap(),
+        in_reply_to_id: Some(root.id.clone()),
+        visibility: Visibility::Public,
+        content_warning: None,
+        sensitive: false,
+    });
     <TestStore as ThoughtRepository>::save(&store, &reply)
         .await
         .unwrap();

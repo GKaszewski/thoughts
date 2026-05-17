@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use domain::{
     errors::DomainError,
     models::feed::{PageParams, Paginated, UserSummary},
-    models::user::User,
+    models::user::{UpdateProfileInput, User},
     ports::{UserReader, UserWriter},
     value_objects::{Email, PasswordHash, UserId, Username},
 };
@@ -265,21 +265,17 @@ impl UserWriter for PgUserRepository {
     async fn update_profile(
         &self,
         user_id: &UserId,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        custom_css: Option<String>,
+        input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
         sqlx::query(
             "UPDATE users SET display_name=$2,bio=$3,avatar_url=$4,header_url=$5,custom_css=$6,updated_at=NOW() WHERE id=$1"
         )
         .bind(user_id.as_uuid())
-        .bind(display_name)
-        .bind(bio)
-        .bind(avatar_url)
-        .bind(header_url)
-        .bind(custom_css)
+        .bind(input.display_name)
+        .bind(input.bio)
+        .bind(input.avatar_url)
+        .bind(input.header_url)
+        .bind(input.custom_css)
         .execute(&self.pool)
         .await
         .into_domain()

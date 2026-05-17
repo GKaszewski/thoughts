@@ -163,34 +163,73 @@ pub struct ActivityPubService {
     connections_repo: Arc<dyn domain::ports::RemoteActorConnectionRepository>,
 }
 
+pub struct ActivityPubServiceBuilder {
+    repo: Arc<dyn FederationRepository>,
+    user_repo: Arc<dyn ApUserRepository>,
+    object_handler: Arc<dyn ApObjectHandler>,
+    base_url: String,
+    connections_repo: Arc<dyn domain::ports::RemoteActorConnectionRepository>,
+    allow_registration: bool,
+    software_name: String,
+    debug: bool,
+    event_publisher: Option<Arc<dyn domain::ports::EventPublisher>>,
+}
+
+impl ActivityPubServiceBuilder {
+    pub fn allow_registration(mut self, v: bool) -> Self {
+        self.allow_registration = v;
+        self
+    }
+    pub fn software_name(mut self, v: impl Into<String>) -> Self {
+        self.software_name = v.into();
+        self
+    }
+    pub fn debug(mut self, v: bool) -> Self {
+        self.debug = v;
+        self
+    }
+    pub fn event_publisher(mut self, v: Arc<dyn domain::ports::EventPublisher>) -> Self {
+        self.event_publisher = Some(v);
+        self
+    }
+    pub async fn build(self) -> anyhow::Result<ActivityPubService> {
+        let data = FederationData::new(
+            self.repo,
+            self.user_repo,
+            self.object_handler,
+            self.base_url.clone(),
+            self.allow_registration,
+            self.software_name,
+            self.event_publisher,
+        );
+        let federation_config = ApFederationConfig::new(data, self.debug).await?;
+        Ok(ActivityPubService {
+            federation_config,
+            base_url: self.base_url,
+            connections_repo: self.connections_repo,
+        })
+    }
+}
+
 impl ActivityPubService {
-    #[allow(clippy::too_many_arguments)]
-    pub async fn new(
+    pub fn builder(
         repo: Arc<dyn FederationRepository>,
         user_repo: Arc<dyn ApUserRepository>,
         object_handler: Arc<dyn ApObjectHandler>,
-        base_url: String,
-        allow_registration: bool,
-        software_name: String,
-        debug: bool,
-        event_publisher: Option<Arc<dyn domain::ports::EventPublisher>>,
+        base_url: impl Into<String>,
         connections_repo: Arc<dyn domain::ports::RemoteActorConnectionRepository>,
-    ) -> anyhow::Result<Self> {
-        let data = FederationData::new(
+    ) -> ActivityPubServiceBuilder {
+        ActivityPubServiceBuilder {
             repo,
             user_repo,
             object_handler,
-            base_url.clone(),
-            allow_registration,
-            software_name,
-            event_publisher,
-        );
-        let federation_config = ApFederationConfig::new(data, debug).await?;
-        Ok(Self {
-            federation_config,
-            base_url,
+            base_url: base_url.into(),
             connections_repo,
-        })
+            allow_registration: false,
+            software_name: String::new(),
+            debug: false,
+            event_publisher: None,
+        }
     }
 
     pub fn federation_config(&self) -> &ApFederationConfig {

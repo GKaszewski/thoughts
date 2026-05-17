@@ -68,14 +68,7 @@ impl ActivityPubRepository for NoOpApRepo {
     }
     async fn accept_note(
         &self,
-        _ap_id: &str,
-        _author_id: &UserId,
-        _content: &str,
-        _published: chrono::DateTime<chrono::Utc>,
-        _sensitive: bool,
-        _content_warning: Option<String>,
-        _visibility: &str,
-        _in_reply_to: Option<&str>,
+        _input: activitypub_base::AcceptNoteInput<'_>,
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }

@@ -40,7 +40,7 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
 
     // ActivityPub service (for federation fan-out)
     let ap_service = Arc::new(
-        ActivityPubService::new(
+        ActivityPubService::builder(
             Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
                 pool.clone(),
@@ -52,13 +52,11 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
                 None,
                 Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
             )),
-            base_url.to_string(),
-            false,
-            "thoughts".to_string(),
-            false,
-            None,
+            base_url,
             Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
+        .software_name("thoughts")
+        .build()
         .await
         .expect("ActivityPubService build failed"),
     );

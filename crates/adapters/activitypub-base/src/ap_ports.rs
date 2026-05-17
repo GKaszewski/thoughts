@@ -5,6 +5,17 @@ use domain::{
     value_objects::{ThoughtId, UserId, Username},
 };
 
+pub struct AcceptNoteInput<'a> {
+    pub ap_id: &'a str,
+    pub author_id: &'a UserId,
+    pub content: &'a str,
+    pub published: chrono::DateTime<chrono::Utc>,
+    pub sensitive: bool,
+    pub content_warning: Option<String>,
+    pub visibility: &'a str,
+    pub in_reply_to: Option<&'a str>,
+}
+
 /// AP-protocol endpoints for a locally-stored user (local or interned remote).
 #[derive(Debug, Clone)]
 pub struct ActorApUrls {
@@ -61,18 +72,8 @@ pub trait ActivityPubRepository: Send + Sync {
     // ── Inbox processing (remote → local) ───────────────────────────
 
     /// Persist an incoming remote Note. Idempotent on ap_id.
-    #[allow(clippy::too_many_arguments)]
-    async fn accept_note(
-        &self,
-        ap_id: &str,
-        author_id: &UserId,
-        content: &str,
-        published: chrono::DateTime<chrono::Utc>,
-        sensitive: bool,
-        content_warning: Option<String>,
-        visibility: &str,
-        in_reply_to: Option<&str>,
-    ) -> Result<ThoughtId, DomainError>;
+
+    async fn accept_note(&self, input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError>;
 
     /// Apply an Update to a previously accepted remote Note.
     async fn apply_note_update(&self, ap_id: &str, new_content: &str) -> Result<(), DomainError>;

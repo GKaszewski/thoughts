@@ -1,5 +1,5 @@
 use super::*;
-use activitypub_base::ActivityPubRepository;
+use activitypub_base::{AcceptNoteInput, ActivityPubRepository};
 
 #[sqlx::test(migrations = "./migrations")]
 async fn intern_remote_actor_is_idempotent(pool: sqlx::PgPool) {
@@ -16,16 +16,16 @@ async fn accept_and_retract_note(pool: sqlx::PgPool) {
     let actor_url = "https://remote.example/users/bob";
     let ap_id = "https://remote.example/notes/1";
     let author = repo.intern_remote_actor(actor_url).await.unwrap();
-    repo.accept_note(
+    repo.accept_note(AcceptNoteInput {
         ap_id,
-        &author,
-        "hello from remote",
-        chrono::Utc::now(),
-        false,
-        None,
-        "public",
-        None,
-    )
+        author_id: &author,
+        content: "hello from remote",
+        published: chrono::Utc::now(),
+        sensitive: false,
+        content_warning: None,
+        visibility: "public",
+        in_reply_to: None,
+    })
     .await
     .unwrap();
     repo.retract_note(ap_id).await.unwrap();
@@ -46,16 +46,16 @@ async fn accept_note_returns_thought_id(pool: sqlx::PgPool) {
         .unwrap();
 
     let thought_id = repo
-        .accept_note(
-            "https://remote.example/notes/1",
-            &actor_user_id,
-            "Hello #rust world",
-            chrono::Utc::now(),
-            false,
-            None,
-            "public",
-            None,
-        )
+        .accept_note(AcceptNoteInput {
+            ap_id: "https://remote.example/notes/1",
+            author_id: &actor_user_id,
+            content: "Hello #rust world",
+            published: chrono::Utc::now(),
+            sensitive: false,
+            content_warning: None,
+            visibility: "public",
+            in_reply_to: None,
+        })
         .await
         .unwrap();
 

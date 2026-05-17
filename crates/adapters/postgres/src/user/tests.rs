@@ -1,5 +1,8 @@
 use super::*;
-use domain::{models::user::User, value_objects::*};
+use domain::{
+    models::user::{UpdateProfileInput, User},
+    value_objects::*,
+};
 
 #[sqlx::test(migrations = "./migrations")]
 async fn save_and_find_by_id(pool: sqlx::PgPool) {
@@ -55,11 +58,11 @@ async fn update_profile_changes_fields(pool: sqlx::PgPool) {
     repo.save(&user).await.unwrap();
     repo.update_profile(
         &user.id,
-        Some("Charlie".into()),
-        Some("bio".into()),
-        None,
-        None,
-        None,
+        UpdateProfileInput {
+            display_name: Some("Charlie".into()),
+            bio: Some("bio".into()),
+            ..Default::default()
+        },
     )
     .await
     .unwrap();
