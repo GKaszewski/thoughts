@@ -43,13 +43,15 @@ async fn main() {
         match result {
             Ok(envelope) => {
                 let event = &envelope.event;
-                tracing::debug!(?event, "received event");
+                let event_type = event_payload::EventPayload::from(event).subject();
+                tracing::info!(event_type, delivery = envelope.delivery_count, "received event");
 
                 let n = infra.handlers.notification.handle(event).await;
                 let f = infra.handlers.federation.handle(event).await;
 
                 if n.is_ok() && f.is_ok() {
                     (envelope.ack)();
+                    tracing::info!(event_type, "event handled ok");
                 } else {
                     if let Err(e) = &n {
                         tracing::error!("notification handler: {e}");

@@ -100,7 +100,7 @@ impl OutboxRelay {
                     .execute(&mut *tx)
                     .await?;
                     tx.commit().await?;
-                    tracing::debug!(seq = row.seq, event_type = row.event_type, "outbox: delivered");
+                    tracing::info!(seq = row.seq, event_type = row.event_type, "outbox: delivered");
                 }
                 Err(e) => {
                     tracing::warn!(seq = row.seq, "outbox: publish failed (will retry): {e}");
