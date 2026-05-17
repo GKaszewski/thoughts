@@ -22,6 +22,7 @@ pub struct ThoughtNote {
     pub cc: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub in_reply_to: Option<Url>,
+    #[serde(default)]
     pub sensitive: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
