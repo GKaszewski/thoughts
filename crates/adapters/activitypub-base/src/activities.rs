@@ -4,6 +4,7 @@ use activitypub_federation::{
     kinds::activity::{
         AcceptType, CreateType, DeleteType, FollowType, RejectType, UndoType, UpdateType,
     },
+    protocol::verification::verify_domains_match,
     traits::Activity,
 };
 use serde::{Deserialize, Serialize};
@@ -239,6 +240,14 @@ impl Activity for UndoActivity {
     }
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        // The actor undoing must be the same as the actor in the wrapped activity.
+        if let Some(inner_actor) = self.object.get("actor").and_then(|v| v.as_str()) {
+            if inner_actor != self.actor.inner().as_str() {
+                return Err(Error::bad_request(anyhow::anyhow!(
+                    "Undo actor does not match inner activity actor"
+                )));
+            }
+        }
         Ok(())
     }
 
@@ -570,6 +579,7 @@ impl Activity for AnnounceActivity {
     }
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        verify_domains_match(&self.id, self.actor.inner())?;
         Ok(())
     }
 
@@ -633,6 +643,7 @@ impl Activity for LikeActivity {
     }
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        verify_domains_match(&self.id, self.actor.inner())?;
         Ok(())
     }
 
@@ -692,6 +703,14 @@ impl Activity for AddActivity {
     }
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        if let Some(attributed_to) = self.object.get("attributedTo").and_then(|v| v.as_str())
+            && let Ok(attributed_url) = Url::parse(attributed_to)
+            && &attributed_url != self.actor.inner()
+        {
+            return Err(Error::bad_request(anyhow::anyhow!(
+                "Add actor does not match object attributedTo"
+            )));
+        }
         Ok(())
     }
 
@@ -742,6 +761,7 @@ impl Activity for BlockActivity {
     }
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+        verify_domains_match(&self.id, self.actor.inner())?;
         Ok(())
     }
 
