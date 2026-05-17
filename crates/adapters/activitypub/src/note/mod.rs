@@ -11,7 +11,8 @@ pub struct ThoughtNote {
     #[serde(rename = "type")]
     pub kind: NoteType,
     pub id: Url,
-    pub url: Url, // Mastodon uses this as the clickable link
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub url: Option<Url>,
     pub attributed_to: Url,
     pub content: String,
     pub published: DateTime<Utc>,
@@ -42,7 +43,7 @@ impl ThoughtNote {
     ) -> Self {
         Self {
             kind: Default::default(),
-            url: id.clone(),
+            url: Some(id.clone()),
             id,
             attributed_to: actor_url,
             content,
