@@ -1,4 +1,3 @@
-
 use super::*;
 use domain::{models::user::User, value_objects::*};
 

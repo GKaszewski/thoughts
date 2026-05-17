@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::{thought::PgThoughtRepository, user::PgUserRepository};
 use domain::ports::{ThoughtRepository, UserWriter};

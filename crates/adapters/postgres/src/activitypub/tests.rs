@@ -1,4 +1,3 @@
-
 use super::*;
 use activitypub_base::ActivityPubRepository;
 

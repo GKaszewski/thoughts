@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::test_helpers::seed_user_and_thought;
 use chrono::Utc;

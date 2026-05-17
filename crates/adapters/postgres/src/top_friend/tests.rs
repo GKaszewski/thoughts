@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::user::PgUserRepository;
 use domain::ports::UserWriter;
