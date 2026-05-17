@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use domain::ports::FederationFetchPort;
+
 use activitypub_federation::{
     activity_sending::SendActivityTask, fetch::object_id::ObjectId, protocol::context::WithContext,
     traits::Actor,
@@ -154,9 +156,11 @@ pub(crate) async fn send_with_retry(
     failures
 }
 
+#[derive(Clone)]
 pub struct ActivityPubService {
     federation_config: ApFederationConfig,
     base_url: String,
+    connections_repo: Arc<dyn domain::ports::RemoteActorConnectionRepository>,
 }
 
 impl ActivityPubService {
@@ -170,6 +174,7 @@ impl ActivityPubService {
         software_name: String,
         debug: bool,
         event_publisher: Option<Arc<dyn domain::ports::EventPublisher>>,
+        connections_repo: Arc<dyn domain::ports::RemoteActorConnectionRepository>,
     ) -> anyhow::Result<Self> {
         let data = FederationData::new(
             repo,
@@ -184,6 +189,7 @@ impl ActivityPubService {
         Ok(Self {
             federation_config,
             base_url,
+            connections_repo,
         })
     }
 
@@ -1586,11 +1592,14 @@ impl domain::ports::FederationSchedulerPort for ActivityPubService {
         actor_ap_url: &str,
         outbox_url: &str,
     ) -> Result<(), domain::errors::DomainError> {
-        tracing::debug!(
-            actor = actor_ap_url,
-            outbox = outbox_url,
-            "schedule_actor_posts_fetch: deferred"
-        );
+        let service = self.clone();
+        let actor = actor_ap_url.to_string();
+        let outbox = outbox_url.to_string();
+        tokio::spawn(async move {
+            if let Err(e) = service.backfill_outbox(&outbox, &actor).await {
+                tracing::warn!(actor = %actor, error = %e, "posts backfill failed");
+            }
+        });
         Ok(())
     }
 
@@ -1601,13 +1610,107 @@ impl domain::ports::FederationSchedulerPort for ActivityPubService {
         connection_type: &str,
         page: u32,
     ) -> Result<(), domain::errors::DomainError> {
-        tracing::debug!(
-            actor = actor_ap_url,
-            collection = collection_url,
-            connection_type,
-            page,
-            "schedule_connections_fetch: deferred"
-        );
+        // Only trigger a full fetch on page 1 to avoid redundant network traffic.
+        if page != 1 {
+            return Ok(());
+        }
+        let service = self.clone();
+        let actor = actor_ap_url.to_string();
+        let collection = collection_url.to_string();
+        let conn_type = connection_type.to_string();
+        let connections_repo = self.connections_repo.clone();
+        tokio::spawn(async move {
+            let client = match reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(HTTP_FETCH_TIMEOUT_SECS))
+                .build()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::warn!(error = %e, "connections fetch: failed to build client");
+                    return;
+                }
+            };
+
+            // Walk the AP collection, following first/next links.
+            let mut all_urls: Vec<String> = Vec::new();
+            let mut current_url: Option<String> = Some(collection.clone());
+            const MAX_ACTORS: usize = 500;
+
+            while let Some(url) = current_url.take() {
+                let val: serde_json::Value = match client
+                    .get(&url)
+                    .header("Accept", "application/activity+json, application/ld+json")
+                    .send()
+                    .await
+                {
+                    Ok(r) => match r.json().await {
+                        Ok(v) => v,
+                        Err(e) => {
+                            tracing::warn!(error = %e, url = %url, "connections: parse error");
+                            break;
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!(error = %e, url = %url, "connections: HTTP error");
+                        break;
+                    }
+                };
+
+                // OrderedCollection root — follow its `first` page.
+                if val["type"].as_str() == Some("OrderedCollection") {
+                    current_url = val["first"].as_str().map(|s| s.to_string());
+                    continue;
+                }
+
+                // Collect actor URLs from orderedItems (string or {id: ...}).
+                let empty = vec![];
+                let items = val["orderedItems"].as_array().unwrap_or(&empty);
+                for item in items {
+                    let actor_url = item
+                        .as_str()
+                        .or_else(|| item["id"].as_str())
+                        .unwrap_or("");
+                    if !actor_url.is_empty() {
+                        all_urls.push(actor_url.to_string());
+                    }
+                }
+
+                if all_urls.len() >= MAX_ACTORS {
+                    break;
+                }
+                current_url = val["next"].as_str().map(|s| s.to_string());
+                if current_url.is_some() {
+                    tokio::time::sleep(std::time::Duration::from_millis(BATCH_FETCH_SLEEP_MS))
+                        .await;
+                }
+            }
+
+            if all_urls.is_empty() {
+                tracing::debug!(actor = %actor, connection_type = %conn_type, "connections: empty collection");
+                return;
+            }
+
+            // Resolve profiles and cache in pages of PAGE_SIZE.
+            const PAGE_SIZE: usize = 20;
+            for (idx, chunk) in all_urls.chunks(PAGE_SIZE).enumerate() {
+                let page_num = (idx + 1) as u32;
+                let chunk_urls: Vec<String> = chunk.to_vec();
+                let resolved = service.resolve_actor_profiles(chunk_urls).await;
+                if let Err(e) = connections_repo
+                    .upsert_connections(&actor, &conn_type, page_num, &resolved)
+                    .await
+                {
+                    tracing::warn!(error = %e, "connections: upsert failed");
+                }
+            }
+
+            tracing::debug!(
+                actor = %actor,
+                connection_type = %conn_type,
+                count = all_urls.len(),
+                "connections fetch complete"
+            );
+        });
         Ok(())
     }
 }

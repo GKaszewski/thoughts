@@ -1,4 +1,5 @@
 use postgres::failed_event::PgFailedEventStore;
+use postgres::remote_actor_connections::PgRemoteActorConnectionRepository;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -56,6 +57,7 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
             "thoughts".to_string(),
             false,
             None,
+            Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
         .await
         .expect("ActivityPubService build failed"),

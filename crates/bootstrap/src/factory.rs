@@ -86,6 +86,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
             "thoughts".to_string(),
             cfg.debug,
             None,
+            Arc::new(PgRemoteActorConnectionRepository::new(pool.clone())),
         )
         .await
         .expect("Failed to build ActivityPubService"),
