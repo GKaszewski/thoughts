@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "cargo fmt --all 2>&1 && cargo clippy --workspace 2>&1 || echo '{\"continue\": false, \"stopReason\": \"cargo fmt or clippy failed — fix before committing\"}'",
+            "timeout": 120,
+            "statusMessage": "Running cargo fmt + clippy..."
+          }
+        ]
+      }
+    ]
+  }
+}

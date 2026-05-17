@@ -241,12 +241,12 @@ impl Activity for UndoActivity {
 
     async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
         // The actor undoing must be the same as the actor in the wrapped activity.
-        if let Some(inner_actor) = self.object.get("actor").and_then(|v| v.as_str()) {
-            if inner_actor != self.actor.inner().as_str() {
-                return Err(Error::bad_request(anyhow::anyhow!(
-                    "Undo actor does not match inner activity actor"
-                )));
-            }
+        if let Some(inner_actor) = self.object.get("actor").and_then(|v| v.as_str())
+            && inner_actor != self.actor.inner().as_str()
+        {
+            return Err(Error::bad_request(anyhow::anyhow!(
+                "Undo actor does not match inner activity actor"
+            )));
         }
         Ok(())
     }

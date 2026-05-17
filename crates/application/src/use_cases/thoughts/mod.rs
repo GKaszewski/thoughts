@@ -135,7 +135,9 @@ pub async fn get_thought_view(
         .find_by_id(&thought.user_id)
         .await?
         .ok_or(DomainError::NotFound)?;
-    let mut map = engagement.get_for_thoughts(&[id.clone()], viewer).await?;
+    let mut map = engagement
+        .get_for_thoughts(std::slice::from_ref(id), viewer)
+        .await?;
     let (stats, viewer_ctx) = map.remove(id).unwrap_or((
         EngagementStats {
             like_count: 0,
