@@ -4,6 +4,7 @@ pub mod federation_actors;
 pub mod federation_management;
 pub mod feed;
 pub mod health;
+pub mod media;
 pub mod notifications;
 pub mod social;
 pub mod thoughts;

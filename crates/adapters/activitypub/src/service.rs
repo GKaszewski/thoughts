@@ -146,12 +146,14 @@ async fn resolve_actor_profiles_from_urls(
         let display_name = resp["name"].as_str().map(|s| s.to_string());
         let avatar_url = resp["icon"]["url"].as_str().map(|s| s.to_string());
 
-        Some(domain::models::actor_connection_summary::ActorConnectionSummary {
-            url: ap_url,
-            handle,
-            display_name,
-            avatar_url,
-        })
+        Some(
+            domain::models::actor_connection_summary::ActorConnectionSummary {
+                url: ap_url,
+                handle,
+                display_name,
+                avatar_url,
+            },
+        )
     }
 
     let futs: Vec<_> = urls.into_iter().map(fetch_one).collect();
@@ -254,7 +256,13 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         let user_uuid = author_user_id.as_uuid();
         let ap_id = self.actor_ap_id(user_uuid);
         let followers_url = self.actor_followers_url(user_uuid);
-        let note = build_note_json(thought, &ap_id, &followers_url, self.base_url(), in_reply_to_url);
+        let note = build_note_json(
+            thought,
+            &ap_id,
+            &followers_url,
+            self.base_url(),
+            in_reply_to_url,
+        );
         self.inner
             .broadcast_create_note(user_uuid, note)
             .await
@@ -266,8 +274,8 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         author_user_id: &UserId,
         thought_ap_id: &str,
     ) -> Result<(), DomainError> {
-        let ap_id = url::Url::parse(thought_ap_id)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let ap_id =
+            url::Url::parse(thought_ap_id).map_err(|e| DomainError::Internal(e.to_string()))?;
         self.inner
             .broadcast_delete_to_followers(author_user_id.as_uuid(), ap_id)
             .await
@@ -284,7 +292,13 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         let user_uuid = author_user_id.as_uuid();
         let ap_id = self.actor_ap_id(user_uuid);
         let followers_url = self.actor_followers_url(user_uuid);
-        let note = build_note_json(thought, &ap_id, &followers_url, self.base_url(), in_reply_to_url);
+        let note = build_note_json(
+            thought,
+            &ap_id,
+            &followers_url,
+            self.base_url(),
+            in_reply_to_url,
+        );
         self.inner
             .broadcast_update_note(user_uuid, note)
             .await
@@ -296,8 +310,8 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         booster_user_id: &UserId,
         object_ap_id: &str,
     ) -> Result<(), DomainError> {
-        let ap_id = url::Url::parse(object_ap_id)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let ap_id =
+            url::Url::parse(object_ap_id).map_err(|e| DomainError::Internal(e.to_string()))?;
         self.inner
             .broadcast_announce_to_followers(booster_user_id.as_uuid(), ap_id)
             .await
@@ -309,8 +323,8 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         booster_user_id: &UserId,
         object_ap_id: &str,
     ) -> Result<(), DomainError> {
-        let ap_id = url::Url::parse(object_ap_id)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let ap_id =
+            url::Url::parse(object_ap_id).map_err(|e| DomainError::Internal(e.to_string()))?;
         self.inner
             .broadcast_undo_announce_to_followers(booster_user_id.as_uuid(), ap_id)
             .await
@@ -323,10 +337,10 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         object_ap_id: &str,
         author_inbox_url: &str,
     ) -> Result<(), DomainError> {
-        let object = url::Url::parse(object_ap_id)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        let inbox = url::Url::parse(author_inbox_url)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let object =
+            url::Url::parse(object_ap_id).map_err(|e| DomainError::Internal(e.to_string()))?;
+        let inbox =
+            url::Url::parse(author_inbox_url).map_err(|e| DomainError::Internal(e.to_string()))?;
         self.inner
             .broadcast_like_to_inbox(liker_user_id.as_uuid(), object, inbox)
             .await
@@ -339,10 +353,10 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
         object_ap_id: &str,
         author_inbox_url: &str,
     ) -> Result<(), DomainError> {
-        let object = url::Url::parse(object_ap_id)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        let inbox = url::Url::parse(author_inbox_url)
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let object =
+            url::Url::parse(object_ap_id).map_err(|e| DomainError::Internal(e.to_string()))?;
+        let inbox =
+            url::Url::parse(author_inbox_url).map_err(|e| DomainError::Internal(e.to_string()))?;
         self.inner
             .broadcast_undo_like_to_inbox(liker_user_id.as_uuid(), object, inbox)
             .await
@@ -435,8 +449,7 @@ impl FederationSchedulerPort for ApFederationAdapter {
                 let empty = vec![];
                 let items = val["orderedItems"].as_array().unwrap_or(&empty);
                 for item in items {
-                    let actor_url =
-                        item.as_str().or_else(|| item["id"].as_str()).unwrap_or("");
+                    let actor_url = item.as_str().or_else(|| item["id"].as_str()).unwrap_or("");
                     if !actor_url.is_empty() {
                         all_urls.push(actor_url.to_string());
                     }
@@ -490,9 +503,9 @@ impl FederationSchedulerPort for ApFederationAdapter {
 impl FederationLookupPort for ApFederationAdapter {
     async fn lookup_actor(&self, handle: &str) -> Result<DomainRemoteActor, DomainError> {
         let normalized = handle.trim_start_matches('@');
-        let at = normalized.rfind('@').ok_or_else(|| {
-            DomainError::InvalidInput("handle must be user@domain".into())
-        })?;
+        let at = normalized
+            .rfind('@')
+            .ok_or_else(|| DomainError::InvalidInput("handle must be user@domain".into()))?;
         let (user, domain_str) = (&normalized[..at], &normalized[at + 1..]);
 
         let wf_url = format!(
@@ -532,8 +545,10 @@ impl FederationLookupPort for ApFederationAdapter {
             .map_err(|e| DomainError::ExternalService(e.to_string()))?;
 
         let ap_url = actor_json["id"].as_str().unwrap_or(&self_href).to_string();
-        let preferred_username =
-            actor_json["preferredUsername"].as_str().unwrap_or("").to_string();
+        let preferred_username = actor_json["preferredUsername"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
         let domain_part = url::Url::parse(&ap_url)
             .ok()
             .and_then(|u| u.host_str().map(|s| s.to_string()))
@@ -645,10 +660,9 @@ impl FederationFetchPort for ApFederationAdapter {
                     return None;
                 }
 
-                let published =
-                    DateTime::parse_from_rfc3339(note["published"].as_str()?)
-                        .ok()?
-                        .with_timezone(&chrono::Utc);
+                let published = DateTime::parse_from_rfc3339(note["published"].as_str()?)
+                    .ok()?
+                    .with_timezone(&chrono::Utc);
 
                 let text = note["content"].as_str().unwrap_or("").to_string();
                 let has_attachments = note["attachment"]

@@ -5,8 +5,10 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use std::sync::Arc;
 
+use application::use_cases::profile::UploadConfig;
+use storage::{build_store, ObjectStorageAdapter, StorageConfig};
+
 use activitypub::{ApFederationAdapter, ThoughtsObjectHandler};
-use k_ap::ActivityPubService;
 use auth::ApiKeyServiceImpl;
 use domain::{
     errors::DomainError,
@@ -14,6 +16,7 @@ use domain::{
     ports::{EventPublisher, OutboxWriter},
 };
 use event_transport::EventPublisherAdapter;
+use k_ap::ActivityPubService;
 use nats::NatsTransport;
 use postgres::activitypub::PgActivityPubRepository;
 use postgres::engagement::PgEngagementRepository;
@@ -72,8 +75,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     };
 
     // 3. ActivityPub federation
-    let connections_repo =
-        Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
+    let connections_repo = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
     let raw_ap_service = Arc::new(
         ActivityPubService::builder(
             Arc::new(PostgresFederationRepository::new(pool.clone())),
@@ -98,7 +100,27 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     );
     let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo));
 
-    // 4. Application state
+    // 4. Storage adapter
+    let storage_cfg = StorageConfig {
+        backend: cfg.storage_backend.clone(),
+        local_path: cfg.storage_path.clone(),
+        s3_endpoint: cfg.s3_endpoint.clone(),
+        s3_access_key_id: cfg.s3_access_key_id.clone(),
+        s3_secret_access_key: cfg.s3_secret_access_key.clone(),
+        s3_bucket: cfg.s3_bucket.clone(),
+        s3_region: cfg.s3_region.clone(),
+    };
+    let object_store = build_store(&storage_cfg).expect("Failed to build object store");
+    let media_adapter: Arc<dyn domain::ports::MediaStore> = Arc::new(
+        ObjectStorageAdapter::new(object_store, cfg.storage_prefix.clone())
+            .expect("Failed to create storage adapter"),
+    );
+    let upload_config = UploadConfig {
+        max_bytes: cfg.upload_max_bytes,
+        allowed_content_types: cfg.upload_allowed_types.clone(),
+    };
+
+    // 5. Application state
     let state = AppState {
         users: Arc::new(postgres::user::PgUserRepository::new(pool.clone())),
         thoughts: Arc::new(postgres::thought::PgThoughtRepository::new(pool.clone())),
@@ -140,6 +162,9 @@ pub async fn build(cfg: &Config) -> Infrastructure {
             postgres::api_key::PgApiKeyRepository::new(pool.clone()),
         ))),
         engagement: Arc::new(PgEngagementRepository::new(pool.clone())),
+        media: media_adapter,
+        upload_config,
+        base_url: cfg.base_url.clone(),
     };
 
     Infrastructure { state, ap_service }

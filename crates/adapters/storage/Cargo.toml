@@ -1,0 +1,18 @@
+[package]
+name = "storage"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+s3 = ["object_store/aws"]
+
+[dependencies]
+domain      = { workspace = true }
+async-trait = { workspace = true }
+bytes       = { workspace = true }
+futures     = { workspace = true }
+anyhow      = { workspace = true }
+object_store = { version = "0.11" }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }

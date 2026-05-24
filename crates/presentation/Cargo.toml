@@ -17,6 +17,7 @@ uuid        = { workspace = true }
 chrono      = { workspace = true }
 tracing     = { workspace = true }
 async-trait = { workspace = true }
+futures      = { workspace = true }
 url                 = { workspace = true }
 utoipa             = { version = "5.5.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-scalar      = { version = "0.3.0", features = ["axum"], default-features = false }

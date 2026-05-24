@@ -1,5 +1,6 @@
 use crate::{handlers::*, openapi, state::AppState};
 use axum::{
+    extract::DefaultBodyLimit,
     routing::{delete, get, patch, post, put},
     Router,
 };
@@ -16,6 +17,14 @@ pub fn router() -> Router<AppState> {
         .route("/users/count", get(users::get_user_count))
         .route("/users/lookup", get(users::lookup_handler))
         .route("/users/me", get(users::get_me).patch(users::patch_profile))
+        .route(
+            "/users/me/avatar",
+            put(users::upload_avatar).layer(DefaultBodyLimit::max(10 * 1024 * 1024)),
+        )
+        .route(
+            "/users/me/banner",
+            put(users::upload_banner).layer(DefaultBodyLimit::max(10 * 1024 * 1024)),
+        )
         .route("/users/me/following", get(users::get_me_following))
         .route("/users/me/top-friends", put(social::put_top_friends))
         .route("/users/{username}", get(users::get_user))
@@ -113,5 +122,5 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api-keys/{id}", delete(api_keys::delete_api_key_handler));
 
-    openapi::serve(api_routes)
+    openapi::serve(api_routes).route("/media/{*path}", get(media::get_media))
 }

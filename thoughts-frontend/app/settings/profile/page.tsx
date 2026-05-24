@@ -31,7 +31,7 @@ export default async function EditProfilePage() {
           This is how others will see you on the site.
         </p>
       </div>
-      <EditProfileForm currentUser={me} />
+      <EditProfileForm currentUser={me} token={token} />
     </div>
   );
 }

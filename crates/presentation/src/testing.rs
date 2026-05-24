@@ -1,9 +1,10 @@
 use crate::state::AppState;
 use activitypub::{ActivityPubRepository, ActorApUrls, OutboxEntry};
+use application::use_cases::profile::UploadConfig;
 use async_trait::async_trait;
 use domain::{
     errors::DomainError,
-    ports::{AuthService, GeneratedToken, PasswordHasher},
+    ports::{AuthService, DataStream, GeneratedToken, MediaStore, PasswordHasher},
     testing::{NoOpOutboxWriter, TestStore},
     value_objects::{PasswordHash, ThoughtId, UserId},
 };
@@ -98,6 +99,21 @@ impl ActivityPubRepository for NoOpApRepo {
     }
 }
 
+pub struct NoOpMediaStore;
+
+#[async_trait]
+impl MediaStore for NoOpMediaStore {
+    async fn put(&self, _key: &str, _data: DataStream) -> Result<(), DomainError> {
+        Err(DomainError::Internal("noop".into()))
+    }
+    async fn get(&self, _key: &str) -> Result<DataStream, DomainError> {
+        Err(DomainError::Internal("noop".into()))
+    }
+    async fn delete(&self, _key: &str) -> Result<(), DomainError> {
+        Err(DomainError::Internal("noop".into()))
+    }
+}
+
 pub fn make_state() -> AppState {
     let store = Arc::new(TestStore::default());
     AppState {
@@ -124,5 +140,8 @@ pub fn make_state() -> AppState {
         federation_scheduler: store.clone(),
         api_key_auth: store.clone(),
         engagement: store.clone(),
+        media: Arc::new(NoOpMediaStore),
+        upload_config: UploadConfig::default(),
+        base_url: "http://localhost:3000".into(),
     }
 }

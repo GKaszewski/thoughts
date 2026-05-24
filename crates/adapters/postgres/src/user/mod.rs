@@ -268,7 +268,14 @@ impl UserWriter for PgUserRepository {
         input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
         sqlx::query(
-            "UPDATE users SET display_name=$2,bio=$3,avatar_url=$4,header_url=$5,custom_css=$6,updated_at=NOW() WHERE id=$1"
+            "UPDATE users SET \
+             display_name = COALESCE($2, display_name), \
+             bio          = COALESCE($3, bio), \
+             avatar_url   = COALESCE($4, avatar_url), \
+             header_url   = COALESCE($5, header_url), \
+             custom_css   = COALESCE($6, custom_css), \
+             updated_at   = NOW() \
+             WHERE id = $1",
         )
         .bind(user_id.as_uuid())
         .bind(input.display_name)

@@ -55,7 +55,7 @@ pub trait ActivityPubRepository: Send + Sync {
 
     /// Find the local UserId for a remote actor by its AP URL.
     async fn find_remote_actor_id(&self, actor_ap_url: &str)
-    -> Result<Option<UserId>, DomainError>;
+        -> Result<Option<UserId>, DomainError>;
 
     /// Ensure a remote actor placeholder exists; create one if absent.
     /// Idempotent — safe to call multiple times with the same URL.
@@ -100,7 +100,7 @@ pub trait ActivityPubRepository: Send + Sync {
     /// Return the AP actor URL and inbox URL for a user, if stored.
     /// Returns None for users that have not been federated.
     async fn get_actor_ap_urls(&self, user_id: &UserId)
-    -> Result<Option<ActorApUrls>, DomainError>;
+        -> Result<Option<ActorApUrls>, DomainError>;
 }
 
 #[async_trait]

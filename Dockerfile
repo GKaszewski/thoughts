@@ -6,8 +6,8 @@ WORKDIR /build
 # Cache dependency compilation separately from source
 COPY Cargo.toml Cargo.lock ./
 COPY crates/adapters/activitypub/Cargo.toml       crates/adapters/activitypub/Cargo.toml
-COPY crates/adapters/activitypub-base/Cargo.toml  crates/adapters/activitypub-base/Cargo.toml
 COPY crates/adapters/auth/Cargo.toml              crates/adapters/auth/Cargo.toml
+COPY crates/adapters/storage/Cargo.toml           crates/adapters/storage/Cargo.toml
 COPY crates/adapters/event-payload/Cargo.toml     crates/adapters/event-payload/Cargo.toml
 COPY crates/adapters/event-transport/Cargo.toml   crates/adapters/event-transport/Cargo.toml
 COPY crates/adapters/nats/Cargo.toml              crates/adapters/nats/Cargo.toml
@@ -35,7 +35,7 @@ RUN cargo fetch
 # Now copy real source and build
 COPY crates ./crates
 
-RUN cargo build --release -p bootstrap -p worker
+RUN cargo build --release -p bootstrap -p worker --features storage/s3
 
 # ----- runtime -----
 FROM debian:bookworm-slim

@@ -32,6 +32,10 @@ services:
       BASE_URL: http://localhost:8000
       NATS_URL: nats://nats:4222
       RUST_LOG: info
+      STORAGE_BACKEND: local
+      STORAGE_PATH: /data/media
+    volumes:
+      - media_data:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,3 +69,4 @@ services:
 
 volumes:
   postgres_data:
+  media_data:

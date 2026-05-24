@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 
 use crate::{
     errors::DomainError,
@@ -19,6 +20,17 @@ use crate::{
     },
 };
 use async_trait::async_trait;
+use bytes::Bytes;
+
+pub type DataStream =
+    Pin<Box<dyn futures::stream::Stream<Item = Result<Bytes, DomainError>> + Send>>;
+
+#[async_trait]
+pub trait MediaStore: Send + Sync {
+    async fn put(&self, key: &str, data: DataStream) -> Result<(), DomainError>;
+    async fn get(&self, key: &str) -> Result<DataStream, DomainError>;
+    async fn delete(&self, key: &str) -> Result<(), DomainError>;
+}
 
 pub struct GeneratedToken {
     pub token: String,

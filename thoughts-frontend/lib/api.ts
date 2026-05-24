@@ -74,8 +74,6 @@ export const CreateThoughtSchema = z.object({
 export const UpdateProfileSchema = z.object({
   displayName: z.string().max(50).optional(),
   bio: z.string().max(4000).optional(),
-  avatarUrl: z.string().optional(),
-  headerUrl: z.string().optional(),
   customCss: z.string().optional(),
 });
 
@@ -213,6 +211,25 @@ export const getMe = (token: string) =>
 
 export const updateProfile = (data: z.infer<typeof UpdateProfileSchema>, token: string) =>
   apiFetch("/users/me", { method: "PATCH", body: JSON.stringify(data) }, UserSchema, token);
+
+async function uploadImage(endpoint: string, file: File, token: string): Promise<User> {
+  const base = process.env.NEXT_PUBLIC_API_URL;
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(`${base}${endpoint}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  return UserSchema.parse(await res.json());
+}
+
+export const uploadAvatar = (file: File, token: string) =>
+  uploadImage("/users/me/avatar", file, token);
+
+export const uploadBanner = (file: File, token: string) =>
+  uploadImage("/users/me/banner", file, token);
 
 export const getMeFollowingList = (token: string) =>
   apiFetch("/users/me/following", { next: { tags: ['me'] } }, z.object({ total: z.number(), items: z.array(UserSchema) }), token);

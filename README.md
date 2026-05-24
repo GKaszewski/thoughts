@@ -63,6 +63,7 @@ bootstrap           — binary: thoughts (API server)
 worker              — binary: thoughts-worker (event consumer — notifications, AP fan-out)
 adapters/
   auth                 — JWT issuance and validation, Argon2 password hashing
+  storage              — object storage adapter (local filesystem + S3/MinIO) implementing the MediaStore port
   postgres             — PostgreSQL repositories for all domain entities
   postgres-search      — PostgreSQL trigram full-text search
   postgres-federation  — PostgreSQL-backed federation repository
@@ -74,6 +75,10 @@ adapters/
 ```
 
 The `domain` and `application` crates have zero concrete adapter dependencies. All I/O goes through `&dyn Port` traits, keeping business logic fully testable with in-memory fakes.
+
+## Media Storage
+
+Users can upload avatar and banner images via `PUT /users/me/avatar` and `PUT /users/me/banner` (multipart/form-data). Uploaded images are served at `GET /media/*path` (public, no auth required). Set `STORAGE_BACKEND` to configure the backend.
 
 ## Prerequisites
 
@@ -105,6 +110,16 @@ Copy `.env.example` to `.env` and fill in your values.
 | `ALLOW_REGISTRATION` | `true` | Set to `false` to close sign-ups |
 | `RUST_ENV` | `development` | Set to `production` to disable ActivityPub debug logging |
 | `RUST_LOG` | `info` | Log level filter (`error`, `warn`, `info`, `debug`, `trace`) |
+| `STORAGE_BACKEND` | `local` | Storage backend: `local` or `s3` |
+| `STORAGE_PATH` | — | Local filesystem path for media (required when `STORAGE_BACKEND=local`) |
+| `STORAGE_PREFIX` | — | Optional key prefix for all stored objects |
+| `S3_ENDPOINT` | — | S3/MinIO endpoint URL (required when `STORAGE_BACKEND=s3`) |
+| `S3_ACCESS_KEY_ID` | — | S3 access key (required when `STORAGE_BACKEND=s3`) |
+| `S3_SECRET_ACCESS_KEY` | — | S3 secret key (required when `STORAGE_BACKEND=s3`) |
+| `S3_BUCKET` | — | S3 bucket name (required when `STORAGE_BACKEND=s3`) |
+| `S3_REGION` | `us-east-1` | S3 region |
+| `UPLOAD_MAX_BYTES` | `5242880` | Max upload size in bytes (default 5 MiB) |
+| `UPLOAD_ALLOWED_TYPES` | `image/jpeg,image/png,image/gif,image/webp,image/avif` | Comma-separated allowed MIME types |
 
 ## Run
 
@@ -167,6 +182,9 @@ docker run -p 8000:8000 \
   -e JWT_SECRET=change-me \
   -e BASE_URL=https://yourdomain.example.com \
   -e NATS_URL=nats://nats:4222 \
+  -e STORAGE_BACKEND=local \
+  -e STORAGE_PATH=/data/media \
+  -v media_vol:/data/media \
   thoughts
 
 # Event worker (same image, different entrypoint)

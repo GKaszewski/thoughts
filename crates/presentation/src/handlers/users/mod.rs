@@ -10,16 +10,20 @@ use api_types::{
 };
 use application::use_cases::profile::{
     get_user as fetch_user, get_user_by_id_or_username, update_profile,
+    upload_avatar as upload_avatar_uc, upload_banner as upload_banner_uc, UploadConfig,
 };
 use axum::{
-    extract::{Path, Query},
+    extract::{Multipart, Path, Query},
     http::{header, HeaderMap},
     response::{IntoResponse, Response},
     Json,
 };
 use domain::{
     models::user::UpdateProfileInput,
-    ports::{EventPublisher, FederationActionPort, FollowRepository, SearchPort, UserRepository},
+    ports::{
+        EventPublisher, FederationActionPort, FollowRepository, MediaStore, SearchPort,
+        UserRepository,
+    },
 };
 use std::sync::Arc;
 
@@ -29,6 +33,9 @@ pub struct UsersDeps {
     pub follows: Arc<dyn FollowRepository>,
     pub federation: Arc<dyn FederationActionPort>,
     pub search: Arc<dyn SearchPort>,
+    pub media: Arc<dyn MediaStore>,
+    pub upload_config: UploadConfig,
+    pub base_url: String,
 }
 
 impl FromAppState for UsersDeps {
@@ -39,6 +46,9 @@ impl FromAppState for UsersDeps {
             follows: s.follows.clone(),
             federation: s.federation.clone(),
             search: s.search.clone(),
+            media: s.media.clone(),
+            upload_config: s.upload_config.clone(),
+            base_url: s.base_url.clone(),
         }
     }
 }
@@ -88,6 +98,8 @@ pub async fn get_user(
     ),
     security(("bearer_auth" = []))
 )]
+// avatar_url and header_url in UpdateProfileRequest are accepted as-is (external
+// URLs allowed). The upload use-cases handle storage-backed uploads separately.
 pub async fn patch_profile(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
@@ -226,6 +238,78 @@ pub async fn lookup_handler(
             .map(|(name, value)| ProfileField { name, value })
             .collect(),
     }))
+}
+
+pub async fn upload_avatar(
+    Deps(d): Deps<UsersDeps>,
+    AuthUser(uid): AuthUser,
+    mut multipart: Multipart,
+) -> Result<Json<UserResponse>, ApiError> {
+    let field = multipart
+        .next_field()
+        .await
+        .map_err(|_| ApiError::BadRequest("invalid multipart".into()))?
+        .ok_or_else(|| ApiError::BadRequest("no file field".into()))?;
+    // Content-type is client-supplied; the use-case allowlist prevents obviously
+    // wrong types, but magic-byte validation is not performed. Serve media files
+    // from an isolated origin to prevent MIME-based XSS.
+    let content_type = field
+        .content_type()
+        .ok_or_else(|| ApiError::BadRequest("missing content-type on field".into()))?
+        .to_string();
+    let data = field
+        .bytes()
+        .await
+        .map_err(|_| ApiError::BadRequest("failed to read upload".into()))?;
+    upload_avatar_uc(
+        &*d.users,
+        &*d.media,
+        &*d.events,
+        &uid,
+        &d.base_url,
+        &d.upload_config,
+        &content_type,
+        data,
+    )
+    .await?;
+    let user = fetch_user(&*d.users, &uid).await?;
+    Ok(Json(to_user_response(&user)))
+}
+
+pub async fn upload_banner(
+    Deps(d): Deps<UsersDeps>,
+    AuthUser(uid): AuthUser,
+    mut multipart: Multipart,
+) -> Result<Json<UserResponse>, ApiError> {
+    let field = multipart
+        .next_field()
+        .await
+        .map_err(|_| ApiError::BadRequest("invalid multipart".into()))?
+        .ok_or_else(|| ApiError::BadRequest("no file field".into()))?;
+    // Content-type is client-supplied; the use-case allowlist prevents obviously
+    // wrong types, but magic-byte validation is not performed. Serve media files
+    // from an isolated origin to prevent MIME-based XSS.
+    let content_type = field
+        .content_type()
+        .ok_or_else(|| ApiError::BadRequest("missing content-type on field".into()))?
+        .to_string();
+    let data = field
+        .bytes()
+        .await
+        .map_err(|_| ApiError::BadRequest("failed to read upload".into()))?;
+    upload_banner_uc(
+        &*d.users,
+        &*d.media,
+        &*d.events,
+        &uid,
+        &d.base_url,
+        &d.upload_config,
+        &content_type,
+        data,
+    )
+    .await?;
+    let user = fetch_user(&*d.users, &uid).await?;
+    Ok(Json(to_user_response(&user)))
 }
 
 #[cfg(test)]

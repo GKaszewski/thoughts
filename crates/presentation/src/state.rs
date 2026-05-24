@@ -1,4 +1,5 @@
 use activitypub::ActivityPubRepository;
+use application::use_cases::profile::UploadConfig;
 use domain::ports::*;
 use std::sync::Arc;
 
@@ -27,4 +28,7 @@ pub struct AppState {
     pub remote_actor_connections: Arc<dyn RemoteActorConnectionRepository>,
     pub federation_scheduler: Arc<dyn FederationSchedulerPort>,
     pub engagement: Arc<dyn EngagementRepository>,
+    pub media: Arc<dyn MediaStore>,
+    pub upload_config: UploadConfig,
+    pub base_url: String,
 }

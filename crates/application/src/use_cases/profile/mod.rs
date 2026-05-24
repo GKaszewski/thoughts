@@ -1,5 +1,6 @@
 const MAX_TOP_FRIENDS: usize = 8;
 
+use bytes::Bytes;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
@@ -7,7 +8,9 @@ use domain::{
         top_friend::TopFriend,
         user::{UpdateProfileInput, User},
     },
-    ports::{EventPublisher, TopFriendRepository, UserReader, UserWriter},
+    ports::{
+        EventPublisher, MediaStore, TopFriendRepository, UserReader, UserRepository, UserWriter,
+    },
     value_objects::{UserId, Username},
 };
 
@@ -79,6 +82,152 @@ pub async fn set_top_friends(
         .map(|(i, id)| (id, (i + 1) as i16))
         .collect();
     top_friends.set_top_friends(user_id, friends).await
+}
+
+#[derive(Clone)]
+pub struct UploadConfig {
+    pub max_bytes: usize,
+    pub allowed_content_types: Vec<String>,
+}
+
+impl Default for UploadConfig {
+    fn default() -> Self {
+        Self {
+            max_bytes: 5 * 1024 * 1024,
+            allowed_content_types: vec![
+                "image/jpeg".into(),
+                "image/png".into(),
+                "image/gif".into(),
+                "image/webp".into(),
+                "image/avif".into(),
+            ],
+        }
+    }
+}
+
+fn mime_to_ext(mime: &str) -> Result<&'static str, DomainError> {
+    match mime {
+        "image/jpeg" => Ok("jpg"),
+        "image/png" => Ok("png"),
+        "image/gif" => Ok("gif"),
+        "image/webp" => Ok("webp"),
+        "image/avif" => Ok("avif"),
+        _ => Err(DomainError::InvalidInput("unsupported content type".into())),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn store_image(
+    media: &dyn MediaStore,
+    base_url: &str,
+    cfg: &UploadConfig,
+    content_type: &str,
+    data: Bytes,
+    user_id: &UserId,
+    key_segment: &str,
+    old_url: Option<&str>,
+) -> Result<String, DomainError> {
+    if !cfg.allowed_content_types.iter().any(|t| t == content_type) {
+        return Err(DomainError::InvalidInput("unsupported content type".into()));
+    }
+    if data.len() > cfg.max_bytes {
+        return Err(DomainError::InvalidInput("file too large".into()));
+    }
+    let ext = mime_to_ext(content_type)?;
+    if let Some(old) = old_url {
+        let prefix = format!("{base_url}/media/");
+        if let Some(old_key) = old.strip_prefix(&prefix) {
+            media.delete(old_key).await?;
+        }
+    }
+    let key = format!("users/{}/{key_segment}.{ext}", user_id.as_uuid());
+    let stream = Box::pin(futures::stream::once(async move { Ok(data) }));
+    media.put(&key, stream).await?;
+    Ok(key)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn upload_avatar(
+    users: &dyn UserRepository,
+    media: &dyn MediaStore,
+    events: &dyn EventPublisher,
+    user_id: &UserId,
+    base_url: &str,
+    cfg: &UploadConfig,
+    content_type: &str,
+    data: Bytes,
+) -> Result<(), DomainError> {
+    let current = users
+        .find_by_id(user_id)
+        .await?
+        .ok_or(DomainError::NotFound)?;
+    let key = store_image(
+        media,
+        base_url,
+        cfg,
+        content_type,
+        data,
+        user_id,
+        "avatar",
+        current.avatar_url.as_deref(),
+    )
+    .await?;
+    users
+        .update_profile(
+            user_id,
+            UpdateProfileInput {
+                avatar_url: Some(format!("{base_url}/media/{key}")),
+                ..Default::default()
+            },
+        )
+        .await?;
+    events
+        .publish(&DomainEvent::ProfileUpdated {
+            user_id: user_id.clone(),
+        })
+        .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn upload_banner(
+    users: &dyn UserRepository,
+    media: &dyn MediaStore,
+    events: &dyn EventPublisher,
+    user_id: &UserId,
+    base_url: &str,
+    cfg: &UploadConfig,
+    content_type: &str,
+    data: Bytes,
+) -> Result<(), DomainError> {
+    let current = users
+        .find_by_id(user_id)
+        .await?
+        .ok_or(DomainError::NotFound)?;
+    let key = store_image(
+        media,
+        base_url,
+        cfg,
+        content_type,
+        data,
+        user_id,
+        "banner",
+        current.header_url.as_deref(),
+    )
+    .await?;
+    users
+        .update_profile(
+            user_id,
+            UpdateProfileInput {
+                header_url: Some(format!("{base_url}/media/{key}")),
+                ..Default::default()
+            },
+        )
+        .await?;
+    events
+        .publish(&DomainEvent::ProfileUpdated {
+            user_id: user_id.clone(),
+        })
+        .await
 }
 
 #[cfg(test)]

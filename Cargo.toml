@@ -14,6 +14,7 @@ members = [
     "crates/adapters/nats",
     "crates/adapters/event-payload",
     "crates/adapters/event-transport",
+    "crates/adapters/storage",
 ]
 resolver = "2"
 
@@ -29,9 +30,10 @@ async-trait = "0.1"
 uuid = { version = "1.0", features = ["v4", "v5", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
-axum = { version = "0.8", features = ["macros"] }
+axum = { version = "0.8", features = ["macros", "multipart"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 futures = "0.3"
+bytes = "1.0"
 dotenvy = "0.15"
 async-nats = "0.48"
 async-stream = "0.3"
@@ -50,3 +52,4 @@ auth             = { path = "crates/adapters/auth" }
 nats             = { path = "crates/adapters/nats" }
 event-payload    = { path = "crates/adapters/event-payload" }
 event-transport  = { path = "crates/adapters/event-transport" }
+storage          = { path = "crates/adapters/storage" }

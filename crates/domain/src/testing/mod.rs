@@ -134,11 +134,21 @@ impl UserWriter for TestStore {
             .iter_mut()
             .find(|u| &u.id == user_id)
         {
-            u.display_name = input.display_name;
-            u.bio = input.bio;
-            u.avatar_url = input.avatar_url;
-            u.header_url = input.header_url;
-            u.custom_css = input.custom_css;
+            if let Some(v) = input.display_name {
+                u.display_name = Some(v);
+            }
+            if let Some(v) = input.bio {
+                u.bio = Some(v);
+            }
+            if let Some(v) = input.avatar_url {
+                u.avatar_url = Some(v);
+            }
+            if let Some(v) = input.header_url {
+                u.header_url = Some(v);
+            }
+            if let Some(v) = input.custom_css {
+                u.custom_css = Some(v);
+            }
         }
         Ok(())
     }

@@ -10,9 +10,9 @@ use url::Url;
 use crate::note::{ThoughtNote, ThoughtNoteInput};
 use crate::port::{AcceptNoteInput, ActivityPubRepository};
 use crate::urls::ThoughtsUrls;
-use k_ap::ApObjectHandler;
 use domain::ports::{EventPublisher, TagRepository};
 use domain::value_objects::UserId;
+use k_ap::ApObjectHandler;
 
 pub struct ThoughtsObjectHandler {
     repo: Arc<dyn ActivityPubRepository>,
