@@ -45,6 +45,8 @@ pub struct ThoughtResponse {
     pub boosted_by_viewer: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note_extensions: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, utoipa::ToSchema)]

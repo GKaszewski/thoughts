@@ -21,6 +21,7 @@ pub struct Thought {
     pub local: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub note_extensions: Option<serde_json::Value>,
 }
 
 impl Visibility {
@@ -69,6 +70,7 @@ impl Thought {
             local: true,
             created_at: Utc::now(),
             updated_at: None,
+            note_extensions: None,
         }
     }
 }

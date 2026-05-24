@@ -14,6 +14,7 @@ pub struct AcceptNoteInput<'a> {
     pub content_warning: Option<String>,
     pub visibility: &'a str,
     pub in_reply_to: Option<&'a str>,
+    pub note_extensions: Option<serde_json::Value>,
 }
 
 /// AP-protocol endpoints for a locally-stored user (local or interned remote).

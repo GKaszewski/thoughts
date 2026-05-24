@@ -52,6 +52,7 @@ struct FeedRow {
     reply_count: i64,
     liked_by_viewer: bool,
     boosted_by_viewer: bool,
+    note_extensions: Option<serde_json::Value>,
 }
 
 fn feed_select(viewer: Option<uuid::Uuid>) -> String {
@@ -67,7 +68,7 @@ fn feed_select(viewer: Option<uuid::Uuid>) -> String {
          t.id AS thought_id, t.user_id AS t_user_id, t.content,\n\
          t.in_reply_to_id,\n\
          t.visibility, t.content_warning, t.sensitive, t.local AS t_local,\n\
-         t.created_at AS thought_created_at, t.updated_at,\n\
+         t.created_at AS thought_created_at, t.updated_at, t.note_extensions,\n\
          u.id AS author_id, u.username, u.email, u.password_hash,\n\
          u.display_name, u.bio, u.avatar_url, u.header_url, u.custom_css,\n\
          u.local AS author_local,\n\
@@ -92,6 +93,7 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         local: r.t_local,
         created_at: r.thought_created_at,
         updated_at: r.updated_at,
+        note_extensions: r.note_extensions,
     };
     let author = User {
         id: UserId::from_uuid(r.author_id),

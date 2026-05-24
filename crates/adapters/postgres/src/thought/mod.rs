@@ -34,6 +34,7 @@ pub(crate) struct ThoughtRow {
     pub local: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub note_extensions: Option<serde_json::Value>,
 }
 
 impl TryFrom<ThoughtRow> for Thought {
@@ -50,12 +51,13 @@ impl TryFrom<ThoughtRow> for Thought {
             local: r.local,
             created_at: r.created_at,
             updated_at: r.updated_at,
+            note_extensions: r.note_extensions,
         })
     }
 }
 
 const THOUGHT_SELECT: &str =
-    "SELECT id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,updated_at FROM thoughts";
+    "SELECT id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions FROM thoughts";
 
 #[async_trait]
 impl ThoughtRepository for PgThoughtRepository {
@@ -117,11 +119,11 @@ impl ThoughtRepository for PgThoughtRepository {
         sqlx::query_as::<_, ThoughtRow>(
             "WITH RECURSIVE thread AS (
                 SELECT id,user_id,content,in_reply_to_id,
-                       visibility,content_warning,sensitive,local,created_at,updated_at
+                       visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions
                 FROM thoughts WHERE id = $1
                 UNION ALL
                 SELECT t.id,t.user_id,t.content,t.in_reply_to_id,
-                       t.visibility,t.content_warning,t.sensitive,t.local,t.created_at,t.updated_at
+                       t.visibility,t.content_warning,t.sensitive,t.local,t.created_at,t.updated_at,t.note_extensions
                 FROM thoughts t JOIN thread ON t.in_reply_to_id = thread.id
             )
             SELECT * FROM thread ORDER BY created_at ASC",

@@ -37,6 +37,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ThoughtForm } from "@/components/thought-form";
+import { MovieCard } from "@/components/movie-card";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +74,17 @@ export function ThoughtCard({
   });
 
   const isAuthor = currentUser?.username === thought.author.username;
+
+  const meta = thought.noteExtensions as Record<string, unknown> | null | undefined;
+  if (meta?.movieTitle) {
+    return (
+      <MovieCard
+        meta={meta as unknown as Parameters<typeof MovieCard>[0]["meta"]}
+        author={thought.author}
+        createdAt={new Date(thought.createdAt)}
+      />
+    );
+  }
 
   const handleDelete = async () => {
     setIsAlertOpen(false);

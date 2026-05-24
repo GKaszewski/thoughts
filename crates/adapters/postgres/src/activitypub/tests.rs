@@ -25,6 +25,7 @@ async fn accept_and_retract_note(pool: sqlx::PgPool) {
         content_warning: None,
         visibility: "public",
         in_reply_to: None,
+        note_extensions: None,
     })
     .await
     .unwrap();
@@ -55,6 +56,7 @@ async fn accept_note_returns_thought_id(pool: sqlx::PgPool) {
             content_warning: None,
             visibility: "public",
             in_reply_to: None,
+            note_extensions: None,
         })
         .await
         .unwrap();

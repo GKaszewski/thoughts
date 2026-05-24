@@ -52,6 +52,7 @@ export const ThoughtSchema = z.object({
   boostedByViewer: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date().nullable(),
+  noteExtensions: z.record(z.string(), z.unknown()).nullish(),
 });
 
 export const RegisterSchema = z.object({
@@ -116,6 +117,7 @@ export const ThoughtThreadSchema: z.ZodType<{
   boostedByViewer: boolean;
   createdAt: Date;
   updatedAt: Date | null;
+  noteExtensions?: Record<string, unknown> | null;
   replies: ThoughtThread[];
 }> = z.object({
   id: z.string().uuid(),
@@ -132,6 +134,7 @@ export const ThoughtThreadSchema: z.ZodType<{
   boostedByViewer: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date().nullable(),
+  noteExtensions: z.record(z.string(), z.unknown()).nullish(),
   replies: z.lazy(() => z.array(ThoughtThreadSchema)),
 });
 

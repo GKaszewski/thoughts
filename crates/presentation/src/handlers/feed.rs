@@ -48,6 +48,7 @@ pub fn to_thought_response(e: &domain::models::feed::FeedEntry) -> ThoughtRespon
         boosted_by_viewer: e.viewer.as_ref().map(|v| v.boosted).unwrap_or(false),
         created_at: e.thought.created_at,
         updated_at: e.thought.updated_at,
+        note_extensions: e.thought.note_extensions.clone(),
     }
 }
 

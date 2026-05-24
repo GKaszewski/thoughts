@@ -35,6 +35,7 @@ struct FeedRow {
     t_local: bool,
     thought_created_at: DateTime<Utc>,
     updated_at: Option<DateTime<Utc>>,
+    note_extensions: Option<serde_json::Value>,
     author_id: uuid::Uuid,
     username: String,
     email: String,
@@ -82,6 +83,7 @@ fn feed_select(viewer: Option<uuid::Uuid>) -> String {
         t.in_reply_to_id,
         t.visibility, t.content_warning, t.sensitive, t.local AS t_local,
         t.created_at AS thought_created_at, t.updated_at,
+        t.note_extensions,
         u.id AS author_id,
         CASE WHEN NOT u.local AND ra.handle IS NOT NULL AND ra.handle != ''
              THEN '@' || ra.handle ||
@@ -118,6 +120,7 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         local: r.t_local,
         created_at: r.thought_created_at,
         updated_at: r.updated_at,
+        note_extensions: r.note_extensions,
     };
     let author = User {
         id: UserId::from_uuid(r.author_id),

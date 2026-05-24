@@ -65,6 +65,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
                         local: true,
                         created_at: r.created_at,
                         updated_at: r.updated_at,
+                        note_extensions: None,
                     },
                     author_username: Username::from_trusted(r.username),
                 })
@@ -130,6 +131,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
                     local: true,
                     created_at: r.created_at,
                     updated_at: r.updated_at,
+                    note_extensions: None,
                 },
                 author_username: Username::from_trusted(r.username),
             })
@@ -220,6 +222,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
             content_warning,
             visibility,
             in_reply_to,
+            note_extensions,
         } = input;
         let capped: String = content.chars().take(MAX_REMOTE_CONTENT_CHARS).collect();
         let (in_reply_to_id, in_reply_to_url) = match in_reply_to {
@@ -236,8 +239,8 @@ impl ActivityPubRepository for PgActivityPubRepository {
             None => (None, None),
         };
         sqlx::query(
-            "INSERT INTO thoughts(id,user_id,content,ap_id,visibility,sensitive,local,content_warning,created_at,in_reply_to_id,in_reply_to_url)
-             VALUES($1,$2,$3,$4,$8,$5,false,$6,$7,$9,$10) ON CONFLICT(ap_id) DO NOTHING",
+            "INSERT INTO thoughts(id,user_id,content,ap_id,visibility,sensitive,local,content_warning,created_at,in_reply_to_id,in_reply_to_url,note_extensions)
+             VALUES($1,$2,$3,$4,$8,$5,false,$6,$7,$9,$10,$11) ON CONFLICT(ap_id) DO NOTHING",
         )
         .bind(uuid::Uuid::new_v4())
         .bind(author_id.as_uuid())
@@ -249,6 +252,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .bind(visibility)
         .bind(in_reply_to_id)
         .bind(&in_reply_to_url)
+        .bind(note_extensions)
         .execute(&self.pool)
         .await
         .into_domain()?;
