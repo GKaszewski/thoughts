@@ -9,6 +9,7 @@ import {
   getUserThoughts,
   Me,
 } from "@/lib/api";
+import { CssPreviewListener } from "@/components/css-preview-listener";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -134,6 +135,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       {user.customCss && (
         <style dangerouslySetInnerHTML={{ __html: user.customCss }} />
       )}
+      <CssPreviewListener />
 
       <div
         id="profile-header"

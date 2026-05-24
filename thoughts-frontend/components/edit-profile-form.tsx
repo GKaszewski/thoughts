@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatar } from "@/components/user-avatar";
+import { CssEditor } from "@/components/css-editor";
 import { Camera, ImagePlus, Loader2 } from "lucide-react";
 
 interface EditProfileFormProps {
@@ -199,12 +200,11 @@ export function EditProfileForm({ currentUser, token }: EditProfileFormProps) {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Custom CSS</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="body { font-family: 'Comic Sans MS'; }"
-                      rows={5}
-                      {...field}
+                    <CssEditor
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      username={currentUser.username}
                     />
                   </FormControl>
                   <FormMessage />
