@@ -510,15 +510,17 @@ impl PostgresApUserRepository {
         username: String,
         bio: Option<String>,
         avatar_url: Option<String>,
+        header_url: Option<String>,
     ) -> ApUser {
         let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
         let avatar_url = avatar_url.and_then(|u| url::Url::parse(&u).ok());
+        let banner_url = header_url.and_then(|u| url::Url::parse(&u).ok());
         ApUser {
             id,
             username,
             bio,
             avatar_url,
-            banner_url: None,
+            banner_url,
             also_known_as: None,
             profile_url,
             attachment: vec![],
@@ -535,15 +537,16 @@ impl ApUserRepository for PostgresApUserRepository {
             username: String,
             bio: Option<String>,
             avatar_url: Option<String>,
+            header_url: Option<String>,
         }
         let row = sqlx::query_as::<_, Row>(
-            "SELECT id,username,bio,avatar_url FROM users WHERE id=$1 AND local=true",
+            "SELECT id,username,bio,avatar_url,header_url FROM users WHERE id=$1 AND local=true",
         )
         .bind(id)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| anyhow!(e))?;
-        Ok(row.map(|r| self.row_to_ap_user(r.id, r.username, r.bio, r.avatar_url)))
+        Ok(row.map(|r| self.row_to_ap_user(r.id, r.username, r.bio, r.avatar_url, r.header_url)))
     }
 
     async fn find_by_username(&self, username: &str) -> Result<Option<ApUser>> {
@@ -553,15 +556,16 @@ impl ApUserRepository for PostgresApUserRepository {
             username: String,
             bio: Option<String>,
             avatar_url: Option<String>,
+            header_url: Option<String>,
         }
         let row = sqlx::query_as::<_, Row>(
-            "SELECT id,username,bio,avatar_url FROM users WHERE username=$1 AND local=true",
+            "SELECT id,username,bio,avatar_url,header_url FROM users WHERE username=$1 AND local=true",
         )
         .bind(username)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| anyhow!(e))?;
-        Ok(row.map(|r| self.row_to_ap_user(r.id, r.username, r.bio, r.avatar_url)))
+        Ok(row.map(|r| self.row_to_ap_user(r.id, r.username, r.bio, r.avatar_url, r.header_url)))
     }
 
     async fn count_users(&self) -> Result<usize> {
