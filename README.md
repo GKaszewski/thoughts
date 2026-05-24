@@ -67,7 +67,7 @@ adapters/
   postgres             — PostgreSQL repositories for all domain entities
   postgres-search      — PostgreSQL trigram full-text search
   postgres-federation  — PostgreSQL-backed federation repository
-  activitypub-base     — core ActivityPub protocol types, ActivityPubService, federation middleware
+  k-ap (external)      — generic AP protocol layer (ActivityPubService, actor management, inbox/outbox routing, follower tracking, WebFinger, NodeInfo, HTTP signatures)
   activitypub          — project-specific AP wiring (ThoughtsObjectHandler, inbox/outbox)
   nats                 — NATS transport implementing Transport + MessageSource ports
   event-payload        — shared event serialization DTOs
