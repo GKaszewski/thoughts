@@ -706,6 +706,14 @@ impl FederationFollowPort for TestStore {
     ) -> Result<Vec<RemoteActor>, DomainError> {
         Ok(vec![])
     }
+
+    async fn broadcast_move(
+        &self,
+        _user_id: &UserId,
+        _new_actor_url: url::Url,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
 }
 
 #[async_trait]
