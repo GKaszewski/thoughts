@@ -108,6 +108,10 @@ pub fn router() -> Router<AppState> {
             "/federation/me/move",
             post(federation_management::post_move_account),
         )
+        .route(
+            "/federation/me/also-known-as",
+            patch(federation_management::patch_also_known_as),
+        )
         .route("/tags/popular", get(feed::get_popular_tags))
         .route("/tags/{name}", get(feed::tag_thoughts_handler))
         // notifications

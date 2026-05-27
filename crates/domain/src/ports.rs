@@ -83,6 +83,11 @@ pub trait UserWriter: Send + Sync {
         user_id: &UserId,
         input: UpdateProfileInput,
     ) -> Result<(), DomainError>;
+    async fn set_also_known_as(
+        &self,
+        user_id: &UserId,
+        value: Option<String>,
+    ) -> Result<(), DomainError>;
 }
 
 /// Combined supertrait — `AppState.users` stays `Arc<dyn UserRepository>`.

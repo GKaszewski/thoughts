@@ -152,6 +152,14 @@ impl UserWriter for TestStore {
         }
         Ok(())
     }
+
+    async fn set_also_known_as(
+        &self,
+        _user_id: &UserId,
+        _value: Option<String>,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
 }
 
 #[async_trait]

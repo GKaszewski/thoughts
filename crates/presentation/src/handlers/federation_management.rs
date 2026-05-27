@@ -126,3 +126,17 @@ pub async fn post_move_account(
         .map_err(ApiError::from)?;
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[derive(Deserialize)]
+pub struct AlsoKnownAsBody {
+    pub also_known_as: Option<String>,
+}
+
+pub async fn patch_also_known_as(
+    Deps(d): Deps<FederationManagementDeps>,
+    AuthUser(uid): AuthUser,
+    Json(body): Json<AlsoKnownAsBody>,
+) -> Result<StatusCode, ApiError> {
+    d.users.set_also_known_as(&uid, body.also_known_as).await?;
+    Ok(StatusCode::NO_CONTENT)
+}

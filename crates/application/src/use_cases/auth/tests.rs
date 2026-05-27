@@ -60,6 +60,13 @@ impl UserWriter for ConflictOnSaveStore {
     ) -> Result<(), DomainError> {
         self.0.update_profile(user_id, input).await
     }
+    async fn set_also_known_as(
+        &self,
+        user_id: &UserId,
+        value: Option<String>,
+    ) -> Result<(), DomainError> {
+        self.0.set_also_known_as(user_id, value).await
+    }
 }
 
 #[async_trait]
@@ -104,6 +111,13 @@ impl UserWriter for EmailConflictOnSaveStore {
         input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
         self.0.update_profile(user_id, input).await
+    }
+    async fn set_also_known_as(
+        &self,
+        user_id: &UserId,
+        value: Option<String>,
+    ) -> Result<(), DomainError> {
+        self.0.set_also_known_as(user_id, value).await
     }
 }
 
