@@ -490,6 +490,41 @@ impl FederationRepository for PostgresFederationRepository {
         ).bind(local_user_id).bind(actor_url).fetch_one(&self.pool).await.map_err(|e| anyhow!(e))?;
         Ok(n > 0)
     }
+
+    async fn migrate_follower_actor(
+        &self,
+        old_actor_url: &str,
+        new_actor_url: &str,
+    ) -> Result<Vec<uuid::Uuid>> {
+        let mut tx = self.pool.begin().await.map_err(|e| anyhow!(e))?;
+
+        // Copy rows to the new actor URL, carrying over existing data.
+        // ON CONFLICT DO NOTHING skips users already following the new actor.
+        // RETURNING gives us user IDs that actually need a re-follow.
+        let affected: Vec<uuid::Uuid> = sqlx::query_scalar(
+            "INSERT INTO federation_following(local_user_id, remote_actor_url, follow_activity_id, outbox_url)
+             SELECT local_user_id, $2, follow_activity_id, outbox_url
+             FROM federation_following
+             WHERE remote_actor_url = $1
+             ON CONFLICT (local_user_id, remote_actor_url) DO NOTHING
+             RETURNING local_user_id",
+        )
+        .bind(old_actor_url)
+        .bind(new_actor_url)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(|e| anyhow!(e))?;
+
+        // Delete the old rows.
+        sqlx::query("DELETE FROM federation_following WHERE remote_actor_url = $1")
+            .bind(old_actor_url)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| anyhow!(e))?;
+
+        tx.commit().await.map_err(|e| anyhow!(e))?;
+        Ok(affected)
+    }
 }
 
 // ── PostgresApUserRepository ──────────────────────────────────────────────────
