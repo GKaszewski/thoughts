@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { z } from "zod";
 
 export const UserSchema = z.object({
@@ -278,13 +279,14 @@ export const markAllNotificationsRead = (token: string) =>
     token
   );
 
-export const lookupRemoteActor = (handle: string, token: string | null) =>
+export const lookupRemoteActor = cache((handle: string, token: string | null) =>
   apiFetch(
     `/users/lookup?handle=${encodeURIComponent(handle)}`,
     { next: { tags: [`remote-actor:${handle}`] } },
     RemoteActorSchema,
     token
-  );
+  )
+);
 
 export const getRemoteActorPosts = (
   handle: string,

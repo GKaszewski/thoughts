@@ -17,6 +17,14 @@ export function fullFediverseHandle(handle: string, actorUrl: string): string {
   }
 }
 
+/** Returns the correct profile URL for an author.
+ *  Local users go to /users/:username; remote actors go to /remote-actor?handle=. */
+export function profileHref(username: string, local: boolean): string {
+  if (local) return `/users/${username}`;
+  const handle = username.startsWith("@") ? username : `@${username}`;
+  return `/remote-actor?handle=${encodeURIComponent(handle)}`;
+}
+
 export function buildThoughtThreads(thoughts: Thought[]): ThoughtThreadType[] {
   const thoughtMap = new Map<string, Thought>();
   thoughts.forEach((t) => thoughtMap.set(t.id, t));

@@ -265,6 +265,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "serde",
+ "serde_json",
  "utoipa",
  "uuid",
 ]
@@ -1050,6 +1051,7 @@ dependencies = [
  "futures",
  "hex",
  "serde",
+ "serde_json",
  "sha2",
  "thiserror 2.0.18",
  "tokio",
@@ -2013,8 +2015,8 @@ dependencies = [
 
 [[package]]
 name = "k-ap"
-version = "0.1.0"
-source = "git+https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git?tag=v0.1.3#7901b29f7c09415e82f7f098f89c1df6b86bbfd3"
+version = "0.1.7"
+source = "git+https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git?tag=v0.1.7#699258f830922830df956db8e5dea739ee1642aa"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2563,6 +2565,7 @@ dependencies = [
  "chrono",
  "domain",
  "postgres",
+ "serde_json",
  "sqlx",
  "tokio",
  "uuid",

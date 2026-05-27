@@ -41,7 +41,10 @@ impl FederationEventService {
                     {
                         t
                     }
-                    _ => return Ok(()),
+                    _ => {
+                        tracing::debug!(thought_id = %thought_id, "federation: skipping ThoughtCreated (remote or non-public)");
+                        return Ok(());
+                    }
                 };
                 let user = match self.users.find_by_id(user_id).await? {
                     Some(u) => u,
@@ -58,6 +61,7 @@ impl FederationEventService {
                 } else {
                     None
                 };
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Create(Note)");
                 self.ap
                     .broadcast_create(
                         user_id,
@@ -72,8 +76,7 @@ impl FederationEventService {
                 thought_id,
                 user_id,
             } => {
-                // No DB lookup — thought is already deleted when this event fires.
-                // No locality guard: delete commands only reach local thoughts via the use case.
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Delete");
                 let ap_id = format!("{}/thoughts/{}", self.base_url, thought_id);
                 self.ap.broadcast_delete(user_id, &ap_id).await
             }
@@ -106,6 +109,7 @@ impl FederationEventService {
                 } else {
                     None
                 };
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Update(Note)");
                 self.ap
                     .broadcast_update(
                         user_id,
@@ -121,16 +125,19 @@ impl FederationEventService {
                 user_id,
                 thought_id,
             } => {
-                // Only fan-out if the booster is a local user. Remote boosts must not be re-broadcast.
                 let booster = match self.users.find_by_id(user_id).await? {
                     Some(u) if u.local => u,
-                    _ => return Ok(()),
+                    _ => {
+                        tracing::debug!(user_id = %user_id, "federation: skipping BoostAdded (remote user)");
+                        return Ok(());
+                    }
                 };
                 let _ = booster;
                 if self.thoughts.find_by_id(thought_id).await?.is_none() {
                     return Ok(());
                 }
                 let object_ap_id = self.object_ap_id(thought_id).await?;
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Announce");
                 self.ap.broadcast_announce(user_id, &object_ap_id).await
             }
 
@@ -142,6 +149,7 @@ impl FederationEventService {
                     return Ok(());
                 }
                 let object_ap_id = self.object_ap_id(thought_id).await?;
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Undo(Announce)");
                 self.ap
                     .broadcast_undo_announce(user_id, &object_ap_id)
                     .await
@@ -152,10 +160,12 @@ impl FederationEventService {
                 user_id,
                 thought_id,
             } => {
-                // Only federate: local liker + remote thought (has ap_id) + author has inbox.
                 let liker = match self.users.find_by_id(user_id).await? {
                     Some(u) if u.local => u,
-                    _ => return Ok(()),
+                    _ => {
+                        tracing::debug!(user_id = %user_id, "federation: skipping LikeAdded (remote user)");
+                        return Ok(());
+                    }
                 };
                 let _ = liker;
                 let thought = match self.thoughts.find_by_id(thought_id).await? {
@@ -164,12 +174,16 @@ impl FederationEventService {
                 };
                 let thought_ap_id = match self.ap_repo.get_thought_ap_id(thought_id).await? {
                     Some(id) => id,
-                    None => return Ok(()), // local thought — no federation needed
+                    None => {
+                        tracing::debug!(thought_id = %thought_id, "federation: skipping LikeAdded (local thought)");
+                        return Ok(());
+                    }
                 };
                 let actor_urls = match self.ap_repo.get_actor_ap_urls(&thought.user_id).await? {
                     Some(u) => u,
                     None => return Ok(()),
                 };
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Like");
                 self.ap
                     .broadcast_like(user_id, &thought_ap_id, &actor_urls.inbox_url)
                     .await
@@ -196,12 +210,14 @@ impl FederationEventService {
                     Some(u) => u,
                     None => return Ok(()),
                 };
+                tracing::info!(thought_id = %thought_id, user_id = %user_id, "federation: broadcasting Undo(Like)");
                 self.ap
                     .broadcast_undo_like(user_id, &thought_ap_id, &actor_urls.inbox_url)
                     .await
             }
 
             DomainEvent::ProfileUpdated { user_id } => {
+                tracing::info!(user_id = %user_id, "federation: broadcasting actor update");
                 self.ap.broadcast_actor_update(user_id).await
             }
 

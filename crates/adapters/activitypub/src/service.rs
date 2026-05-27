@@ -502,72 +502,29 @@ impl FederationSchedulerPort for ApFederationAdapter {
 #[async_trait]
 impl FederationLookupPort for ApFederationAdapter {
     async fn lookup_actor(&self, handle: &str) -> Result<DomainRemoteActor, DomainError> {
-        let normalized = handle.trim_start_matches('@');
-        let at = normalized
-            .rfind('@')
-            .ok_or_else(|| DomainError::InvalidInput("handle must be user@domain".into()))?;
-        let (user, domain_str) = (&normalized[..at], &normalized[at + 1..]);
-
-        let wf_url = format!(
-            "https://{}/.well-known/webfinger?resource=acct:{}@{}",
-            domain_str, user, domain_str
-        );
-        let wf: serde_json::Value = reqwest::Client::new()
-            .get(&wf_url)
-            .header("Accept", "application/jrd+json, application/json")
-            .send()
-            .await
-            .map_err(|e| DomainError::ExternalService(e.to_string()))?
-            .json()
+        let actor = self
+            .inner
+            .lookup_actor_by_handle(handle)
             .await
             .map_err(|e| DomainError::ExternalService(e.to_string()))?;
-
-        let self_href = wf["links"]
-            .as_array()
-            .and_then(|links| {
-                links.iter().find(|l| {
-                    l["rel"].as_str() == Some("self")
-                        && l["type"].as_str() == Some("application/activity+json")
-                })
-            })
-            .and_then(|l| l["href"].as_str())
-            .ok_or(DomainError::NotFound)?
-            .to_owned();
-
-        let actor_json: serde_json::Value = reqwest::Client::new()
-            .get(&self_href)
-            .header("Accept", "application/activity+json")
-            .send()
-            .await
-            .map_err(|e| DomainError::ExternalService(e.to_string()))?
-            .json()
-            .await
-            .map_err(|e| DomainError::ExternalService(e.to_string()))?;
-
-        let ap_url = actor_json["id"].as_str().unwrap_or(&self_href).to_string();
-        let preferred_username = actor_json["preferredUsername"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
-        let domain_part = url::Url::parse(&ap_url)
-            .ok()
-            .and_then(|u| u.host_str().map(|s| s.to_string()))
-            .unwrap_or_default();
-        let full_handle = format!("{}@{}", preferred_username, domain_part);
 
         Ok(DomainRemoteActor {
-            url: ap_url.clone(),
-            handle: full_handle,
-            display_name: actor_json["name"].as_str().map(|s| s.to_string()),
-            avatar_url: actor_json["icon"]["url"].as_str().map(|s| s.to_string()),
-            outbox_url: actor_json["outbox"].as_str().map(|s| s.to_string()),
+            url: actor.ap_url.to_string(),
+            handle: actor.handle,
+            display_name: actor.display_name,
+            avatar_url: actor.avatar_url.as_ref().map(|u| u.to_string()),
+            outbox_url: actor.outbox_url.as_ref().map(|u| u.to_string()),
             last_fetched_at: chrono::Utc::now(),
-            bio: actor_json["summary"].as_str().map(|s| s.to_string()),
-            banner_url: actor_json["image"]["url"].as_str().map(|s| s.to_string()),
-            also_known_as: None,
-            followers_url: actor_json["followers"].as_str().map(|s| s.to_string()),
-            following_url: actor_json["following"].as_str().map(|s| s.to_string()),
-            attachment: vec![],
+            bio: actor.bio,
+            banner_url: actor.banner_url.as_ref().map(|u| u.to_string()),
+            also_known_as: actor.also_known_as,
+            followers_url: actor.followers_url.as_ref().map(|u| u.to_string()),
+            following_url: actor.following_url.as_ref().map(|u| u.to_string()),
+            attachment: actor
+                .attachment
+                .into_iter()
+                .map(|f| (f.name, f.value))
+                .collect(),
         })
     }
 

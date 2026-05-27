@@ -14,36 +14,6 @@ use domain::ports::{EventPublisher, TagRepository};
 use domain::value_objects::UserId;
 use k_ap::ApObjectHandler;
 
-fn extract_note_extensions(obj: &serde_json::Value) -> Option<serde_json::Value> {
-    const STANDARD: &[&str] = &[
-        "type",
-        "id",
-        "attributedTo",
-        "content",
-        "published",
-        "to",
-        "cc",
-        "inReplyTo",
-        "sensitive",
-        "summary",
-        "tag",
-        "url",
-        "@context",
-        "mediaType",
-    ];
-    let extensions: serde_json::Map<String, serde_json::Value> = obj
-        .as_object()?
-        .iter()
-        .filter(|(k, _)| !STANDARD.contains(&k.as_str()))
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect();
-    if extensions.is_empty() {
-        None
-    } else {
-        Some(serde_json::Value::Object(extensions))
-    }
-}
-
 pub struct ThoughtsObjectHandler {
     repo: Arc<dyn ActivityPubRepository>,
     urls: ThoughtsUrls,
@@ -148,8 +118,10 @@ impl ApObjectHandler for ThoughtsObjectHandler {
         actor_url: &Url,
         object: serde_json::Value,
     ) -> Result<()> {
-        let note_extensions = extract_note_extensions(&object);
-        let note: ThoughtNote = serde_json::from_value(object)?;
+        let Some((note, note_extensions)) = ThoughtNote::try_from_ap(object) else {
+            tracing::debug!(ap_id = %ap_id, "on_create: skipping non-Note object");
+            return Ok(());
+        };
         let author_id = self
             .repo
             .intern_remote_actor(actor_url.as_str())
@@ -249,7 +221,10 @@ impl ApObjectHandler for ThoughtsObjectHandler {
         _actor_url: &Url,
         object: serde_json::Value,
     ) -> Result<()> {
-        let note: ThoughtNote = serde_json::from_value(object)?;
+        let Some((note, _)) = ThoughtNote::try_from_ap(object) else {
+            tracing::debug!(ap_id = %ap_id, "on_update: skipping non-Note object");
+            return Ok(());
+        };
         self.repo
             .apply_note_update(ap_id.as_str(), &note.content)
             .await
@@ -438,48 +413,5 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .count_local_notes()
             .await
             .map_err(|e| anyhow!("{e}"))
-    }
-}
-
-#[cfg(test)]
-mod extract_tests {
-    use super::extract_note_extensions;
-
-    #[test]
-    fn extracts_non_standard_fields() {
-        let obj = serde_json::json!({
-            "type": "Note",
-            "id": "https://example.com/notes/1",
-            "content": "hello",
-            "published": "2025-01-01T00:00:00Z",
-            "movieTitle": "Dune",
-            "rating": 5,
-            "posterUrl": "https://example.com/poster.jpg"
-        });
-        let ext = extract_note_extensions(&obj).unwrap();
-        assert_eq!(ext["movieTitle"], "Dune");
-        assert_eq!(ext["rating"], 5);
-        assert_eq!(ext["posterUrl"], "https://example.com/poster.jpg");
-        assert!(ext.get("type").is_none());
-        assert!(ext.get("content").is_none());
-        assert!(ext.get("id").is_none());
-    }
-
-    #[test]
-    fn returns_none_for_standard_only_note() {
-        let obj = serde_json::json!({
-            "type": "Note",
-            "content": "hello",
-            "published": "2025-01-01T00:00:00Z",
-            "to": ["https://www.w3.org/ns/activitystreams#Public"],
-            "tag": []
-        });
-        assert!(extract_note_extensions(&obj).is_none());
-    }
-
-    #[test]
-    fn returns_none_for_non_object() {
-        let obj = serde_json::json!("not an object");
-        assert!(extract_note_extensions(&obj).is_none());
     }
 }

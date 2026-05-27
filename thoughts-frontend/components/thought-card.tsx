@@ -39,7 +39,7 @@ import {
 import { ThoughtForm } from "@/components/thought-form";
 import { MovieCard } from "@/components/movie-card";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, profileHref } from "@/lib/utils";
 
 interface ThoughtCardProps {
   thought: Thought;
@@ -153,7 +153,7 @@ export function ThoughtCard({
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <Link
-            href={`/users/${author.username}`}
+            href={profileHref(author.username, author.local)}
             className="flex items-center gap-4 text-shadow-md"
           >
             <UserAvatar
@@ -164,6 +164,11 @@ export function ThoughtCard({
               <span className="font-bold">
                 {author.displayName || author.username}
               </span>
+              {!author.local && (
+                <span className="text-xs text-muted-foreground/70 truncate">
+                  {author.username.startsWith("@") ? author.username : `@${author.username}`}
+                </span>
+              )}
               <time
                 dateTime={new Date(thought.createdAt).toISOString()}
                 title={format(new Date(thought.createdAt), "PPP p")}

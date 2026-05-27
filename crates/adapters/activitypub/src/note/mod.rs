@@ -4,6 +4,37 @@ use k_ap::AS_PUBLIC;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+const STANDARD_NOTE_FIELDS: &[&str] = &[
+    "type",
+    "id",
+    "attributedTo",
+    "content",
+    "published",
+    "to",
+    "cc",
+    "inReplyTo",
+    "sensitive",
+    "summary",
+    "tag",
+    "url",
+    "@context",
+    "mediaType",
+];
+
+pub fn extract_extensions(obj: &serde_json::Value) -> Option<serde_json::Value> {
+    let extensions: serde_json::Map<String, serde_json::Value> = obj
+        .as_object()?
+        .iter()
+        .filter(|(k, _)| !STANDARD_NOTE_FIELDS.contains(&k.as_str()))
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    if extensions.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Object(extensions))
+    }
+}
+
 /// AP Note representing a Thought.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,6 +73,17 @@ pub struct ThoughtNoteInput {
 }
 
 impl ThoughtNote {
+    /// Returns `(note, extensions)` if `value` is a Note object, `None` otherwise.
+    pub fn try_from_ap(value: serde_json::Value) -> Option<(Self, Option<serde_json::Value>)> {
+        if value.get("type").and_then(|v| v.as_str()) != Some("Note") {
+            return None;
+        }
+        let extensions = extract_extensions(&value);
+        serde_json::from_value(value)
+            .ok()
+            .map(|note| (note, extensions))
+    }
+
     pub fn new_public(p: ThoughtNoteInput) -> Self {
         Self {
             kind: Default::default(),

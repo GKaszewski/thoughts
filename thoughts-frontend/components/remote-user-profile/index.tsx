@@ -155,7 +155,7 @@ export function RemoteUserProfile({
 
             <TabsContent value="followers" className="mt-4">
               <Connections
-                handle={actor.handle}
+                handle={handle}
                 token={token}
                 type="followers"
                 active={followersActive}
@@ -164,7 +164,7 @@ export function RemoteUserProfile({
 
             <TabsContent value="following" className="mt-4">
               <Connections
-                handle={actor.handle}
+                handle={handle}
                 token={token}
                 type="following"
                 active={followingActive}
