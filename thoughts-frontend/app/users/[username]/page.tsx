@@ -59,6 +59,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PendingRequests } from "@/components/federation/pending-requests";
+import { CopyButton } from "@/components/copy-button";
+import { HelpCircle } from "lucide-react";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -197,9 +199,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   @{user.username}
                 </p>
                 {fediverseHandle && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5 font-mono select-all break-all">
-                    {fediverseHandle}
-                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-muted-foreground/70 font-mono break-all">
+                      {fediverseHandle}
+                    </p>
+                    <CopyButton text={fediverseHandle} />
+                    <Link
+                      href="/about/fediverse"
+                      title="What is the Fediverse?"
+                      className="inline-flex items-center text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                    </Link>
+                  </div>
                 )}
               </div>
 
