@@ -53,8 +53,8 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .into_iter()
             .map(|e| {
                 let note_url = self.urls.thought_url(e.thought.id.as_uuid());
-                let actor_url = self.urls.user_url(e.author_username.as_str());
-                let followers = self.urls.user_followers(e.author_username.as_str());
+                let actor_url = self.urls.user_url(&user_id.to_string());
+                let followers = self.urls.user_followers(&user_id.to_string());
                 let in_reply_to = e
                     .thought
                     .in_reply_to_id
@@ -91,8 +91,8 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .map(|e| {
                 let created_at = e.thought.created_at;
                 let note_url = self.urls.thought_url(e.thought.id.as_uuid());
-                let actor_url = self.urls.user_url(e.author_username.as_str());
-                let followers = self.urls.user_followers(e.author_username.as_str());
+                let actor_url = self.urls.user_url(&user_id.to_string());
+                let followers = self.urls.user_followers(&user_id.to_string());
                 let in_reply_to = e
                     .thought
                     .in_reply_to_id
