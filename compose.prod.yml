@@ -47,11 +47,18 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
+      # Original API subdomain — keep for backwards compat and direct API access
       - "traefik.http.routers.thoughts-api.rule=Host(`api.thoughts.gabrielkaszewski.dev`)"
       - "traefik.http.routers.thoughts-api.entrypoints=web,websecure"
       - "traefik.http.routers.thoughts-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.thoughts-api.service=thoughts-api"
       - "traefik.http.services.thoughts-api.loadbalancer.server.port=8000"
+      # Federation routes on the main domain — higher priority than the frontend catch-all
+      - "traefik.http.routers.thoughts-federation.rule=Host(`thoughts.gabrielkaszewski.dev`) && (PathPrefix(`/.well-known`) || PathPrefix(`/nodeinfo`) || Path(`/inbox`) || (Method(`POST`) && PathPrefix(`/users/`)))"
+      - "traefik.http.routers.thoughts-federation.entrypoints=web,websecure"
+      - "traefik.http.routers.thoughts-federation.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.thoughts-federation.service=thoughts-api"
+      - "traefik.http.routers.thoughts-federation.priority=1000"
 
   worker:
     container_name: thoughts-worker
@@ -77,6 +84,7 @@ services:
     environment:
       NEXT_PUBLIC_SERVER_SIDE_API_URL: http://api:8000
       NEXT_PUBLIC_API_URL: https://api.thoughts.gabrielkaszewski.dev
+      NEXT_PUBLIC_FEDIVERSE_DOMAIN: thoughts.gabrielkaszewski.dev
       PORT: 3000
       HOSTNAME: 0.0.0.0
     depends_on:

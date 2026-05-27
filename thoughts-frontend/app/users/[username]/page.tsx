@@ -126,11 +126,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const followingCount = localFollowingCount + remoteFollowingCount;
   const isFollowing = user.isFollowedByViewer;
 
-  const apiDomain = process.env.NEXT_PUBLIC_API_URL
-    ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
-    : null;
+  const fediverseDomain =
+    process.env.NEXT_PUBLIC_FEDIVERSE_DOMAIN ??
+    (process.env.NEXT_PUBLIC_API_URL
+      ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname
+      : null);
   const fediverseHandle =
-    user.local && apiDomain ? `@${user.username}@${apiDomain}` : null;
+    user.local && fediverseDomain ? `@${user.username}@${fediverseDomain}` : null;
 
   return (
     <div id={`profile-page-${user.username}`}>
