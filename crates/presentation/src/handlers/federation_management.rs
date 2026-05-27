@@ -22,6 +22,11 @@ pub struct HandleBody {
     pub handle: String,
 }
 
+#[derive(Deserialize)]
+pub struct MoveBody {
+    pub new_actor_url: String,
+}
+
 deps_struct!(FederationManagementDeps {
     federation: FederationActionPort,
     follows: FollowRepository,
@@ -105,5 +110,19 @@ pub async fn delete_following(
         &body.handle,
     )
     .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn post_move_account(
+    Deps(d): Deps<FederationManagementDeps>,
+    AuthUser(uid): AuthUser,
+    Json(body): Json<MoveBody>,
+) -> Result<StatusCode, ApiError> {
+    let new_url = url::Url::parse(&body.new_actor_url)
+        .map_err(|_| ApiError::BadRequest("invalid new_actor_url".into()))?;
+    d.federation
+        .broadcast_move(&uid, new_url)
+        .await
+        .map_err(ApiError::from)?;
     Ok(StatusCode::NO_CONTENT)
 }

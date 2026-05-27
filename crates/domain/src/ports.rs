@@ -287,6 +287,11 @@ pub trait FederationFollowPort: Send + Sync {
     ) -> Result<(), DomainError>;
     async fn get_remote_following(&self, user_id: &UserId)
         -> Result<Vec<RemoteActor>, DomainError>;
+    async fn broadcast_move(
+        &self,
+        user_id: &UserId,
+        new_actor_url: url::Url,
+    ) -> Result<(), DomainError>;
 }
 
 #[async_trait]

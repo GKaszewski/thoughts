@@ -736,6 +736,17 @@ impl FederationFollowPort for ApFederationAdapter {
             .map(|v| v.into_iter().map(k_ap_actor_to_domain).collect())
             .map_err(|e| DomainError::ExternalService(e.to_string()))
     }
+
+    async fn broadcast_move(
+        &self,
+        user_id: &UserId,
+        new_actor_url: url::Url,
+    ) -> Result<(), DomainError> {
+        self.inner
+            .broadcast_move(user_id.as_uuid(), new_actor_url)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))
+    }
 }
 
 // ── FederationFollowRequestPort ───────────────────────────────────────────────

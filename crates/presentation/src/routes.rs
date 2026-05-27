@@ -104,6 +104,10 @@ pub fn router() -> Router<AppState> {
             get(federation_management::get_remote_following)
                 .delete(federation_management::delete_following),
         )
+        .route(
+            "/federation/me/move",
+            post(federation_management::post_move_account),
+        )
         .route("/tags/popular", get(feed::get_popular_tags))
         .route("/tags/{name}", get(feed::tag_thoughts_handler))
         // notifications
