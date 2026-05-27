@@ -18,6 +18,15 @@ export function MainNav() {
       >
         Discover
       </Link>
+      <Link
+        href="/about/fediverse"
+        className={cn(
+          "transition-colors hover:text-foreground/80",
+          pathname === "/about/fediverse" ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        Fediverse
+      </Link>
       <SearchInput />
     </nav>
   );
