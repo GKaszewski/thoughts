@@ -66,7 +66,7 @@ export function MovieCard({ meta, author, createdAt }: MovieCardProps) {
             <span className="font-bold truncate">{author.displayName ?? author.username}</span>
             {!author.local && (
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs text-muted-foreground/70 truncate">
+                <span className="text-xs text-muted-foreground/70 truncate flex-1">
                   {author.username.startsWith("@") ? author.username : `@${author.username}`}
                 </span>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
