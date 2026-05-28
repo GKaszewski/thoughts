@@ -32,6 +32,42 @@ export function MainNav({ isLoggedIn }: MainNavProps) {
 
   return (
     <>
+      {/* Mobile: hamburger + search fills center */}
+      <div className="flex md:hidden items-center gap-2 flex-1 mx-2">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Open menu" className="shrink-0">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 glass-effect">
+            <SheetHeader>
+              <SheetTitle className="text-left">Menu</SheetTitle>
+            </SheetHeader>
+            <nav className="flex flex-col gap-1 mt-6">
+              {links.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-accent",
+                    pathname === href
+                      ? "bg-accent text-foreground"
+                      : "text-foreground/70"
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <div className="flex-1">
+          <SearchInput />
+        </div>
+      </div>
+
       {/* Desktop nav */}
       <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
         {links.map(({ href, label }) => (
@@ -48,45 +84,6 @@ export function MainNav({ isLoggedIn }: MainNavProps) {
         ))}
         <SearchInput />
       </nav>
-
-      {/* Mobile hamburger */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72 glass-effect">
-          <SheetHeader>
-            <SheetTitle className="text-left">Menu</SheetTitle>
-          </SheetHeader>
-          <nav className="flex flex-col gap-1 mt-6">
-            {links.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-accent",
-                  pathname === href
-                    ? "bg-accent text-foreground"
-                    : "text-foreground/70"
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <div className="mt-6">
-            <SearchInput />
-          </div>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }
