@@ -15,6 +15,10 @@ const sidebarNavItems = [
     title: "Federation",
     href: "/settings/federation",
   },
+  {
+    title: "Friends",
+    href: "/settings/friends",
+  },
 ];
 
 export default function SettingsLayout({
