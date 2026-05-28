@@ -431,9 +431,38 @@ impl FeedQuery {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum FeedSort {
+    #[default]
+    Newest,
+    Oldest,
+    MostLiked,
+    MostBoosted,
+    MostDiscussed,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct FeedFilter {
+    pub originals_only: bool,
+    pub replies_only: bool,
+    pub local_only: bool,
+    pub hide_sensitive: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct FeedOptions {
+    pub sort: FeedSort,
+    pub filter: FeedFilter,
+}
+
+pub struct FeedRequest {
+    pub query: FeedQuery,
+    pub options: FeedOptions,
+}
+
 #[async_trait]
 pub trait FeedRepository: Send + Sync {
-    async fn query(&self, q: &FeedQuery) -> Result<Paginated<FeedEntry>, DomainError>;
+    async fn query(&self, req: &FeedRequest) -> Result<Paginated<FeedEntry>, DomainError>;
 }
 
 #[async_trait]
