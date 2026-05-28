@@ -4,7 +4,7 @@ import { LandingFeatures } from "./landing-features";
 
 export function LandingPage() {
   return (
-    <div className="landing-bg min-h-screen relative overflow-hidden font-sans">
+    <div className="min-h-screen relative overflow-hidden font-sans">
       {/* Ambient orbs */}
       <div
         className="landing-orb"
