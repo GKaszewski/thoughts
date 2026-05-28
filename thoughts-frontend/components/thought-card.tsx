@@ -160,7 +160,7 @@ export function ThoughtCard({
               src={author.avatarUrl}
               alt={author.displayName || author.username}
             />
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <span className="font-bold">
                 {author.displayName || author.username}
               </span>
@@ -169,7 +169,7 @@ export function ThoughtCard({
                   <span className="text-xs text-muted-foreground/70 truncate flex-1">
                     {author.username.startsWith("@") ? author.username : `@${author.username}`}
                   </span>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0 max-w-[8rem] truncate">
                     {author.username.split("@").filter(Boolean).at(-1)}
                   </span>
                 </div>

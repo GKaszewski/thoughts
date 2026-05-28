@@ -59,7 +59,7 @@ export function MovieCard({ meta, author, createdAt }: MovieCardProps) {
       <CardHeader className="flex flex-row items-center space-y-0 pb-3">
         <Link
           href={profileHref(author.username, author.local)}
-          className="flex items-center gap-3 hover:opacity-80"
+          className="flex items-center gap-3 hover:opacity-80 min-w-0 w-full"
         >
           <UserAvatar src={author.avatarUrl} alt={author.displayName ?? author.username} />
           <div className="flex flex-col min-w-0">
@@ -69,7 +69,7 @@ export function MovieCard({ meta, author, createdAt }: MovieCardProps) {
                 <span className="text-xs text-muted-foreground/70 truncate flex-1">
                   {author.username.startsWith("@") ? author.username : `@${author.username}`}
                 </span>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0 max-w-[8rem] truncate">
                   {author.username.split("@").filter(Boolean).at(-1)}
                 </span>
               </div>
