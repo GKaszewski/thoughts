@@ -64,7 +64,8 @@ export function LandingPage() {
 
       {/* ── Section 1: Hero ── */}
       <section className="relative z-10 flex items-center justify-center min-h-screen px-4 py-16">
-        <div className="landing-hero-card glass-effect rounded-2xl shadow-fa-lg p-8 sm:p-12 text-center max-w-md w-full mx-auto">
+        <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto">
+        <div className="landing-hero-card glass-effect rounded-2xl shadow-fa-lg p-8 sm:p-12 text-center w-full">
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3 text-shadow-sm">
             Thoughts
           </h1>
@@ -88,13 +89,11 @@ export function LandingPage() {
             Works with Mastodon, Pixelfed &amp; more
           </div>
         </div>
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center">
-          <ChevronDown
-            className="animate-float-bob text-muted-foreground/60"
-            size={28}
-            strokeWidth={1.5}
-          />
+        <ChevronDown
+          className="animate-float-bob text-muted-foreground/60"
+          size={28}
+          strokeWidth={1.5}
+        />
         </div>
       </section>
 
