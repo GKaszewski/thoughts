@@ -51,7 +51,7 @@ import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { FollowButton } from "@/components/follow-button";
-import { TopFriends } from "@/components/top-friends";
+import { ProfileFriendsWidget } from "@/components/profile-friends-widget";
 import { Suspense } from "react";
 import { ProfileSkeleton } from "@/components/loading-skeleton";
 import { UserThoughtsList } from "@/components/user-thoughts-list";
@@ -262,7 +262,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </Card>
 
             <Suspense fallback={<ProfileSkeleton />}>
-              <TopFriends username={user.username} />
+              <ProfileFriendsWidget
+                username={user.username}
+                isOwnProfile={isOwnProfile}
+                token={token}
+              />
             </Suspense>
           </div>
         </aside>
