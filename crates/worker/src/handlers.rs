@@ -1,4 +1,6 @@
-use application::services::{FederationEventService, NotificationEventService};
+use application::services::{
+    FederationEventService, FederationManagementEventService, NotificationEventService,
+};
 use domain::{errors::DomainError, events::DomainEvent};
 use std::sync::Arc;
 
@@ -17,6 +19,16 @@ pub struct FederationHandler {
 }
 
 impl FederationHandler {
+    pub async fn handle(&self, event: &DomainEvent) -> Result<(), DomainError> {
+        self.service.process(event).await
+    }
+}
+
+pub struct FederationManagementHandler {
+    pub service: Arc<FederationManagementEventService>,
+}
+
+impl FederationManagementHandler {
     pub async fn handle(&self, event: &DomainEvent) -> Result<(), DomainError> {
         self.service.process(event).await
     }

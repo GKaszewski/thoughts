@@ -5,17 +5,20 @@ use std::sync::Arc;
 
 use activitypub::{ActivityPubRepository, OutboundFederationPort};
 use activitypub::{ApFederationAdapter, ThoughtsObjectHandler};
-use application::services::{FederationEventService, NotificationEventService};
+use application::services::{
+    FederationEventService, FederationManagementEventService, NotificationEventService,
+};
 use domain::ports::EventPublisher;
 use k_ap::ActivityPubService;
 use postgres::activitypub::PgActivityPubRepository;
 use postgres_federation::{PostgresApUserRepository, PostgresFederationRepository};
 
-use crate::handlers::{FederationHandler, NotificationHandler};
+use crate::handlers::{FederationHandler, FederationManagementHandler, NotificationHandler};
 
 pub struct WorkerHandlers {
     pub notification: NotificationHandler,
     pub federation: FederationHandler,
+    pub federation_management: FederationManagementHandler,
 }
 
 pub struct WorkerInfra {
@@ -82,6 +85,9 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
         base_url: base_url.to_string(),
         ap_repo: ap_repo_worker,
     });
+    let federation_management_svc = Arc::new(FederationManagementEventService {
+        federation: ap_service.clone() as Arc<dyn domain::ports::FederationActionPort>,
+    });
 
     // Thin handlers
     let handlers = WorkerHandlers {
@@ -90,6 +96,9 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
         },
         federation: FederationHandler {
             service: federation_svc,
+        },
+        federation_management: FederationManagementHandler {
+            service: federation_management_svc,
         },
     };
 

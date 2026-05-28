@@ -52,8 +52,9 @@ async fn main() {
 
                 let n = infra.handlers.notification.handle(event).await;
                 let f = infra.handlers.federation.handle(event).await;
+                let fm = infra.handlers.federation_management.handle(event).await;
 
-                if n.is_ok() && f.is_ok() {
+                if n.is_ok() && f.is_ok() && fm.is_ok() {
                     (envelope.ack)();
                     tracing::info!(event_type, "event handled ok");
                 } else {
@@ -63,6 +64,9 @@ async fn main() {
                     if let Err(e) = &f {
                         tracing::error!("federation handler: {e}");
                     }
+                    if let Err(e) = &fm {
+                        tracing::error!("federation management handler: {e}");
+                    }
 
                     // Last delivery attempt -> move to DLQ then ack.
                     // Earlier attempts -> nack so NATS retries.
@@ -70,6 +74,7 @@ async fn main() {
                         let error_msg = n
                             .err()
                             .or(f.err())
+                            .or(fm.err())
                             .map(|e| e.to_string())
                             .unwrap_or_else(|| "unknown error".into());
 
