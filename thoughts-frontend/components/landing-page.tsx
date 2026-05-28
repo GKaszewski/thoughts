@@ -88,16 +88,15 @@ export function LandingPage() {
             Works with Mastodon, Pixelfed &amp; more
           </div>
         </div>
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center">
+          <ChevronDown
+            className="animate-float-bob text-muted-foreground/60"
+            size={28}
+            strokeWidth={1.5}
+          />
+        </div>
       </section>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center">
-        <ChevronDown
-          className="animate-float-bob text-muted-foreground/60"
-          size={28}
-          strokeWidth={1.5}
-        />
-      </div>
 
       {/* ── Section 2: Features ── */}
       <section className="relative z-10 container mx-auto max-w-3xl px-4 py-16">
