@@ -109,9 +109,9 @@ impl EventPayload {
             Self::UserUnblocked { .. } => "users.unblocked",
             Self::UserRegistered { .. } => "users.registered",
             Self::ProfileUpdated { .. } => "users.profile_updated",
-            Self::RemoteFollowAccepted { .. } => "federation.remote_follow_accepted",
-            Self::RemoteFollowRejected { .. } => "federation.remote_follow_rejected",
-            Self::ActorMoved { .. } => "federation.actor_moved",
+            Self::RemoteFollowAccepted { .. } => "federation.follow.accepted",
+            Self::RemoteFollowRejected { .. } => "federation.follow.rejected",
+            Self::ActorMoved { .. } => "federation.actor.moved",
             Self::MentionReceived { .. } => "mentions.received",
         }
     }
