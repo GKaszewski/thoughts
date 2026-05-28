@@ -76,10 +76,9 @@ pub async fn build(cfg: &Config) -> Infrastructure {
 
     // 3. ActivityPub federation
     let connections_repo = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
-    let federation_repo = Arc::new(PostgresFederationRepository::new(pool.clone()));
     let raw_ap_service = Arc::new(
         ActivityPubService::builder(
-            federation_repo.clone(),
+            Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
                 pool.clone(),
                 cfg.base_url.clone(),
@@ -99,11 +98,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
         .await
         .expect("Failed to build ActivityPubService"),
     );
-    let ap_service = Arc::new(ApFederationAdapter::new(
-        raw_ap_service,
-        connections_repo,
-        federation_repo,
-    ));
+    let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo));
 
     // 4. Storage adapter
     let storage_cfg = StorageConfig {

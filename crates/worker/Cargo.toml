@@ -13,7 +13,7 @@ application         = { workspace = true }
 nats                = { workspace = true }
 event-transport     = { workspace = true }
 event-payload       = { workspace = true }
-k-ap = { git = "https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git", tag = "v0.1.9" }
+k-ap = { git = "https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git", tag = "v0.1.10" }
 activitypub         = { workspace = true }
 postgres            = { workspace = true }
 postgres-federation = { workspace = true }

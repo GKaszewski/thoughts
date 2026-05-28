@@ -209,19 +209,16 @@ async fn webfinger_resolve_actor_url(handle: &str) -> anyhow::Result<String> {
 pub struct ApFederationAdapter {
     pub(crate) inner: Arc<ActivityPubService>,
     pub(crate) connections_repo: Arc<dyn RemoteActorConnectionRepository>,
-    pub(crate) federation_repo: Arc<dyn k_ap::FederationRepository>,
 }
 
 impl ApFederationAdapter {
     pub fn new(
         inner: Arc<ActivityPubService>,
         connections_repo: Arc<dyn RemoteActorConnectionRepository>,
-        federation_repo: Arc<dyn k_ap::FederationRepository>,
     ) -> Self {
         Self {
             inner,
             connections_repo,
-            federation_repo,
         }
     }
 
@@ -816,8 +813,8 @@ impl FederationFollowRequestPort for ApFederationAdapter {
         user_id: &UserId,
         actor_url: &str,
     ) -> Result<(), DomainError> {
-        self.federation_repo
-            .update_follower_status(user_id.as_uuid(), actor_url, k_ap::FollowerStatus::Accepted)
+        self.inner
+            .mark_follower_accepted(user_id.as_uuid(), actor_url)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))
     }
@@ -827,8 +824,8 @@ impl FederationFollowRequestPort for ApFederationAdapter {
         user_id: &UserId,
         actor_url: &str,
     ) -> Result<(), DomainError> {
-        self.federation_repo
-            .remove_follower(user_id.as_uuid(), actor_url)
+        self.inner
+            .mark_follower_rejected(user_id.as_uuid(), actor_url)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))
     }

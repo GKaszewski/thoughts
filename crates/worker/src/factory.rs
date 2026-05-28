@@ -43,10 +43,9 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
 
     // ActivityPub service (for federation fan-out)
     let connections_repo_worker = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
-    let federation_repo_worker = Arc::new(PostgresFederationRepository::new(pool.clone()));
     let raw_ap_service = Arc::new(
         ActivityPubService::builder(
-            federation_repo_worker.clone(),
+            Arc::new(PostgresFederationRepository::new(pool.clone())),
             Arc::new(PostgresApUserRepository::new(
                 pool.clone(),
                 base_url.to_string(),
@@ -67,7 +66,6 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
     let ap_service = Arc::new(ApFederationAdapter::new(
         raw_ap_service,
         connections_repo_worker,
-        federation_repo_worker,
     ));
     let ap_outbound = ap_service.clone() as Arc<dyn OutboundFederationPort>;
     let ap_repo_worker =

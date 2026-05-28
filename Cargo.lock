@@ -2015,8 +2015,8 @@ dependencies = [
 
 [[package]]
 name = "k-ap"
-version = "0.1.9"
-source = "git+https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git?tag=v0.1.9#432f39cbb4f8d74255a1f614a9bb7c8bbfe11cde"
+version = "0.1.10"
+source = "git+https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git?tag=v0.1.10#d80cfd0431205498161db8665fd884710866ca95"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -4566,7 +4566,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
