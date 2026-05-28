@@ -480,6 +480,37 @@ export const getRemoteFollowing = (token: string) =>
     token
   );
 
+// ── Friends ───────────────────────────────────────────────────────────────
+
+export const getMyFriends = (token: string, page = 1, perPage = 50) =>
+  apiFetch(
+    `/users/me/friends?page=${page}&per_page=${perPage}`,
+    { cache: "no-store" },
+    z.object({
+      items: z.array(UserSchema),
+      total: z.number(),
+      page: z.number(),
+      perPage: z.number(),
+    }),
+    token
+  );
+
+export const getMyRemoteFriends = (token: string) =>
+  apiFetch(
+    "/federation/me/friends",
+    { cache: "no-store" },
+    z.array(RemoteActorSchema),
+    token
+  );
+
+export const setTopFriends = (token: string, friendIds: string[]) =>
+  apiFetch(
+    "/users/me/top-friends",
+    { method: "PUT", body: JSON.stringify({ friendIds }) },
+    z.null(),
+    token
+  );
+
 export const unfollowRemoteActor = (handle: string, token: string) =>
   apiFetch(
     "/federation/me/following",
