@@ -32,6 +32,9 @@ fn aggregate_id(event: &DomainEvent) -> Uuid {
         DomainEvent::UserUnblocked { blocker_id, .. } => blocker_id.as_uuid(),
         DomainEvent::UserRegistered { user_id } => user_id.as_uuid(),
         DomainEvent::ProfileUpdated { user_id } => user_id.as_uuid(),
+        DomainEvent::RemoteFollowAccepted { local_user_id, .. } => local_user_id.as_uuid(),
+        DomainEvent::RemoteFollowRejected { local_user_id, .. } => local_user_id.as_uuid(),
+        DomainEvent::ActorMoved { user_id, .. } => user_id.as_uuid(),
         DomainEvent::MentionReceived { thought_id, .. } => thought_id.as_uuid(),
     }
 }

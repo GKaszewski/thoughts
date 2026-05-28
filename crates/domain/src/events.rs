@@ -63,6 +63,18 @@ pub enum DomainEvent {
     ProfileUpdated {
         user_id: UserId,
     },
+    RemoteFollowAccepted {
+        local_user_id: UserId,
+        remote_actor_url: String,
+    },
+    RemoteFollowRejected {
+        local_user_id: UserId,
+        remote_actor_url: String,
+    },
+    ActorMoved {
+        user_id: UserId,
+        new_actor_url: String,
+    },
     MentionReceived {
         thought_id: ThoughtId,
         mentioned_user_id: UserId,

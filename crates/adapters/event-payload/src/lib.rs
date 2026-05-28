@@ -71,6 +71,18 @@ pub enum EventPayload {
     ProfileUpdated {
         user_id: String,
     },
+    RemoteFollowAccepted {
+        local_user_id: String,
+        remote_actor_url: String,
+    },
+    RemoteFollowRejected {
+        local_user_id: String,
+        remote_actor_url: String,
+    },
+    ActorMoved {
+        user_id: String,
+        new_actor_url: String,
+    },
     MentionReceived {
         thought_id: String,
         mentioned_user_id: String,
@@ -97,6 +109,9 @@ impl EventPayload {
             Self::UserUnblocked { .. } => "users.unblocked",
             Self::UserRegistered { .. } => "users.registered",
             Self::ProfileUpdated { .. } => "users.profile_updated",
+            Self::RemoteFollowAccepted { .. } => "federation.remote_follow_accepted",
+            Self::RemoteFollowRejected { .. } => "federation.remote_follow_rejected",
+            Self::ActorMoved { .. } => "federation.actor_moved",
             Self::MentionReceived { .. } => "mentions.received",
         }
     }
@@ -209,6 +224,27 @@ impl From<&DomainEvent> for EventPayload {
             },
             DomainEvent::ProfileUpdated { user_id } => Self::ProfileUpdated {
                 user_id: user_id.to_string(),
+            },
+            DomainEvent::RemoteFollowAccepted {
+                local_user_id,
+                remote_actor_url,
+            } => Self::RemoteFollowAccepted {
+                local_user_id: local_user_id.to_string(),
+                remote_actor_url: remote_actor_url.clone(),
+            },
+            DomainEvent::RemoteFollowRejected {
+                local_user_id,
+                remote_actor_url,
+            } => Self::RemoteFollowRejected {
+                local_user_id: local_user_id.to_string(),
+                remote_actor_url: remote_actor_url.clone(),
+            },
+            DomainEvent::ActorMoved {
+                user_id,
+                new_actor_url,
+            } => Self::ActorMoved {
+                user_id: user_id.to_string(),
+                new_actor_url: new_actor_url.clone(),
             },
             DomainEvent::MentionReceived {
                 thought_id,
@@ -339,6 +375,27 @@ impl TryFrom<EventPayload> for DomainEvent {
             },
             EventPayload::ProfileUpdated { user_id } => DomainEvent::ProfileUpdated {
                 user_id: UserId::from_uuid(parse_uuid(&user_id, "user_id")?),
+            },
+            EventPayload::RemoteFollowAccepted {
+                local_user_id,
+                remote_actor_url,
+            } => DomainEvent::RemoteFollowAccepted {
+                local_user_id: UserId::from_uuid(parse_uuid(&local_user_id, "local_user_id")?),
+                remote_actor_url,
+            },
+            EventPayload::RemoteFollowRejected {
+                local_user_id,
+                remote_actor_url,
+            } => DomainEvent::RemoteFollowRejected {
+                local_user_id: UserId::from_uuid(parse_uuid(&local_user_id, "local_user_id")?),
+                remote_actor_url,
+            },
+            EventPayload::ActorMoved {
+                user_id,
+                new_actor_url,
+            } => DomainEvent::ActorMoved {
+                user_id: UserId::from_uuid(parse_uuid(&user_id, "user_id")?),
+                new_actor_url,
             },
             EventPayload::MentionReceived {
                 thought_id,
