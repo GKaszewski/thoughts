@@ -100,13 +100,17 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
 
 struct FeedSqlBuilder<'a> {
     options: &'a FeedOptions,
-    scope:   &'a FeedScope,
-    viewer:  Option<uuid::Uuid>,
+    scope: &'a FeedScope,
+    viewer: Option<uuid::Uuid>,
 }
 
 impl<'a> FeedSqlBuilder<'a> {
     fn new(options: &'a FeedOptions, scope: &'a FeedScope, viewer: Option<uuid::Uuid>) -> Self {
-        Self { options, scope, viewer }
+        Self {
+            options,
+            scope,
+            viewer,
+        }
     }
 
     fn select(&self) -> String {
@@ -165,10 +169,18 @@ impl<'a> FeedSqlBuilder<'a> {
     fn filter_sql(&self) -> String {
         let f = &self.options.filter;
         let mut s = String::new();
-        if f.originals_only { s += " AND t.in_reply_to_id IS NULL"; }
-        if f.replies_only   { s += " AND t.in_reply_to_id IS NOT NULL"; }
-        if f.local_only     { s += " AND t.local = true"; }
-        if f.hide_sensitive { s += " AND t.sensitive = false"; }
+        if f.originals_only {
+            s += " AND t.in_reply_to_id IS NULL";
+        }
+        if f.replies_only {
+            s += " AND t.in_reply_to_id IS NOT NULL";
+        }
+        if f.local_only {
+            s += " AND t.local = true";
+        }
+        if f.hide_sensitive {
+            s += " AND t.sensitive = false";
+        }
         s
     }
 
@@ -177,37 +189,40 @@ impl<'a> FeedSqlBuilder<'a> {
             return "ORDER BY similarity(t.content, $1) DESC";
         }
         match &self.options.sort {
-            FeedSort::Newest        => "ORDER BY t.created_at DESC",
-            FeedSort::Oldest        => "ORDER BY t.created_at ASC",
-            FeedSort::MostLiked     => "ORDER BY like_count DESC, t.created_at DESC",
-            FeedSort::MostBoosted   => "ORDER BY boost_count DESC, t.created_at DESC",
+            FeedSort::Newest => "ORDER BY t.created_at DESC",
+            FeedSort::Oldest => "ORDER BY t.created_at ASC",
+            FeedSort::MostLiked => "ORDER BY like_count DESC, t.created_at DESC",
+            FeedSort::MostBoosted => "ORDER BY boost_count DESC, t.created_at DESC",
             FeedSort::MostDiscussed => "ORDER BY reply_count DESC, t.created_at DESC",
         }
     }
 
     fn public(&self) -> (String, String) {
         let filter = self.filter_sql();
-        let order  = self.order_sql();
-        let count  = format!(
+        let order = self.order_sql();
+        let count = format!(
             "SELECT COUNT(*) FROM thoughts t WHERE t.local=true AND t.visibility='public'{}",
             filter
         );
         let data = format!(
             "{} WHERE t.local=true AND t.visibility='public'{} {} LIMIT $1 OFFSET $2",
-            self.select(), filter, order
+            self.select(),
+            filter,
+            order
         );
         (count, data)
     }
 
     fn home(&self) -> (String, String) {
-        let fed    = self.fed_clause();
+        let fed = self.fed_clause();
         let filter = self.filter_sql();
-        let order  = self.order_sql();
+        let order = self.order_sql();
         let count  = format!(
             "SELECT COUNT(*) FROM thoughts t WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{}",
             fed, filter
         );
-        let data = format!(
+        let data =
+            format!(
             "{} WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{} {} LIMIT $2 OFFSET $3",
             self.select(), fed, filter, order
         );
@@ -216,22 +231,24 @@ impl<'a> FeedSqlBuilder<'a> {
 
     fn search(&self) -> (String, String) {
         let filter = self.filter_sql();
-        let order  = self.order_sql();
-        let count  = format!(
+        let order = self.order_sql();
+        let count = format!(
             "SELECT COUNT(*) FROM thoughts t WHERE t.content % $1 AND t.visibility='public'{}",
             filter
         );
         let data = format!(
             "{} WHERE t.content % $1 AND t.visibility='public'{} {} LIMIT $2 OFFSET $3",
-            self.select(), filter, order
+            self.select(),
+            filter,
+            order
         );
         (count, data)
     }
 
     fn tag(&self) -> (String, String) {
         let filter = self.filter_sql();
-        let order  = self.order_sql();
-        let count  = format!(
+        let order = self.order_sql();
+        let count = format!(
             "SELECT COUNT(*) FROM thoughts t
              JOIN thought_tags tt ON tt.thought_id = t.id
              JOIN tags tg ON tg.id = tt.tag_id
@@ -243,14 +260,16 @@ impl<'a> FeedSqlBuilder<'a> {
              JOIN thought_tags tt ON tt.thought_id = t.id
              JOIN tags tg ON tg.id = tt.tag_id
              WHERE tg.name = $1 AND t.visibility = 'public'{} {} LIMIT $2 OFFSET $3",
-            self.select(), filter, order
+            self.select(),
+            filter,
+            order
         );
         (count, data)
     }
 
     fn user(&self) -> (String, String) {
         let filter = self.filter_sql();
-        let order  = self.order_sql();
+        let order = self.order_sql();
         let count  = format!(
             "SELECT COUNT(*) FROM thoughts t WHERE t.user_id = $1 AND ($2::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $2 AND following_id = $1 AND state = 'accepted'))))){}",
             filter
@@ -266,8 +285,8 @@ impl<'a> FeedSqlBuilder<'a> {
 #[async_trait]
 impl FeedRepository for PgFeedRepository {
     async fn query(&self, req: &FeedRequest) -> Result<Paginated<FeedEntry>, DomainError> {
-        let viewer  = req.query.viewer_id.as_ref().map(|v| v.as_uuid());
-        let page    = &req.query.page;
+        let viewer = req.query.viewer_id.as_ref().map(|v| v.as_uuid());
+        let page = &req.query.page;
         let builder = FeedSqlBuilder::new(&req.options, &req.query.scope, viewer);
 
         match &req.query.scope {
@@ -287,8 +306,13 @@ impl FeedRepository for PgFeedRepository {
                     .await
                     .into_domain()?;
                 Ok(Paginated {
-                    items: rows.into_iter().map(|r| row_to_entry(r, viewer)).collect::<Result<Vec<_>, _>>()?,
-                    total, page: page.page, per_page: page.per_page,
+                    items: rows
+                        .into_iter()
+                        .map(|r| row_to_entry(r, viewer))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    total,
+                    page: page.page,
+                    per_page: page.per_page,
                 })
             }
 
@@ -305,8 +329,13 @@ impl FeedRepository for PgFeedRepository {
                     .await
                     .into_domain()?;
                 Ok(Paginated {
-                    items: rows.into_iter().map(|r| row_to_entry(r, viewer)).collect::<Result<Vec<_>, _>>()?,
-                    total, page: page.page, per_page: page.per_page,
+                    items: rows
+                        .into_iter()
+                        .map(|r| row_to_entry(r, viewer))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    total,
+                    page: page.page,
+                    per_page: page.per_page,
                 })
             }
 
@@ -325,8 +354,13 @@ impl FeedRepository for PgFeedRepository {
                     .await
                     .into_domain()?;
                 Ok(Paginated {
-                    items: rows.into_iter().map(|r| row_to_entry(r, viewer)).collect::<Result<Vec<_>, _>>()?,
-                    total, page: page.page, per_page: page.per_page,
+                    items: rows
+                        .into_iter()
+                        .map(|r| row_to_entry(r, viewer))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    total,
+                    page: page.page,
+                    per_page: page.per_page,
                 })
             }
 
@@ -345,13 +379,18 @@ impl FeedRepository for PgFeedRepository {
                     .await
                     .into_domain()?;
                 Ok(Paginated {
-                    items: rows.into_iter().map(|r| row_to_entry(r, viewer)).collect::<Result<Vec<_>, _>>()?,
-                    total, page: page.page, per_page: page.per_page,
+                    items: rows
+                        .into_iter()
+                        .map(|r| row_to_entry(r, viewer))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    total,
+                    page: page.page,
+                    per_page: page.per_page,
                 })
             }
 
             FeedScope::User { user_id } => {
-                let uid         = user_id.as_uuid();
+                let uid = user_id.as_uuid();
                 let viewer_uuid = viewer.unwrap_or(uuid::Uuid::nil());
                 let (count_sql, data_sql) = builder.user();
                 let total: i64 = sqlx::query_scalar(&count_sql)
@@ -369,8 +408,13 @@ impl FeedRepository for PgFeedRepository {
                     .await
                     .into_domain()?;
                 Ok(Paginated {
-                    items: rows.into_iter().map(|r| row_to_entry(r, viewer)).collect::<Result<Vec<_>, _>>()?,
-                    total, page: page.page, per_page: page.per_page,
+                    items: rows
+                        .into_iter()
+                        .map(|r| row_to_entry(r, viewer))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    total,
+                    page: page.page,
+                    per_page: page.per_page,
                 })
             }
         }
