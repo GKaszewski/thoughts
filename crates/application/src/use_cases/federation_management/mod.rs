@@ -9,8 +9,8 @@ use domain::{
     },
     ports::{
         EventPublisher, FederationActionPort, FederationFollowPort, FederationFollowRequestPort,
-        FederationSchedulerPort, FeedQuery, FeedRepository, FollowRepository,
-        RemoteActorConnectionRepository, UserReader,
+        FederationSchedulerPort, FeedOptions, FeedQuery, FeedRepository, FeedRequest,
+        FollowRepository, RemoteActorConnectionRepository, UserReader,
     },
     value_objects::UserId,
 };
@@ -136,11 +136,10 @@ pub async fn get_remote_actor_posts(
         None => ap_repo.intern_remote_actor(&actor.url).await?,
     };
     let result = feed
-        .query(&FeedQuery::user(
-            author_id,
-            page.clone(),
-            viewer_id.cloned(),
-        ))
+        .query(&FeedRequest {
+            query: FeedQuery::user(author_id, page.clone(), viewer_id.cloned()),
+            options: FeedOptions::default(),
+        })
         .await?;
     if let Some(outbox_url) = actor.outbox_url {
         let _ = scheduler

@@ -6,7 +6,7 @@ use domain::{
         thought::{NewThought, Thought, Visibility},
         user::User,
     },
-    ports::{FeedQuery, ThoughtRepository, UserWriter},
+    ports::{FeedOptions, FeedQuery, FeedRequest, ThoughtRepository, UserWriter},
     value_objects::*,
 };
 
@@ -38,13 +38,16 @@ async fn public_feed_returns_local_thoughts(pool: sqlx::PgPool) {
     let (_, _) = seed(&pool, "alice", "hello").await;
     let repo = PgFeedRepository::new(pool);
     let result = repo
-        .query(&FeedQuery::public(
-            PageParams {
-                page: 1,
-                per_page: 20,
-            },
-            None,
-        ))
+        .query(&FeedRequest {
+            query: FeedQuery::public(
+                PageParams {
+                    page: 1,
+                    per_page: 20,
+                },
+                None,
+            ),
+            options: FeedOptions::default(),
+        })
         .await
         .unwrap();
     assert_eq!(result.total, 1);
@@ -57,14 +60,17 @@ async fn search_returns_matching_thoughts(pool: sqlx::PgPool) {
     let (_, _) = seed(&pool, "bob", "goodbye world").await;
     let repo = PgFeedRepository::new(pool);
     let result = repo
-        .query(&FeedQuery::search(
-            "hello world",
-            PageParams {
-                page: 1,
-                per_page: 20,
-            },
-            None,
-        ))
+        .query(&FeedRequest {
+            query: FeedQuery::search(
+                "hello world",
+                PageParams {
+                    page: 1,
+                    per_page: 20,
+                },
+                None,
+            ),
+            options: FeedOptions::default(),
+        })
         .await
         .unwrap();
     assert!(result.total >= 1);

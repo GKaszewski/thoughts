@@ -17,10 +17,52 @@ use axum::{
 use domain::{
     models::feed::PageParams,
     ports::{
-        FederationActionPort, FeedQuery, FeedRepository, FollowRepository, SearchPort,
-        TagRepository, UserRepository,
+        FederationActionPort, FeedFilter, FeedOptions, FeedQuery, FeedRepository, FeedRequest,
+        FeedSort, FollowRepository, SearchPort, TagRepository, UserRepository,
     },
 };
+
+#[derive(serde::Deserialize, Default)]
+pub struct FeedOptionsQuery {
+    pub sort: Option<String>,
+    pub originals_only: Option<bool>,
+    pub replies_only: Option<bool>,
+    pub local_only: Option<bool>,
+    pub hide_sensitive: Option<bool>,
+}
+
+impl TryFrom<FeedOptionsQuery> for FeedOptions {
+    type Error = crate::errors::ApiError;
+
+    fn try_from(q: FeedOptionsQuery) -> Result<Self, Self::Error> {
+        if q.originals_only.unwrap_or(false) && q.replies_only.unwrap_or(false) {
+            return Err(crate::errors::ApiError::BadRequest(
+                "originals_only and replies_only are mutually exclusive".to_string(),
+            ));
+        }
+        let sort = match q.sort.as_deref() {
+            None | Some("newest") => FeedSort::Newest,
+            Some("oldest") => FeedSort::Oldest,
+            Some("most_liked") => FeedSort::MostLiked,
+            Some("most_boosted") => FeedSort::MostBoosted,
+            Some("most_discussed") => FeedSort::MostDiscussed,
+            Some(other) => {
+                return Err(crate::errors::ApiError::BadRequest(format!(
+                    "unknown sort value: {other}"
+                )))
+            }
+        };
+        Ok(FeedOptions {
+            sort,
+            filter: FeedFilter {
+                originals_only: q.originals_only.unwrap_or(false),
+                replies_only: q.replies_only.unwrap_or(false),
+                local_only: q.local_only.unwrap_or(false),
+                hide_sensitive: q.hide_sensitive.unwrap_or(false),
+            },
+        })
+    }
+}
 
 deps_struct!(FeedDeps {
     feed: FeedRepository,
@@ -62,12 +104,14 @@ pub async fn home_feed(
     Deps(d): Deps<FeedDeps>,
     AuthUser(uid): AuthUser,
     Query(q): Query<PaginationQuery>,
+    Query(opts_q): Query<FeedOptionsQuery>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = get_home_feed(&*d.feed, &*d.follows, &uid, page).await?;
+    let opts = FeedOptions::try_from(opts_q)?;
+    let result = get_home_feed(&*d.feed, &*d.follows, &uid, page, opts).await?;
     Ok(Json(serde_json::json!({
         "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
         "total": result.total,
@@ -85,12 +129,20 @@ pub async fn public_feed(
     Deps(d): Deps<FeedDeps>,
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
+    Query(opts_q): Query<FeedOptionsQuery>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.feed.query(&FeedQuery::public(page, viewer)).await?;
+    let opts = FeedOptions::try_from(opts_q)?;
+    let result = d
+        .feed
+        .query(&FeedRequest {
+            query: FeedQuery::public(page, viewer),
+            options: opts,
+        })
+        .await?;
     Ok(Json(serde_json::json!({
         "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
         "total": result.total,
@@ -222,15 +274,20 @@ pub async fn user_thoughts_handler(
     Path(username): Path<String>,
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
+    Query(opts_q): Query<FeedOptionsQuery>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let user = get_user_by_username(&*d.users, &username).await?;
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
+    let opts = FeedOptions::try_from(opts_q)?;
     let result = d
         .feed
-        .query(&FeedQuery::user(user.id.clone(), page, viewer))
+        .query(&FeedRequest {
+            query: FeedQuery::user(user.id.clone(), page, viewer),
+            options: opts,
+        })
         .await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
@@ -273,14 +330,19 @@ pub async fn tag_thoughts_handler(
     Path(tag_name): Path<String>,
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
+    Query(opts_q): Query<FeedOptionsQuery>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
+    let opts = FeedOptions::try_from(opts_q)?;
     let result = d
         .feed
-        .query(&FeedQuery::tag(&tag_name, page, viewer))
+        .query(&FeedRequest {
+            query: FeedQuery::tag(&tag_name, page, viewer),
+            options: opts,
+        })
         .await?;
     Ok(Json(serde_json::json!({
         "tag": tag_name,

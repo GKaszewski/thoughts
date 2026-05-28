@@ -882,7 +882,7 @@ impl RemoteActorConnectionRepository for TestStore {
 impl FeedRepository for TestStore {
     async fn query(
         &self,
-        _q: &crate::ports::FeedQuery,
+        _req: &crate::ports::FeedRequest,
     ) -> Result<Paginated<FeedEntry>, DomainError> {
         Ok(Paginated {
             items: vec![],

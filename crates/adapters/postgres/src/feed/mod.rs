@@ -9,7 +9,7 @@ use domain::{
         thought::{Thought, Visibility},
         user::User,
     },
-    ports::{FeedQuery, FeedRepository, FeedScope},
+    ports::{FeedFilter, FeedRepository, FeedRequest, FeedScope, FeedSort},
     value_objects::{Content, Email, PasswordHash, ThoughtId, UserId, Username},
 };
 use sqlx::PgPool;
@@ -151,28 +151,62 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
     })
 }
 
+fn order_by_clause(sort: &FeedSort, scope: &FeedScope) -> &'static str {
+    if matches!(scope, FeedScope::Search { .. }) {
+        return "ORDER BY similarity(t.content, $1) DESC";
+    }
+    match sort {
+        FeedSort::Newest => "ORDER BY t.created_at DESC",
+        FeedSort::Oldest => "ORDER BY t.created_at ASC",
+        FeedSort::MostLiked => "ORDER BY like_count DESC, t.created_at DESC",
+        FeedSort::MostBoosted => "ORDER BY boost_count DESC, t.created_at DESC",
+        FeedSort::MostDiscussed => "ORDER BY reply_count DESC, t.created_at DESC",
+    }
+}
+
+fn filter_clauses(f: &FeedFilter) -> String {
+    let mut s = String::new();
+    if f.originals_only {
+        s += " AND t.in_reply_to_id IS NULL";
+    }
+    if f.replies_only {
+        s += " AND t.in_reply_to_id IS NOT NULL";
+    }
+    if f.local_only {
+        s += " AND t.local = true";
+    }
+    if f.hide_sensitive {
+        s += " AND t.sensitive = false";
+    }
+    s
+}
+
 #[async_trait]
 impl FeedRepository for PgFeedRepository {
-    async fn query(&self, q: &FeedQuery) -> Result<Paginated<FeedEntry>, DomainError> {
-        let viewer = q.viewer_id.as_ref().map(|v| v.as_uuid());
-        let page = &q.page;
+    async fn query(&self, req: &FeedRequest) -> Result<Paginated<FeedEntry>, DomainError> {
+        let viewer = req.query.viewer_id.as_ref().map(|v| v.as_uuid());
+        let page = &req.query.page;
+        let filter = filter_clauses(&req.options.filter);
+        let order = order_by_clause(&req.options.sort, &req.query.scope);
 
-        match &q.scope {
+        match &req.query.scope {
             FeedScope::Home { following_ids } => {
                 let ids: Vec<uuid::Uuid> = following_ids.iter().map(|id| id.as_uuid()).collect();
                 let fed_clause = federation_following_clause(viewer);
                 let count_sql = format!(
-                    "SELECT COUNT(*) FROM thoughts t WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'",
-                    fed_clause
+                    "SELECT COUNT(*) FROM thoughts t WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{}",
+                    fed_clause, filter
                 );
                 let total: i64 = sqlx::query_scalar(&count_sql)
                     .bind(&ids)
                     .fetch_one(&self.pool)
                     .await
                     .into_domain()?;
-
                 let sel = feed_select(viewer);
-                let sql = format!("{sel} WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct' ORDER BY t.created_at DESC LIMIT $2 OFFSET $3", fed_clause);
+                let sql = format!(
+                    "{sel} WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{} {} LIMIT $2 OFFSET $3",
+                    fed_clause, filter, order
+                );
                 let rows = sqlx::query_as::<_, FeedRow>(&sql)
                     .bind(&ids)
                     .bind(page.limit())
@@ -180,7 +214,6 @@ impl FeedRepository for PgFeedRepository {
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
-
                 Ok(Paginated {
                     items: rows
                         .into_iter()
@@ -193,22 +226,25 @@ impl FeedRepository for PgFeedRepository {
             }
 
             FeedScope::Public => {
-                let total: i64 = sqlx::query_scalar(
-                    "SELECT COUNT(*) FROM thoughts t WHERE t.local=true AND t.visibility='public'",
-                )
-                .fetch_one(&self.pool)
-                .await
-                .into_domain()?;
-
+                let count_sql = format!(
+                    "SELECT COUNT(*) FROM thoughts t WHERE t.local=true AND t.visibility='public'{}",
+                    filter
+                );
+                let total: i64 = sqlx::query_scalar(&count_sql)
+                    .fetch_one(&self.pool)
+                    .await
+                    .into_domain()?;
                 let sel = feed_select(viewer);
-                let sql = format!("{sel} WHERE t.local=true AND t.visibility='public' ORDER BY t.created_at DESC LIMIT $1 OFFSET $2");
+                let sql = format!(
+                    "{sel} WHERE t.local=true AND t.visibility='public'{} {} LIMIT $1 OFFSET $2",
+                    filter, order
+                );
                 let rows = sqlx::query_as::<_, FeedRow>(&sql)
                     .bind(page.limit())
                     .bind(page.offset())
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
-
                 Ok(Paginated {
                     items: rows
                         .into_iter()
@@ -221,16 +257,20 @@ impl FeedRepository for PgFeedRepository {
             }
 
             FeedScope::Search { query } => {
-                let total: i64 = sqlx::query_scalar(
-                    "SELECT COUNT(*) FROM thoughts t WHERE t.content % $1 AND t.visibility='public'",
-                )
-                .bind(query)
-                .fetch_one(&self.pool)
-                .await
-                .into_domain()?;
-
+                let count_sql = format!(
+                    "SELECT COUNT(*) FROM thoughts t WHERE t.content % $1 AND t.visibility='public'{}",
+                    filter
+                );
+                let total: i64 = sqlx::query_scalar(&count_sql)
+                    .bind(query)
+                    .fetch_one(&self.pool)
+                    .await
+                    .into_domain()?;
                 let sel = feed_select(viewer);
-                let sql = format!("{sel} WHERE t.content % $1 AND t.visibility='public' ORDER BY similarity(t.content, $1) DESC LIMIT $2 OFFSET $3");
+                let sql = format!(
+                    "{sel} WHERE t.content % $1 AND t.visibility='public'{} {} LIMIT $2 OFFSET $3",
+                    filter, order
+                );
                 let rows = sqlx::query_as::<_, FeedRow>(&sql)
                     .bind(query)
                     .bind(page.limit())
@@ -238,7 +278,6 @@ impl FeedRepository for PgFeedRepository {
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
-
                 Ok(Paginated {
                     items: rows
                         .into_iter()
@@ -251,24 +290,25 @@ impl FeedRepository for PgFeedRepository {
             }
 
             FeedScope::Tag { tag_name } => {
-                let total: i64 = sqlx::query_scalar(
+                let count_sql = format!(
                     "SELECT COUNT(*) FROM thoughts t
                      JOIN thought_tags tt ON tt.thought_id = t.id
                      JOIN tags tg ON tg.id = tt.tag_id
-                     WHERE tg.name = $1 AND t.visibility = 'public'",
-                )
-                .bind(tag_name)
-                .fetch_one(&self.pool)
-                .await
-                .into_domain()?;
-
+                     WHERE tg.name = $1 AND t.visibility = 'public'{}",
+                    filter
+                );
+                let total: i64 = sqlx::query_scalar(&count_sql)
+                    .bind(tag_name)
+                    .fetch_one(&self.pool)
+                    .await
+                    .into_domain()?;
                 let sel = feed_select(viewer);
                 let sql = format!(
                     "{sel}
                      JOIN thought_tags tt ON tt.thought_id = t.id
                      JOIN tags tg ON tg.id = tt.tag_id
-                     WHERE tg.name = $1 AND t.visibility = 'public'
-                     ORDER BY t.created_at DESC LIMIT $2 OFFSET $3"
+                     WHERE tg.name = $1 AND t.visibility = 'public'{} {} LIMIT $2 OFFSET $3",
+                    filter, order
                 );
                 let rows = sqlx::query_as::<_, FeedRow>(&sql)
                     .bind(tag_name)
@@ -277,7 +317,6 @@ impl FeedRepository for PgFeedRepository {
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
-
                 Ok(Paginated {
                     items: rows
                         .into_iter()
@@ -291,20 +330,22 @@ impl FeedRepository for PgFeedRepository {
 
             FeedScope::User { user_id } => {
                 let uid = user_id.as_uuid();
-                // Use nil UUID for unauthenticated viewers — won't match owner or follower checks.
                 let viewer_uuid = viewer.unwrap_or(uuid::Uuid::nil());
-
-                let total: i64 = sqlx::query_scalar(
-                    "SELECT COUNT(*) FROM thoughts t WHERE t.user_id = $1 AND ($2::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $2 AND following_id = $1 AND state = 'accepted')))))",
-                )
-                .bind(uid)
-                .bind(viewer_uuid)
-                .fetch_one(&self.pool)
-                .await
-                .into_domain()?;
-
+                let count_sql = format!(
+                    "SELECT COUNT(*) FROM thoughts t WHERE t.user_id = $1 AND ($2::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $2 AND following_id = $1 AND state = 'accepted'))))){}",
+                    filter
+                );
+                let total: i64 = sqlx::query_scalar(&count_sql)
+                    .bind(uid)
+                    .bind(viewer_uuid)
+                    .fetch_one(&self.pool)
+                    .await
+                    .into_domain()?;
                 let sel = feed_select(viewer);
-                let sql = format!("{sel} WHERE t.user_id = $1 AND ($4::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $4 AND following_id = $1 AND state = 'accepted'))))) ORDER BY t.created_at DESC LIMIT $2 OFFSET $3");
+                let sql = format!(
+                    "{sel} WHERE t.user_id = $1 AND ($4::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $4 AND following_id = $1 AND state = 'accepted'))))){} {} LIMIT $2 OFFSET $3",
+                    filter, order
+                );
                 let rows = sqlx::query_as::<_, FeedRow>(&sql)
                     .bind(uid)
                     .bind(page.limit())
@@ -313,7 +354,6 @@ impl FeedRepository for PgFeedRepository {
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
-
                 Ok(Paginated {
                     items: rows
                         .into_iter()
