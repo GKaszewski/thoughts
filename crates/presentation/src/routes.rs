@@ -106,6 +106,10 @@ pub fn router() -> Router<AppState> {
                 .delete(federation_management::delete_following),
         )
         .route(
+            "/federation/me/friends",
+            get(federation_management::get_remote_friends_handler),
+        )
+        .route(
             "/federation/me/move",
             post(federation_management::post_move_account),
         )

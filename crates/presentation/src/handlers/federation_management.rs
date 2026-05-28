@@ -5,8 +5,8 @@ use crate::{
 };
 use api_types::responses::{ProfileField, RemoteActorResponse};
 use application::use_cases::federation_management::{
-    accept_follow_request, initiate_actor_move, list_pending_requests, list_remote_followers,
-    list_remote_following, reject_follow_request, remove_remote_following,
+    accept_follow_request, get_remote_friends, initiate_actor_move, list_pending_requests,
+    list_remote_followers, list_remote_following, reject_follow_request, remove_remote_following,
 };
 use axum::{http::StatusCode, Json};
 use domain::ports::{EventPublisher, FederationActionPort, FollowRepository, UserRepository};
@@ -93,6 +93,14 @@ pub async fn get_remote_following(
     AuthUser(uid): AuthUser,
 ) -> Result<Json<Vec<RemoteActorResponse>>, ApiError> {
     let actors = list_remote_following(&*d.federation, &uid).await?;
+    Ok(Json(actors.into_iter().map(to_response).collect()))
+}
+
+pub async fn get_remote_friends_handler(
+    Deps(d): Deps<FederationManagementDeps>,
+    AuthUser(uid): AuthUser,
+) -> Result<Json<Vec<RemoteActorResponse>>, ApiError> {
+    let actors = get_remote_friends(&*d.federation, &uid).await?;
     Ok(Json(actors.into_iter().map(to_response).collect()))
 }
 
