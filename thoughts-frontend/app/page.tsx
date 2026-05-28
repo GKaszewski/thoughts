@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { getFeed, getMe, Me } from "@/lib/api";
+import { getFeed, getMe, Me, FeedOptions, FeedSortOption } from "@/lib/api";
+import { FiltersSortingPanel } from "@/components/filters-sorting-panel";
 import { ThoughtForm } from "@/components/thought-form";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,14 @@ export const metadata: Metadata = {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    sort?: string;
+    originals_only?: string;
+    replies_only?: string;
+    local_only?: string;
+    hide_sensitive?: string;
+  }>;
 }) {
   const token = (await cookies()).get("auth_token")?.value ?? null;
   const resolvedSearchParams = await searchParams;
@@ -44,12 +52,27 @@ async function FeedPage({
   searchParams,
 }: {
   token: string;
-  searchParams: { page?: string };
+  searchParams: {
+    page?: string;
+    sort?: string;
+    originals_only?: string;
+    replies_only?: string;
+    local_only?: string;
+    hide_sensitive?: string;
+  };
 }) {
   const page = parseInt(searchParams.page ?? "1", 10);
 
+  const feedOpts: FeedOptions = {
+    sort: searchParams.sort as FeedSortOption | undefined,
+    originals_only: searchParams.originals_only === "true",
+    replies_only:   searchParams.replies_only   === "true",
+    local_only:     searchParams.local_only     === "true",
+    hide_sensitive: searchParams.hide_sensitive === "true",
+  };
+
   const [feedData, me] = await Promise.all([
-    getFeed(token, page).catch(() => null),
+    getFeed(token, page, 20, feedOpts).catch(() => null),
     getMe(token).catch(() => null) as Promise<Me | null>,
   ]);
 
@@ -80,7 +103,9 @@ async function FeedPage({
         <aside className="hidden lg:block lg:col-span-1">
           <div className="sticky top-20 space-y-6 glass-effect glossy-effect bottom rounded-md p-4">
             <h2 className="text-lg font-semibold">Filters &amp; Sorting</h2>
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
+            <Suspense>
+              <FiltersSortingPanel />
+            </Suspense>
           </div>
         </aside>
 
