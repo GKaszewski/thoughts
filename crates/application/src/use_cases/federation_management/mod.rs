@@ -96,6 +96,20 @@ pub async fn list_remote_following(
     federation.get_remote_following(user_id).await
 }
 
+pub async fn get_remote_friends(
+    federation: &dyn FederationActionPort,
+    user_id: &UserId,
+) -> Result<Vec<RemoteActor>, DomainError> {
+    use std::collections::HashSet;
+    let following = federation.get_remote_following(user_id).await?;
+    let followers = federation.get_remote_followers(user_id).await?;
+    let follower_urls: HashSet<&str> = followers.iter().map(|a| a.url.as_str()).collect();
+    Ok(following
+        .into_iter()
+        .filter(|a| follower_urls.contains(a.url.as_str()))
+        .collect())
+}
+
 pub async fn remove_remote_following(
     follows: &dyn FollowRepository,
     users: &dyn UserReader,
