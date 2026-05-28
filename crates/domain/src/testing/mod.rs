@@ -763,6 +763,22 @@ impl FederationFollowRequestPort for TestStore {
     ) -> Result<(), DomainError> {
         Ok(())
     }
+
+    async fn mark_follower_accepted(
+        &self,
+        _user_id: &UserId,
+        _actor_url: &str,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
+
+    async fn mark_follower_rejected(
+        &self,
+        _user_id: &UserId,
+        _actor_url: &str,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
 }
 
 #[async_trait]

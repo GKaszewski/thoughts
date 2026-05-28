@@ -322,6 +322,20 @@ pub trait FederationFollowRequestPort: Send + Sync {
         user_id: &UserId,
         actor_url: &str,
     ) -> Result<(), DomainError>;
+
+    /// Update follower status to Accepted in DB only — no federation activity sent.
+    async fn mark_follower_accepted(
+        &self,
+        user_id: &UserId,
+        actor_url: &str,
+    ) -> Result<(), DomainError>;
+
+    /// Remove follower from DB only — no federation activity sent.
+    async fn mark_follower_rejected(
+        &self,
+        user_id: &UserId,
+        actor_url: &str,
+    ) -> Result<(), DomainError>;
 }
 
 #[async_trait]
