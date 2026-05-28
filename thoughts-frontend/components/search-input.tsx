@@ -17,12 +17,12 @@ export function SearchInput() {
   };
 
   return (
-    <form onSubmit={handleSearch} className="relative w-full md:max-w-sm">
+    <form onSubmit={handleSearch} className="relative w-full md:max-w-sm lg:max-w-md xl:max-w-lg">
       <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         name="q"
         placeholder="Search for users or thoughts..."
-        className="pl-9 md:min-w-[250px]"
+        className="pl-9 md:min-w-[250px] lg:min-w-[320px] xl:min-w-[400px]"
       />
     </form>
   );
