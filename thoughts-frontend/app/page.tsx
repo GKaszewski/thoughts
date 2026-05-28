@@ -11,6 +11,7 @@ import { buildThoughtThreads } from "@/lib/utils";
 import { TopFriends } from "@/components/top-friends";
 import { UsersCount } from "@/components/users-count";
 import { PaginationNav } from "@/components/pagination-nav";
+import { FediverseHandleWidget } from "@/components/fediverse-handle-widget";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
@@ -84,6 +85,7 @@ async function FeedPage({
 
   const sidebar = (
     <>
+      <FediverseHandleWidget username={me.username} />
       <Suspense fallback={<ProfileSkeleton />}>
         <TopFriends username={me.username} />
       </Suspense>
