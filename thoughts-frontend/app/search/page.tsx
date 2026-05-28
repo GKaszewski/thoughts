@@ -40,11 +40,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <p className="text-muted-foreground">
           Find users and thoughts across the platform.
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          To find someone on Mastodon, type their full handle: @alice@mastodon.social
+        </p>
       </div>
     );
   }
 
   const isHandle = HANDLE_RE.test(query);
+  const isPartialHandle = !isHandle && query.includes("@");
 
   const [results, remoteActor, me] = await Promise.all([
     isHandle ? null : search(query, token).catch(() => null),
@@ -61,6 +65,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </p>
       </header>
       <main>
+        {isPartialHandle && (
+          <p className="text-xs text-muted-foreground mb-4">
+            Looks like a fediverse handle. Use the full format: @alice@mastodon.social
+          </p>
+        )}
         {isHandle ? (
           remoteActor ? (
             <div className="space-y-4">
