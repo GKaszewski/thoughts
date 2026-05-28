@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { FederationPanel } from "@/components/federation/federation-panel";
+import { MigrationSettings } from "@/components/federation/migration-settings";
 
 export default async function FederationSettingsPage() {
   const token = (await cookies()).get("auth_token")?.value;
@@ -18,6 +19,7 @@ export default async function FederationSettingsPage() {
         </p>
       </div>
       <FederationPanel />
+      <MigrationSettings />
     </div>
   );
 }

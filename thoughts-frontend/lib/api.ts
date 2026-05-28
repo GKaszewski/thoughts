@@ -487,3 +487,11 @@ export const unfollowRemoteActor = (handle: string, token: string) =>
     z.null(),
     token
   );
+
+export const setAlsoKnownAs = (value: string | null, token: string) =>
+  apiFetch(
+    "/federation/me/also-known-as",
+    { method: "PATCH", body: JSON.stringify({ also_known_as: value || null }) },
+    z.null(),
+    token
+  );
