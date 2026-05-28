@@ -227,14 +227,25 @@ impl ActivityPubRepository for PgActivityPubRepository {
         let capped: String = content.chars().take(MAX_REMOTE_CONTENT_CHARS).collect();
         let (in_reply_to_id, in_reply_to_url) = match in_reply_to {
             Some(url) => {
-                // If the parent is a local thought, extract its UUID for in_reply_to_id.
+                // Fast path: local thought URL contains the UUID directly.
                 let local_uuid = url::Url::parse(url).ok().and_then(|u| {
                     u.path()
                         .strip_prefix(THOUGHTS_PATH_PREFIX)
                         .and_then(|s| s.split('/').next())
                         .and_then(|s| uuid::Uuid::parse_str(s).ok())
                 });
-                (local_uuid, Some(url.to_string()))
+                // Slow path: remote parent — look up by ap_id so remote-to-remote
+                // replies are threaded correctly in the feed.
+                let resolved = if local_uuid.is_some() {
+                    local_uuid
+                } else {
+                    sqlx::query_scalar::<_, uuid::Uuid>("SELECT id FROM thoughts WHERE ap_id=$1")
+                        .bind(url)
+                        .fetch_optional(&self.pool)
+                        .await
+                        .into_domain()?
+                };
+                (resolved, Some(url.to_string()))
             }
             None => (None, None),
         };
