@@ -16,12 +16,12 @@ const FEATURES = [
   {
     icon: "🔒",
     title: "Your audience, your rules",
-    body: "Public, followers-only, unlisted, or direct — you decide every time.",
+    body: "Public, followers-only, unlisted, or direct. You pick for each post.",
   },
   {
     icon: "🎬",
     title: "Movies Diary",
-    body: "Posts from your Movies Diary appear as rich cards — ratings, posters, reviews. First-class, not an afterthought.",
+    body: "Your Movies Diary posts show up as rich cards with ratings and posters. Feels native.",
   },
 ];
 

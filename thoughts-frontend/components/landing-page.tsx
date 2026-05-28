@@ -147,12 +147,11 @@ export function LandingPage() {
           The web used to feel human
         </h2>
         <p className="text-muted-foreground leading-relaxed mb-6">
-          No algorithms deciding what you see. No ads. No engagement bait. Just
-          people sharing what&apos;s on their mind, with friends they chose, in
-          spaces they decorated themselves.
+          No algorithm feeds. No ads. Just a timeline of people you actually
+          follow, on a profile you can make look however you want.
         </p>
         <p className="text-sm italic text-muted-foreground">
-          That web still exists. You&apos;re looking at it.
+          That version of the web still exists.
         </p>
       </section>
 
