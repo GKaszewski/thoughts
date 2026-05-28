@@ -22,12 +22,18 @@ use domain::{
     },
 };
 
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Default, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct FeedOptionsQuery {
+    /// Sort order: `newest` (default), `oldest`, `most_liked`, `most_boosted`, `most_discussed`
     pub sort: Option<String>,
+    /// Show only original posts (mutually exclusive with `replies_only`)
     pub originals_only: Option<bool>,
+    /// Show only replies (mutually exclusive with `originals_only`)
     pub replies_only: Option<bool>,
+    /// Show only posts from this instance
     pub local_only: Option<bool>,
+    /// Hide posts marked as sensitive
     pub hide_sensitive: Option<bool>,
 }
 
@@ -96,7 +102,7 @@ pub fn to_thought_response(e: &domain::models::feed::FeedEntry) -> ThoughtRespon
 
 #[utoipa::path(
     get, path = "/feed",
-    params(PaginationQuery),
+    params(PaginationQuery, FeedOptionsQuery),
     responses((status = 200, description = "Home feed")),
     security(("bearer_auth" = []))
 )]
@@ -122,7 +128,7 @@ pub async fn home_feed(
 
 #[utoipa::path(
     get, path = "/feed/public",
-    params(PaginationQuery),
+    params(PaginationQuery, FeedOptionsQuery),
     responses((status = 200, description = "Public feed"))
 )]
 pub async fn public_feed(
@@ -266,6 +272,7 @@ pub async fn get_followers_handler(
     params(
         ("username" = String, Path, description = "Username"),
         PaginationQuery,
+        FeedOptionsQuery,
     ),
     responses((status = 200, description = "User's public thoughts"))
 )]
@@ -322,6 +329,7 @@ pub async fn get_popular_tags(
     params(
         ("name" = String, Path, description = "Tag name"),
         PaginationQuery,
+        FeedOptionsQuery,
     ),
     responses((status = 200, description = "Thoughts with this tag"))
 )]
