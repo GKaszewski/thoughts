@@ -53,15 +53,22 @@ export function RemoteUserCard({ actor }: RemoteUserCardProps) {
           <p className="text-sm text-muted-foreground truncate">{actor.handle}</p>
         </div>
       </Link>
-      <Button
-        onClick={handleFollow}
-        disabled={loading || followed}
-        variant={followed ? "secondary" : "default"}
-        size="sm"
-      >
-        <UserPlus className="mr-2 h-4 w-4" />
-        {followed ? "Requested" : "Follow"}
-      </Button>
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          onClick={handleFollow}
+          disabled={loading || followed}
+          variant={followed ? "secondary" : "default"}
+          size="sm"
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          {followed ? "Requested" : "Follow"}
+        </Button>
+        {followed && (
+          <p className="text-xs text-muted-foreground text-right">
+            They&apos;ll be notified and can accept from their app.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
