@@ -475,12 +475,18 @@ impl FollowRepository for TestStore {
             following_ids.intersection(&follower_ids).cloned().collect();
         drop(follows);
         let users = self.users.lock().unwrap();
-        let items: Vec<User> = users
+        let all_items: Vec<User> = users
             .iter()
             .filter(|u| mutual_ids.contains(&u.id))
             .cloned()
             .collect();
-        let total = items.len() as i64;
+        let total = all_items.len() as i64;
+        let offset = page.offset() as usize;
+        let items: Vec<User> = all_items
+            .into_iter()
+            .skip(offset)
+            .take(page.limit() as usize)
+            .collect();
         Ok(Paginated {
             items,
             total,

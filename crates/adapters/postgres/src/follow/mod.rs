@@ -194,13 +194,14 @@ impl FollowRepository for PgFollowRepository {
         page: &PageParams,
     ) -> Result<Paginated<User>, DomainError> {
         let total: i64 = sqlx::query_scalar(
-            "SELECT COUNT(DISTINCT u.id)
-             FROM users u
-             WHERE EXISTS (
-               SELECT 1 FROM follows f1 WHERE f1.follower_id=$1 AND f1.following_id=u.id AND f1.state='accepted'
-             ) AND EXISTS (
-               SELECT 1 FROM follows f2 WHERE f2.following_id=$1 AND f2.follower_id=u.id AND f2.state='accepted'
-             )",
+            "SELECT COUNT(*) FROM follows f1
+             WHERE f1.follower_id = $1 AND f1.state = 'accepted'
+               AND EXISTS (
+                 SELECT 1 FROM follows f2
+                 WHERE f2.follower_id  = f1.following_id
+                   AND f2.following_id = f1.follower_id
+                   AND f2.state = 'accepted'
+               )",
         )
         .bind(user_id.as_uuid())
         .fetch_one(&self.pool)
@@ -208,14 +209,22 @@ impl FollowRepository for PgFollowRepository {
         .into_domain()?;
 
         let rows = sqlx::query_as::<_, crate::user::UserRow>(
-            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.local,u.ap_id,u.inbox_url,u.created_at,u.updated_at
+            "SELECT u.id, u.username, u.email, u.password_hash, u.display_name, u.bio,
+                    u.avatar_url, u.header_url, u.custom_css, u.local,
+                    u.created_at, u.updated_at
              FROM users u
+             JOIN follows f1
+               ON f1.follower_id  = $1
+              AND f1.following_id = u.id
+              AND f1.state = 'accepted'
              WHERE EXISTS (
-               SELECT 1 FROM follows f1 WHERE f1.follower_id=$1 AND f1.following_id=u.id AND f1.state='accepted'
-             ) AND EXISTS (
-               SELECT 1 FROM follows f2 WHERE f2.following_id=$1 AND f2.follower_id=u.id AND f2.state='accepted'
+               SELECT 1 FROM follows f2
+               WHERE f2.follower_id  = u.id
+                 AND f2.following_id = $1
+                 AND f2.state = 'accepted'
              )
-             ORDER BY u.created_at DESC LIMIT $2 OFFSET $3"
+             ORDER BY f1.created_at DESC
+             LIMIT $2 OFFSET $3",
         )
         .bind(user_id.as_uuid())
         .bind(page.limit())
