@@ -473,3 +473,98 @@
     background: rgba(96, 165, 250, 0.18);
   }
 }
+
+/* ── Landing page animations ── */
+
+@keyframes landing-bg-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes landing-orb-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-22px) scale(1.05); }
+}
+
+@keyframes landing-gloss {
+  0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+  8%   { opacity: 1; }
+  28%  { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+  100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+}
+
+@keyframes landing-badge-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px #34d399; }
+  50%       { opacity: 0.5; box-shadow: 0 0 10px #34d399; }
+}
+
+@keyframes landing-card-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@layer components {
+  .landing-bg {
+    background: linear-gradient(135deg, #e0f2fe, #f0fdf4, #ede9fe, #e0f2fe);
+    background-size: 400% 400%;
+    animation: landing-bg-shift 30s ease infinite;
+  }
+
+  .landing-orb {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(40px);
+    animation: landing-orb-float var(--orb-duration, 16s) ease-in-out infinite;
+    animation-delay: var(--orb-delay, 0s);
+  }
+
+  .landing-hero-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .landing-hero-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 65%
+    );
+    animation: landing-gloss 6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .landing-badge-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    animation: landing-badge-pulse 2s ease-in-out infinite;
+  }
+
+  .landing-cta {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .landing-cta:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  }
+
+  .landing-card-animate {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  .landing-card-animate.visible {
+    animation: landing-card-in 400ms ease-out forwards;
+  }
+}
