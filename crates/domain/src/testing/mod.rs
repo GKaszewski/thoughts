@@ -37,6 +37,8 @@ pub struct TestStore {
     pub actor_ap_ids: Arc<Mutex<HashMap<String, UserId>>>,
     /// ThoughtId → AP object URL (used by get_thought_ap_id)
     pub thought_ap_ids: Arc<Mutex<HashMap<ThoughtId, String>>>,
+    pub remote_following: Arc<Mutex<Vec<RemoteActor>>>,
+    pub remote_followers: Arc<Mutex<Vec<RemoteActor>>>,
 }
 
 #[async_trait]
@@ -452,6 +454,40 @@ impl FollowRepository for TestStore {
             .map(|f| f.following_id.clone())
             .collect())
     }
+    async fn list_mutual(
+        &self,
+        user_id: &UserId,
+        page: &PageParams,
+    ) -> Result<Paginated<User>, DomainError> {
+        use std::collections::HashSet;
+        let follows = self.follows.lock().unwrap();
+        let following_ids: HashSet<UserId> = follows
+            .iter()
+            .filter(|f| &f.follower_id == user_id && f.state == FollowState::Accepted)
+            .map(|f| f.following_id.clone())
+            .collect();
+        let follower_ids: HashSet<UserId> = follows
+            .iter()
+            .filter(|f| &f.following_id == user_id && f.state == FollowState::Accepted)
+            .map(|f| f.follower_id.clone())
+            .collect();
+        let mutual_ids: HashSet<UserId> =
+            following_ids.intersection(&follower_ids).cloned().collect();
+        drop(follows);
+        let users = self.users.lock().unwrap();
+        let items: Vec<User> = users
+            .iter()
+            .filter(|u| mutual_ids.contains(&u.id))
+            .cloned()
+            .collect();
+        let total = items.len() as i64;
+        Ok(Paginated {
+            items,
+            total,
+            page: page.page,
+            per_page: page.per_page,
+        })
+    }
 }
 
 #[async_trait]
@@ -710,7 +746,7 @@ impl FederationFollowPort for TestStore {
         &self,
         _user_id: &UserId,
     ) -> Result<Vec<RemoteActor>, DomainError> {
-        Ok(vec![])
+        Ok(self.remote_following.lock().unwrap().clone())
     }
 
     async fn broadcast_move(
@@ -751,7 +787,7 @@ impl FederationFollowRequestPort for TestStore {
         &self,
         _user_id: &UserId,
     ) -> Result<Vec<RemoteActor>, DomainError> {
-        Ok(vec![])
+        Ok(self.remote_followers.lock().unwrap().clone())
     }
 
     async fn remove_remote_follower(

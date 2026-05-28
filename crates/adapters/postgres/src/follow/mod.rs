@@ -187,6 +187,50 @@ impl FollowRepository for PgFollowRepository {
         .into_domain()?;
         Ok(ids.into_iter().map(UserId::from_uuid).collect())
     }
+
+    async fn list_mutual(
+        &self,
+        user_id: &UserId,
+        page: &PageParams,
+    ) -> Result<Paginated<User>, DomainError> {
+        let total: i64 = sqlx::query_scalar(
+            "SELECT COUNT(DISTINCT u.id)
+             FROM users u
+             WHERE EXISTS (
+               SELECT 1 FROM follows f1 WHERE f1.follower_id=$1 AND f1.following_id=u.id AND f1.state='accepted'
+             ) AND EXISTS (
+               SELECT 1 FROM follows f2 WHERE f2.following_id=$1 AND f2.follower_id=u.id AND f2.state='accepted'
+             )",
+        )
+        .bind(user_id.as_uuid())
+        .fetch_one(&self.pool)
+        .await
+        .into_domain()?;
+
+        let rows = sqlx::query_as::<_, crate::user::UserRow>(
+            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.local,u.ap_id,u.inbox_url,u.created_at,u.updated_at
+             FROM users u
+             WHERE EXISTS (
+               SELECT 1 FROM follows f1 WHERE f1.follower_id=$1 AND f1.following_id=u.id AND f1.state='accepted'
+             ) AND EXISTS (
+               SELECT 1 FROM follows f2 WHERE f2.following_id=$1 AND f2.follower_id=u.id AND f2.state='accepted'
+             )
+             ORDER BY u.created_at DESC LIMIT $2 OFFSET $3"
+        )
+        .bind(user_id.as_uuid())
+        .bind(page.limit())
+        .bind(page.offset())
+        .fetch_all(&self.pool)
+        .await
+        .into_domain()?;
+
+        Ok(Paginated {
+            items: rows.into_iter().map(User::from).collect(),
+            total,
+            page: page.page,
+            per_page: page.per_page,
+        })
+    }
 }
 
 #[cfg(test)]

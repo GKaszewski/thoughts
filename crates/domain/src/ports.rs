@@ -171,6 +171,11 @@ pub trait FollowRepository: Send + Sync {
         &self,
         user_id: &UserId,
     ) -> Result<Vec<UserId>, DomainError>;
+    async fn list_mutual(
+        &self,
+        user_id: &UserId,
+        page: &PageParams,
+    ) -> Result<Paginated<User>, DomainError>;
 }
 
 #[async_trait]
