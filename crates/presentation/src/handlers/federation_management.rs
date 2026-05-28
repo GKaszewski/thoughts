@@ -5,8 +5,8 @@ use crate::{
 };
 use api_types::responses::{ProfileField, RemoteActorResponse};
 use application::use_cases::federation_management::{
-    accept_follow_request, list_pending_requests, list_remote_followers, list_remote_following,
-    reject_follow_request, remove_remote_following,
+    accept_follow_request, initiate_actor_move, list_pending_requests, list_remote_followers,
+    list_remote_following, reject_follow_request, remove_remote_following,
 };
 use axum::{http::StatusCode, Json};
 use domain::ports::{EventPublisher, FederationActionPort, FollowRepository, UserRepository};
@@ -118,15 +118,9 @@ pub async fn post_move_account(
     AuthUser(uid): AuthUser,
     Json(body): Json<MoveBody>,
 ) -> Result<StatusCode, ApiError> {
-    url::Url::parse(&body.new_actor_url)
+    let new_url = url::Url::parse(&body.new_actor_url)
         .map_err(|_| ApiError::BadRequest("invalid new_actor_url".into()))?;
-    d.events
-        .publish(&domain::events::DomainEvent::ActorMoved {
-            user_id: uid,
-            new_actor_url: body.new_actor_url,
-        })
-        .await
-        .map_err(|e| ApiError::Domain(domain::errors::DomainError::Internal(e.to_string())))?;
+    initiate_actor_move(&*d.events, &uid, new_url).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

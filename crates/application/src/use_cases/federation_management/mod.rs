@@ -17,6 +17,20 @@ use domain::{
 
 use super::social;
 
+pub async fn initiate_actor_move(
+    events: &dyn EventPublisher,
+    user_id: &UserId,
+    new_actor_url: url::Url,
+) -> Result<(), DomainError> {
+    events
+        .publish(&DomainEvent::ActorMoved {
+            user_id: user_id.clone(),
+            new_actor_url: new_actor_url.to_string(),
+        })
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))
+}
+
 pub async fn list_pending_requests(
     federation: &dyn FederationFollowRequestPort,
     user_id: &UserId,
