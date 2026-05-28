@@ -13,9 +13,7 @@ use crate::{
         user::{UpdateProfileInput, User},
     },
     ports::*,
-    value_objects::{
-        ApiKeyId, Content, Email, NotificationId, PasswordHash, ThoughtId, UserId, Username,
-    },
+    value_objects::{ApiKeyId, Content, Email, NotificationId, ThoughtId, UserId, Username},
 };
 use async_trait::async_trait;
 use chrono::Utc;
