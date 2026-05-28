@@ -13,7 +13,7 @@ async fn list_pending_returns_empty_by_default() {
 async fn accept_follow_request_returns_ok() {
     let store = TestStore::default();
     let uid = UserId::new();
-    accept_follow_request(&store, &uid, "https://mastodon.social/users/alice")
+    accept_follow_request(&store, &store, &uid, "https://mastodon.social/users/alice")
         .await
         .unwrap();
 }
@@ -22,7 +22,7 @@ async fn accept_follow_request_returns_ok() {
 async fn reject_follow_request_returns_ok() {
     let store = TestStore::default();
     let uid = UserId::new();
-    reject_follow_request(&store, &uid, "https://mastodon.social/users/alice")
+    reject_follow_request(&store, &store, &uid, "https://mastodon.social/users/alice")
         .await
         .unwrap();
 }
