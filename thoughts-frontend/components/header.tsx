@@ -27,7 +27,7 @@ export function Header() {
           </span>
         </Link>
 
-        <MainNav />
+        <MainNav isLoggedIn={!!token} />
 
         <div className="flex flex-1 items-center justify-end space-x-2">
           {token ? (

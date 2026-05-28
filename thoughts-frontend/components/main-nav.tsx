@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "./search-input";
 
-export function MainNav() {
+interface MainNavProps {
+  isLoggedIn?: boolean;
+}
+
+export function MainNav({ isLoggedIn }: MainNavProps) {
   const pathname = usePathname();
   return (
     <nav className="inline-flex md:flex items-center space-x-6 text-sm font-medium">
@@ -27,6 +31,17 @@ export function MainNav() {
       >
         Fediverse
       </Link>
+      {isLoggedIn && (
+        <Link
+          href="/friends"
+          className={cn(
+            "transition-colors hover:text-foreground/80",
+            pathname === "/friends" ? "text-foreground" : "text-foreground/60"
+          )}
+        >
+          Friends
+        </Link>
+      )}
       <SearchInput />
     </nav>
   );
