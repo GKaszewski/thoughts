@@ -4,22 +4,18 @@ import { useEffect, useRef } from "react";
 
 const FEATURES = [
   {
-    icon: "✍️",
     title: "Say it in 128",
     body: "Short, focused thoughts. No bloat, no essays.",
   },
   {
-    icon: "🎨",
     title: "Make it yours",
     body: "Customize your profile with CSS. Full creative control.",
   },
   {
-    icon: "🔒",
     title: "Your audience, your rules",
     body: "Public, followers-only, unlisted, or direct. You pick for each post.",
   },
   {
-    icon: "🎬",
     title: "Movies Diary",
     body: "Your Movies Diary posts show up as rich cards with ratings and posters. Feels native.",
   },
@@ -56,7 +52,6 @@ export function LandingFeatures() {
           className="landing-card-animate glass-effect rounded-xl p-6 shadow-fa-md"
           style={{ animationDelay: `${i * 100}ms` }}
         >
-          <div className="text-3xl mb-3">{f.icon}</div>
           <h3 className="font-bold text-base mb-1">{f.title}</h3>
           <p className="text-sm text-muted-foreground">{f.body}</p>
         </div>

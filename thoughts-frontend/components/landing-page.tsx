@@ -120,7 +120,7 @@ export function LandingPage() {
             open web.
           </p>
           <div className="flex flex-wrap gap-2 mb-6">
-            {["🐘 Mastodon", "📷 Pixelfed"].map((label) => (
+            {["Mastodon", "Pixelfed"].map((label) => (
               <span
                 key={label}
                 className="px-3 py-1 rounded-full text-xs font-medium bg-white/40 border border-white/60 hover:shadow-fa-sm transition-shadow cursor-default"
