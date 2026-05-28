@@ -26,6 +26,7 @@ pub fn router() -> Router<AppState> {
             put(users::upload_banner).layer(DefaultBodyLimit::max(10 * 1024 * 1024)),
         )
         .route("/users/me/following", get(users::get_me_following))
+        .route("/users/me/friends", get(social::get_friends_handler))
         .route("/users/me/top-friends", put(social::put_top_friends))
         .route("/users/{username}", get(users::get_user))
         .route(

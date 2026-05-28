@@ -14,6 +14,7 @@ use utoipa::OpenApi;
         crate::handlers::social::delete_block,
         crate::handlers::social::put_top_friends,
         crate::handlers::social::get_top_friends_handler,
+        crate::handlers::social::get_friends_handler,
     ),
     components(schemas(SetTopFriendsRequest))
 )]

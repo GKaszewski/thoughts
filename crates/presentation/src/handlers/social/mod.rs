@@ -4,11 +4,15 @@ use crate::{
     errors::ApiError,
     extractors::{AuthUser, Deps},
 };
-use api_types::requests::SetTopFriendsRequest;
-use api_types::responses::TopFriendsResponse;
+use api_types::requests::{PaginationQuery, SetTopFriendsRequest};
+use api_types::responses::{PagedResponse, TopFriendsResponse, UserResponse};
 use application::use_cases::profile::{get_top_friends, get_user_by_username, set_top_friends};
 use application::use_cases::social::*;
-use axum::{extract::Path, http::StatusCode, Json};
+use axum::{
+    extract::{Path, Query},
+    http::StatusCode,
+    Json,
+};
 use domain::{
     ports::{
         BlockRepository, BoostRepository, EventPublisher, FederationActionPort, FollowRepository,
@@ -148,6 +152,34 @@ pub async fn get_top_friends_handler(
     let friends = get_top_friends(&*d.top_friends, &user.id).await?;
     let top_friends = friends.iter().map(|(_, u)| to_user_response(u)).collect();
     Ok(Json(TopFriendsResponse { top_friends }))
+}
+
+#[utoipa::path(
+    get, path = "/users/me/friends",
+    params(PaginationQuery),
+    responses(
+        (status = 200, description = "Local mutual follows (paginated)", body = inline(PagedResponse<UserResponse>)),
+        (status = 401, description = "Unauthorized"),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_friends_handler(
+    Deps(d): Deps<SocialDeps>,
+    AuthUser(uid): AuthUser,
+    Query(q): Query<PaginationQuery>,
+) -> Result<Json<PagedResponse<UserResponse>>, ApiError> {
+    use domain::models::feed::PageParams;
+    let page = PageParams {
+        page: q.page(),
+        per_page: q.per_page(),
+    };
+    let result = get_local_friends(&*d.follows, &uid, &page).await?;
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_user_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[cfg(test)]
