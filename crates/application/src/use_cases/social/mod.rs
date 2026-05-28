@@ -2,7 +2,11 @@ use chrono::Utc;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
-    models::social::{Block, Boost, Follow, FollowState, Like},
+    models::{
+        feed::{PageParams, Paginated},
+        social::{Block, Boost, Follow, FollowState, Like},
+        user::User,
+    },
     ports::{
         BlockRepository, BoostRepository, EventPublisher, FederationFollowPort, FollowRepository,
         LikeRepository, UserReader,
@@ -278,6 +282,14 @@ pub async fn unblock_user(
         })
         .await?;
     Ok(())
+}
+
+pub async fn get_local_friends(
+    follows: &dyn FollowRepository,
+    user_id: &UserId,
+    page: &PageParams,
+) -> Result<Paginated<User>, DomainError> {
+    follows.list_mutual(user_id, page).await
 }
 
 #[cfg(test)]

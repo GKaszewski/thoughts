@@ -204,3 +204,51 @@ async fn boost_and_unboost() {
         .iter()
         .any(|e| matches!(e, DomainEvent::BoostRemoved { .. })));
 }
+
+#[tokio::test]
+async fn get_local_friends_returns_mutual_follows() {
+    use domain::models::feed::PageParams;
+    let store = TestStore::default();
+    let alice = user("alice");
+    let bob = user("bob");
+    let carol = user("carol");
+
+    store
+        .users
+        .lock()
+        .unwrap()
+        .extend([alice.clone(), bob.clone(), carol.clone()]);
+
+    // alice ↔ bob = friends; alice → carol but not back
+    store.follows.lock().unwrap().extend([
+        domain::models::social::Follow {
+            follower_id: alice.id.clone(),
+            following_id: bob.id.clone(),
+            state: domain::models::social::FollowState::Accepted,
+            ap_id: None,
+            created_at: chrono::Utc::now(),
+        },
+        domain::models::social::Follow {
+            follower_id: bob.id.clone(),
+            following_id: alice.id.clone(),
+            state: domain::models::social::FollowState::Accepted,
+            ap_id: None,
+            created_at: chrono::Utc::now(),
+        },
+        domain::models::social::Follow {
+            follower_id: alice.id.clone(),
+            following_id: carol.id.clone(),
+            state: domain::models::social::FollowState::Accepted,
+            ap_id: None,
+            created_at: chrono::Utc::now(),
+        },
+    ]);
+
+    let page = PageParams {
+        page: 1,
+        per_page: 20,
+    };
+    let result = get_local_friends(&store, &alice.id, &page).await.unwrap();
+    assert_eq!(result.total, 1);
+    assert_eq!(result.items[0].id, bob.id);
+}
