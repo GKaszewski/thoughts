@@ -356,14 +356,36 @@ export const getAllUsersCount = () =>
 
 // ── Thoughts ──────────────────────────────────────────────────────────────
 
-export const getFeed = (token: string, page: number = 1, pageSize: number = 20) =>
-  apiFetch(
-    `/feed?page=${page}&per_page=${pageSize}`,
-    { next: { tags: ['feed'] } },
+export type FeedSortOption =
+  | "newest"
+  | "oldest"
+  | "most_liked"
+  | "most_boosted"
+  | "most_discussed";
+
+export type FeedOptions = {
+  sort?: FeedSortOption;
+  originals_only?: boolean;
+  replies_only?: boolean;
+  local_only?: boolean;
+  hide_sensitive?: boolean;
+};
+
+export const getFeed = (token: string, page = 1, pageSize = 20, opts: FeedOptions = {}) => {
+  const params = new URLSearchParams({ page: String(page), per_page: String(pageSize) });
+  if (opts.sort)           params.set("sort", opts.sort);
+  if (opts.originals_only) params.set("originals_only", "true");
+  if (opts.replies_only)   params.set("replies_only", "true");
+  if (opts.local_only)     params.set("local_only", "true");
+  if (opts.hide_sensitive) params.set("hide_sensitive", "true");
+  return apiFetch(
+    `/feed?${params.toString()}`,
+    { next: { tags: ["feed"] } },
     z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() })
       .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.per_page) })),
     token
   );
+};
 
 export const getUserThoughts = (username: string, token: string | null, page = 1) =>
   apiFetch(
