@@ -1,6 +1,7 @@
 use activitypub::ActivityPubRepository;
 use domain::{
     errors::DomainError,
+    events::DomainEvent,
     models::{
         actor_connection_summary::ActorConnectionSummary,
         feed::{FeedEntry, PageParams, Paginated},
@@ -25,18 +26,38 @@ pub async fn list_pending_requests(
 
 pub async fn accept_follow_request(
     federation: &dyn FederationFollowRequestPort,
+    events: &dyn EventPublisher,
     user_id: &UserId,
     actor_url: &str,
 ) -> Result<(), DomainError> {
-    federation.accept_follow_request(user_id, actor_url).await
+    federation
+        .mark_follower_accepted(user_id, actor_url)
+        .await?;
+    events
+        .publish(&DomainEvent::RemoteFollowAccepted {
+            local_user_id: user_id.clone(),
+            remote_actor_url: actor_url.to_string(),
+        })
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))
 }
 
 pub async fn reject_follow_request(
     federation: &dyn FederationFollowRequestPort,
+    events: &dyn EventPublisher,
     user_id: &UserId,
     actor_url: &str,
 ) -> Result<(), DomainError> {
-    federation.reject_follow_request(user_id, actor_url).await
+    federation
+        .mark_follower_rejected(user_id, actor_url)
+        .await?;
+    events
+        .publish(&DomainEvent::RemoteFollowRejected {
+            local_user_id: user_id.clone(),
+            remote_actor_url: actor_url.to_string(),
+        })
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))
 }
 
 pub async fn list_remote_followers(

@@ -67,7 +67,7 @@ pub async fn post_accept_request(
     AuthUser(uid): AuthUser,
     Json(body): Json<ActorUrlBody>,
 ) -> Result<StatusCode, ApiError> {
-    accept_follow_request(&*d.federation, &uid, &body.actor_url).await?;
+    accept_follow_request(&*d.federation, &*d.events, &uid, &body.actor_url).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -76,7 +76,7 @@ pub async fn delete_follower(
     AuthUser(uid): AuthUser,
     Json(body): Json<ActorUrlBody>,
 ) -> Result<StatusCode, ApiError> {
-    reject_follow_request(&*d.federation, &uid, &body.actor_url).await?;
+    reject_follow_request(&*d.federation, &*d.events, &uid, &body.actor_url).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -118,12 +118,15 @@ pub async fn post_move_account(
     AuthUser(uid): AuthUser,
     Json(body): Json<MoveBody>,
 ) -> Result<StatusCode, ApiError> {
-    let new_url = url::Url::parse(&body.new_actor_url)
+    url::Url::parse(&body.new_actor_url)
         .map_err(|_| ApiError::BadRequest("invalid new_actor_url".into()))?;
-    d.federation
-        .broadcast_move(&uid, new_url)
+    d.events
+        .publish(&domain::events::DomainEvent::ActorMoved {
+            user_id: uid,
+            new_actor_url: body.new_actor_url,
+        })
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| ApiError::Domain(domain::errors::DomainError::Internal(e.to_string())))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
