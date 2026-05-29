@@ -45,6 +45,14 @@ impl FromAppState for FederationActorsDeps {
     }
 }
 
+#[utoipa::path(
+    get, path = "/federation/actors/{handle}/posts",
+    params(
+        ("handle" = String, Path, description = "Fediverse handle (@user@instance.tld)"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Posts by this remote actor"))
+)]
 pub async fn remote_actor_posts_handler(
     Deps(d): Deps<FederationActorsDeps>,
     Path(handle): Path<String>,
@@ -73,6 +81,14 @@ pub async fn remote_actor_posts_handler(
     })))
 }
 
+#[utoipa::path(
+    get, path = "/federation/actors/{handle}/followers-list",
+    params(
+        ("handle" = String, Path, description = "Fediverse handle (@user@instance.tld)"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Followers of this remote actor", body = ActorConnectionPageResponse)),
+)]
 pub async fn actor_followers_handler(
     Deps(d): Deps<FederationActorsDeps>,
     Path(handle): Path<String>,
@@ -81,6 +97,14 @@ pub async fn actor_followers_handler(
     actor_connections_handler(d, handle, "followers", q.page() as u32).await
 }
 
+#[utoipa::path(
+    get, path = "/federation/actors/{handle}/following-list",
+    params(
+        ("handle" = String, Path, description = "Fediverse handle (@user@instance.tld)"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Accounts this remote actor follows", body = ActorConnectionPageResponse)),
+)]
 pub async fn actor_following_handler(
     Deps(d): Deps<FederationActorsDeps>,
     Path(handle): Path<String>,
