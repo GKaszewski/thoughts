@@ -4,8 +4,8 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 use k_ap::{
-    ApUser, ApUserRepository, BlockedDomain, FederationRepository, Follower, FollowerStatus,
-    FollowingStatus, RemoteActor,
+    ActivityRepository, ActorRepository, ApActorType, ApUser, ApUserRepository, BlockedDomain,
+    BlocklistRepository, Follower, FollowerStatus, FollowingStatus, FollowRepository, RemoteActor,
 };
 
 // ── PostgresFederationRepository ─────────────────────────────────────────────
@@ -55,8 +55,37 @@ fn map_remote_actor(
     }
 }
 
+// ── ActivityRepository ────────────────────────────────────────────────────────
+
 #[async_trait]
-impl FederationRepository for PostgresFederationRepository {
+impl ActivityRepository for PostgresFederationRepository {
+    async fn is_activity_processed(&self, activity_id: &str) -> Result<bool> {
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM federation_processed_activities WHERE activity_id=$1",
+        )
+        .bind(activity_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
+        Ok(n > 0)
+    }
+
+    async fn mark_activity_processed(&self, activity_id: &str) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO federation_processed_activities(activity_id) VALUES($1) ON CONFLICT DO NOTHING",
+        )
+        .bind(activity_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
+    }
+}
+
+// ── FollowRepository ──────────────────────────────────────────────────────────
+
+#[async_trait]
+impl FollowRepository for PostgresFederationRepository {
     async fn add_follower(
         &self,
         local_user_id: uuid::Uuid,
@@ -68,10 +97,16 @@ impl FederationRepository for PostgresFederationRepository {
             "INSERT INTO federation_followers(local_user_id,remote_actor_url,status,follow_activity_id)
              VALUES($1,$2,$3,$4)
              ON CONFLICT(local_user_id,remote_actor_url) DO UPDATE
-             SET status=EXCLUDED.status, follow_activity_id=EXCLUDED.follow_activity_id"
+             SET status=EXCLUDED.status, follow_activity_id=EXCLUDED.follow_activity_id",
         )
-        .bind(local_user_id).bind(remote_actor_url).bind(status_str(&status)).bind(follow_activity_id)
-        .execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .bind(status_str(&status))
+        .bind(follow_activity_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn get_follower_follow_activity_id(
@@ -80,8 +115,13 @@ impl FederationRepository for PostgresFederationRepository {
         remote_actor_url: &str,
     ) -> Result<Option<String>> {
         sqlx::query_scalar::<_, String>(
-            "SELECT follow_activity_id FROM federation_followers WHERE local_user_id=$1 AND remote_actor_url=$2"
-        ).bind(local_user_id).bind(remote_actor_url).fetch_optional(&self.pool).await.map_err(|e| anyhow!(e))
+            "SELECT follow_activity_id FROM federation_followers WHERE local_user_id=$1 AND remote_actor_url=$2",
+        )
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn remove_follower(
@@ -117,11 +157,28 @@ impl FederationRepository for PostgresFederationRepository {
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
-             WHERE f.local_user_id=$1 AND f.status='accepted'"
-        ).bind(local_user_id).fetch_all(&self.pool).await.map_err(|e| anyhow!(e)).map(|rows| rows.into_iter().map(|r| Follower {
-            actor: map_remote_actor(r.remote_actor_url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url),
-            status: str_status(&r.status),
-        }).collect())
+             WHERE f.local_user_id=$1 AND f.status='accepted'",
+        )
+        .bind(local_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| Follower {
+                    actor: map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    ),
+                    status: str_status(&r.status),
+                })
+                .collect()
+        })
     }
 
     async fn get_followers_page(
@@ -147,18 +204,124 @@ impl FederationRepository for PostgresFederationRepository {
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'
-             ORDER BY f.created_at DESC LIMIT $2 OFFSET $3"
-        ).bind(local_user_id).bind(limit as i64).bind(offset as i64).fetch_all(&self.pool).await.map_err(|e| anyhow!(e)).map(|rows| rows.into_iter().map(|r| Follower {
-            actor: map_remote_actor(r.remote_actor_url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url),
-            status: str_status(&r.status),
-        }).collect())
+             ORDER BY f.created_at DESC LIMIT $2 OFFSET $3",
+        )
+        .bind(local_user_id)
+        .bind(limit as i64)
+        .bind(offset as i64)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| Follower {
+                    actor: map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    ),
+                    status: str_status(&r.status),
+                })
+                .collect()
+        })
     }
 
     async fn count_followers(&self, local_user_id: uuid::Uuid) -> Result<usize> {
         let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_followers WHERE local_user_id=$1 AND status='accepted'"
-        ).bind(local_user_id).fetch_one(&self.pool).await.map_err(|e| anyhow!(e))?;
+            "SELECT COUNT(*) FROM federation_followers WHERE local_user_id=$1 AND status='accepted'",
+        )
+        .bind(local_user_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
         Ok(n as usize)
+    }
+
+    async fn count_accepted_followers(&self, local_user_id: uuid::Uuid) -> Result<usize> {
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM federation_followers WHERE local_user_id=$1 AND status='accepted'",
+        )
+        .bind(local_user_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
+        Ok(n as usize)
+    }
+
+    async fn get_accepted_followers_page(
+        &self,
+        local_user_id: uuid::Uuid,
+        offset: u32,
+        limit: usize,
+    ) -> Result<Vec<RemoteActor>> {
+        #[derive(sqlx::FromRow)]
+        struct Row {
+            remote_actor_url: String,
+            handle: String,
+            inbox_url: String,
+            shared_inbox_url: Option<String>,
+            display_name: Option<String>,
+            avatar_url: Option<String>,
+            outbox_url: Option<String>,
+        }
+        sqlx::query_as::<_, Row>(
+            "SELECT f.remote_actor_url, COALESCE(r.handle,'') AS handle,
+             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+             FROM federation_followers f
+             LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
+             WHERE f.local_user_id=$1 AND f.status='accepted'
+             ORDER BY f.created_at DESC LIMIT $2 OFFSET $3",
+        )
+        .bind(local_user_id)
+        .bind(limit as i64)
+        .bind(offset as i64)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| {
+                    map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    )
+                })
+                .collect()
+        })
+    }
+
+    async fn get_accepted_follower_inboxes(
+        &self,
+        local_user_id: uuid::Uuid,
+    ) -> Result<Vec<String>> {
+        let rows: Vec<String> = sqlx::query_scalar(
+            "SELECT DISTINCT COALESCE(r.shared_inbox_url, r.inbox_url)
+             FROM federation_followers f
+             JOIN remote_actors r ON r.url = f.remote_actor_url
+             WHERE f.local_user_id = $1
+               AND f.status = 'accepted'
+               AND f.remote_actor_url NOT IN (
+                   SELECT actor_url FROM federation_blocked_actors WHERE local_user_id = $1
+               )
+               AND SUBSTRING(f.remote_actor_url FROM 'https?://([^/]+)')
+                   NOT IN (SELECT domain FROM federation_blocked_domains)
+               AND COALESCE(r.shared_inbox_url, r.inbox_url) IS NOT NULL
+               AND COALESCE(r.shared_inbox_url, r.inbox_url) <> ''",
+        )
+        .bind(local_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
+        Ok(rows)
     }
 
     async fn get_pending_followers(&self, local_user_id: uuid::Uuid) -> Result<Vec<RemoteActor>> {
@@ -177,10 +340,27 @@ impl FederationRepository for PostgresFederationRepository {
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
-             WHERE f.local_user_id=$1 AND f.status='pending'"
-        ).bind(local_user_id).fetch_all(&self.pool).await.map_err(|e| anyhow!(e)).map(|rows| rows.into_iter().map(|r|
-            map_remote_actor(r.remote_actor_url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url)
-        ).collect())
+             WHERE f.local_user_id=$1 AND f.status='pending'",
+        )
+        .bind(local_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| {
+                    map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    )
+                })
+                .collect()
+        })
     }
 
     async fn update_follower_status(
@@ -189,9 +369,16 @@ impl FederationRepository for PostgresFederationRepository {
         remote_actor_url: &str,
         status: FollowerStatus,
     ) -> Result<()> {
-        sqlx::query("UPDATE federation_followers SET status=$3 WHERE local_user_id=$1 AND remote_actor_url=$2")
-            .bind(local_user_id).bind(remote_actor_url).bind(status_str(&status))
-            .execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+        sqlx::query(
+            "UPDATE federation_followers SET status=$3 WHERE local_user_id=$1 AND remote_actor_url=$2",
+        )
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .bind(status_str(&status))
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn add_following(
@@ -205,10 +392,16 @@ impl FederationRepository for PostgresFederationRepository {
             "INSERT INTO federation_following(local_user_id,remote_actor_url,follow_activity_id,outbox_url)
              VALUES($1,$2,$3,$4)
              ON CONFLICT(local_user_id,remote_actor_url) DO UPDATE
-             SET follow_activity_id=EXCLUDED.follow_activity_id"
+             SET follow_activity_id=EXCLUDED.follow_activity_id",
         )
-        .bind(local_user_id).bind(&actor.url).bind(follow_activity_id).bind(&actor.outbox_url)
-        .execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+        .bind(local_user_id)
+        .bind(&actor.url)
+        .bind(follow_activity_id)
+        .bind(&actor.outbox_url)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn get_follow_activity_id(
@@ -217,8 +410,13 @@ impl FederationRepository for PostgresFederationRepository {
         remote_actor_url: &str,
     ) -> Result<Option<String>> {
         sqlx::query_scalar::<_, String>(
-            "SELECT follow_activity_id FROM federation_following WHERE local_user_id=$1 AND remote_actor_url=$2"
-        ).bind(local_user_id).bind(remote_actor_url).fetch_optional(&self.pool).await.map_err(|e| anyhow!(e))
+            "SELECT follow_activity_id FROM federation_following WHERE local_user_id=$1 AND remote_actor_url=$2",
+        )
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn remove_following(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<()> {
@@ -249,10 +447,27 @@ impl FederationRepository for PostgresFederationRepository {
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
-             WHERE f.local_user_id=$1"
-        ).bind(local_user_id).fetch_all(&self.pool).await.map_err(|e| anyhow!(e)).map(|rows| rows.into_iter().map(|r|
-            map_remote_actor(r.remote_actor_url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url)
-        ).collect())
+             WHERE f.local_user_id=$1",
+        )
+        .bind(local_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| {
+                    map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    )
+                })
+                .collect()
+        })
     }
 
     async fn get_following_page(
@@ -276,20 +491,40 @@ impl FederationRepository for PostgresFederationRepository {
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
-             WHERE f.local_user_id=$1 AND f.status='accepted'
-             ORDER BY f.created_at DESC LIMIT $2 OFFSET $3"
-        ).bind(local_user_id).bind(limit as i64).bind(offset as i64).fetch_all(&self.pool).await.map_err(|e| anyhow!(e)).map(|rows| rows.into_iter().map(|r|
-            map_remote_actor(r.remote_actor_url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url)
-        ).collect())
+             WHERE f.local_user_id=$1
+             ORDER BY f.created_at DESC LIMIT $2 OFFSET $3",
+        )
+        .bind(local_user_id)
+        .bind(limit as i64)
+        .bind(offset as i64)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|rows| {
+            rows.into_iter()
+                .map(|r| {
+                    map_remote_actor(
+                        r.remote_actor_url,
+                        r.handle,
+                        r.inbox_url,
+                        r.shared_inbox_url,
+                        r.display_name,
+                        r.avatar_url,
+                        r.outbox_url,
+                    )
+                })
+                .collect()
+        })
     }
 
     async fn count_following(&self, local_user_id: uuid::Uuid) -> Result<usize> {
-        let n: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM federation_following WHERE local_user_id=$1 AND status='accepted'")
-                .bind(local_user_id)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| anyhow!(e))?;
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM federation_following WHERE local_user_id=$1",
+        )
+        .bind(local_user_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
         Ok(n as usize)
     }
 
@@ -308,42 +543,51 @@ impl FederationRepository for PostgresFederationRepository {
         remote_actor_url: &str,
     ) -> Result<Option<String>> {
         sqlx::query_scalar::<_, String>(
-            "SELECT outbox_url FROM federation_following WHERE local_user_id=$1 AND remote_actor_url=$2"
-        ).bind(local_user_id).bind(remote_actor_url).fetch_optional(&self.pool).await.map_err(|e| anyhow!(e))
-    }
-
-    async fn upsert_remote_actor(&self, actor: RemoteActor) -> Result<()> {
-        sqlx::query(
-            "INSERT INTO remote_actors(url,handle,display_name,inbox_url,shared_inbox_url,public_key,avatar_url,outbox_url,last_fetched_at)
-             VALUES($1,$2,$3,$4,$5,'',$6,$7,NOW())
-             ON CONFLICT(url) DO UPDATE SET handle=EXCLUDED.handle,display_name=EXCLUDED.display_name,
-             inbox_url=EXCLUDED.inbox_url,shared_inbox_url=EXCLUDED.shared_inbox_url,
-             avatar_url=EXCLUDED.avatar_url,outbox_url=EXCLUDED.outbox_url,last_fetched_at=NOW()"
+            "SELECT outbox_url FROM federation_following WHERE local_user_id=$1 AND remote_actor_url=$2",
         )
-        .bind(&actor.url).bind(&actor.handle).bind(&actor.display_name)
-        .bind(&actor.inbox_url).bind(&actor.shared_inbox_url)
-        .bind(&actor.avatar_url).bind(&actor.outbox_url)
-        .execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
-    async fn get_remote_actor(&self, actor_url: &str) -> Result<Option<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT url,handle,inbox_url,shared_inbox_url,display_name,avatar_url,outbox_url FROM remote_actors WHERE url=$1"
-        ).bind(actor_url).fetch_optional(&self.pool).await.map_err(|e| anyhow!(e)).map(|o| o.map(|r|
-            map_remote_actor(r.url, r.handle, r.inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url)
-        ))
-    }
+    async fn migrate_follower_actor(
+        &self,
+        old_actor_url: &str,
+        new_actor_url: &str,
+    ) -> Result<Vec<uuid::Uuid>> {
+        let mut tx = self.pool.begin().await.map_err(|e| anyhow!(e))?;
 
+        let affected: Vec<uuid::Uuid> = sqlx::query_scalar(
+            "INSERT INTO federation_following(local_user_id, remote_actor_url, follow_activity_id, outbox_url)
+             SELECT local_user_id, $2, follow_activity_id, outbox_url
+             FROM federation_following
+             WHERE remote_actor_url = $1
+             ON CONFLICT (local_user_id, remote_actor_url) DO NOTHING
+             RETURNING local_user_id",
+        )
+        .bind(old_actor_url)
+        .bind(new_actor_url)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(|e| anyhow!(e))?;
+
+        sqlx::query("DELETE FROM federation_following WHERE remote_actor_url = $1")
+            .bind(old_actor_url)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| anyhow!(e))?;
+
+        tx.commit().await.map_err(|e| anyhow!(e))?;
+        Ok(affected)
+    }
+}
+
+// ── ActorRepository ───────────────────────────────────────────────────────────
+
+#[async_trait]
+impl ActorRepository for PostgresFederationRepository {
     async fn get_local_actor_keypair(
         &self,
         user_id: uuid::Uuid,
@@ -372,14 +616,70 @@ impl FederationRepository for PostgresFederationRepository {
         public_key: String,
         private_key: String,
     ) -> Result<()> {
-        sqlx::query("UPDATE users SET public_key=$2, private_key=$3, updated_at=NOW() WHERE id=$1")
-            .bind(user_id)
-            .bind(&public_key)
-            .bind(&private_key)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| anyhow!(e))
-            .map(|_| ())
+        sqlx::query(
+            "UPDATE users SET public_key=$2, private_key=$3, updated_at=NOW() WHERE id=$1",
+        )
+        .bind(user_id)
+        .bind(&public_key)
+        .bind(&private_key)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
+    }
+
+    async fn upsert_remote_actor(&self, actor: RemoteActor) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO remote_actors(url,handle,display_name,inbox_url,shared_inbox_url,public_key,avatar_url,outbox_url,last_fetched_at)
+             VALUES($1,$2,$3,$4,$5,'',$6,$7,NOW())
+             ON CONFLICT(url) DO UPDATE SET handle=EXCLUDED.handle,display_name=EXCLUDED.display_name,
+             inbox_url=EXCLUDED.inbox_url,shared_inbox_url=EXCLUDED.shared_inbox_url,
+             avatar_url=EXCLUDED.avatar_url,outbox_url=EXCLUDED.outbox_url,last_fetched_at=NOW()",
+        )
+        .bind(&actor.url)
+        .bind(&actor.handle)
+        .bind(&actor.display_name)
+        .bind(&actor.inbox_url)
+        .bind(&actor.shared_inbox_url)
+        .bind(&actor.avatar_url)
+        .bind(&actor.outbox_url)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
+    }
+
+    async fn get_remote_actor(&self, actor_url: &str) -> Result<Option<RemoteActor>> {
+        #[derive(sqlx::FromRow)]
+        struct Row {
+            url: String,
+            handle: String,
+            inbox_url: String,
+            shared_inbox_url: Option<String>,
+            display_name: Option<String>,
+            avatar_url: Option<String>,
+            outbox_url: Option<String>,
+        }
+        sqlx::query_as::<_, Row>(
+            "SELECT url,handle,inbox_url,shared_inbox_url,display_name,avatar_url,outbox_url FROM remote_actors WHERE url=$1",
+        )
+        .bind(actor_url)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|o| {
+            o.map(|r| {
+                map_remote_actor(
+                    r.url,
+                    r.handle,
+                    r.inbox_url,
+                    r.shared_inbox_url,
+                    r.display_name,
+                    r.avatar_url,
+                    r.outbox_url,
+                )
+            })
+        })
     }
 
     async fn add_announce(
@@ -403,20 +703,44 @@ impl FederationRepository for PostgresFederationRepository {
         .map(|_| ())
     }
 
-    async fn count_announces(&self, object_url: &str) -> Result<usize> {
-        let n: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM federation_announces WHERE object_url=$1")
-                .bind(object_url)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| anyhow!(e))?;
-        Ok(n as usize)
+    async fn remove_announce(&self, activity_id: &str, actor_url: &str) -> Result<()> {
+        sqlx::query(
+            "DELETE FROM federation_announces WHERE activity_id=$1 AND actor_url=$2",
+        )
+        .bind(activity_id)
+        .bind(actor_url)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
+    async fn count_announces(&self, object_url: &str) -> Result<usize> {
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM federation_announces WHERE object_url=$1",
+        )
+        .bind(object_url)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
+        Ok(n as usize)
+    }
+}
+
+// ── BlocklistRepository ───────────────────────────────────────────────────────
+
+#[async_trait]
+impl BlocklistRepository for PostgresFederationRepository {
     async fn add_blocked_domain(&self, domain: &str, reason: Option<&str>) -> Result<()> {
         sqlx::query(
-            "INSERT INTO federation_blocked_domains(domain,reason) VALUES($1,$2) ON CONFLICT(domain) DO NOTHING"
-        ).bind(domain).bind(reason).execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+            "INSERT INTO federation_blocked_domains(domain,reason) VALUES($1,$2) ON CONFLICT(domain) DO NOTHING",
+        )
+        .bind(domain)
+        .bind(reason)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn remove_blocked_domain(&self, domain: &str) -> Result<()> {
@@ -453,77 +777,64 @@ impl FederationRepository for PostgresFederationRepository {
     }
 
     async fn is_domain_blocked(&self, domain: &str) -> Result<bool> {
-        let n: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM federation_blocked_domains WHERE domain=$1")
-                .bind(domain)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| anyhow!(e))?;
+        let n: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM federation_blocked_domains WHERE domain=$1",
+        )
+        .bind(domain)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))?;
         Ok(n > 0)
     }
 
     async fn add_blocked_actor(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<()> {
         sqlx::query(
-            "INSERT INTO federation_blocked_actors(local_user_id,actor_url) VALUES($1,$2) ON CONFLICT DO NOTHING"
-        ).bind(local_user_id).bind(actor_url).execute(&self.pool).await.map_err(|e| anyhow!(e)).map(|_| ())
+            "INSERT INTO federation_blocked_actors(local_user_id,actor_url) VALUES($1,$2) ON CONFLICT DO NOTHING",
+        )
+        .bind(local_user_id)
+        .bind(actor_url)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
-    async fn remove_blocked_actor(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<()> {
-        sqlx::query("DELETE FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2")
-            .bind(local_user_id)
-            .bind(actor_url)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| anyhow!(e))
-            .map(|_| ())
+    async fn remove_blocked_actor(
+        &self,
+        local_user_id: uuid::Uuid,
+        actor_url: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            "DELETE FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2",
+        )
+        .bind(local_user_id)
+        .bind(actor_url)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn get_blocked_actors(&self, local_user_id: uuid::Uuid) -> Result<Vec<String>> {
         sqlx::query_scalar::<_, String>(
-            "SELECT actor_url FROM federation_blocked_actors WHERE local_user_id=$1 ORDER BY created_at DESC"
-        ).bind(local_user_id).fetch_all(&self.pool).await.map_err(|e| anyhow!(e))
+            "SELECT actor_url FROM federation_blocked_actors WHERE local_user_id=$1 ORDER BY created_at DESC",
+        )
+        .bind(local_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
     }
 
     async fn is_actor_blocked(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<bool> {
         let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2"
-        ).bind(local_user_id).bind(actor_url).fetch_one(&self.pool).await.map_err(|e| anyhow!(e))?;
-        Ok(n > 0)
-    }
-
-    async fn migrate_follower_actor(
-        &self,
-        old_actor_url: &str,
-        new_actor_url: &str,
-    ) -> Result<Vec<uuid::Uuid>> {
-        let mut tx = self.pool.begin().await.map_err(|e| anyhow!(e))?;
-
-        // Copy rows to the new actor URL, carrying over existing data.
-        // ON CONFLICT DO NOTHING skips users already following the new actor.
-        // RETURNING gives us user IDs that actually need a re-follow.
-        let affected: Vec<uuid::Uuid> = sqlx::query_scalar(
-            "INSERT INTO federation_following(local_user_id, remote_actor_url, follow_activity_id, outbox_url)
-             SELECT local_user_id, $2, follow_activity_id, outbox_url
-             FROM federation_following
-             WHERE remote_actor_url = $1
-             ON CONFLICT (local_user_id, remote_actor_url) DO NOTHING
-             RETURNING local_user_id",
+            "SELECT COUNT(*) FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2",
         )
-        .bind(old_actor_url)
-        .bind(new_actor_url)
-        .fetch_all(&mut *tx)
+        .bind(local_user_id)
+        .bind(actor_url)
+        .fetch_one(&self.pool)
         .await
         .map_err(|e| anyhow!(e))?;
-
-        // Delete the old rows.
-        sqlx::query("DELETE FROM federation_following WHERE remote_actor_url = $1")
-            .bind(old_actor_url)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| anyhow!(e))?;
-
-        tx.commit().await.map_err(|e| anyhow!(e))?;
-        Ok(affected)
+        Ok(n > 0)
     }
 }
 
@@ -543,23 +854,30 @@ impl PostgresApUserRepository {
         &self,
         id: uuid::Uuid,
         username: String,
+        display_name: Option<String>,
         bio: Option<String>,
         avatar_url: Option<String>,
         header_url: Option<String>,
         also_known_as: Option<String>,
     ) -> ApUser {
-        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
+        let profile_url =
+            url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
         let avatar_url = avatar_url.and_then(|u| url::Url::parse(&u).ok());
         let banner_url = header_url.and_then(|u| url::Url::parse(&u).ok());
         ApUser {
             id,
             username,
+            display_name,
             bio,
             avatar_url,
             banner_url,
-            also_known_as,
+            also_known_as: also_known_as.into_iter().collect(),
             profile_url,
             attachment: vec![],
+            manually_approves_followers: false,
+            discoverable: true,
+            actor_type: ApActorType::default(),
+            featured_url: None,
         }
     }
 }
@@ -571,13 +889,14 @@ impl ApUserRepository for PostgresApUserRepository {
         struct Row {
             id: uuid::Uuid,
             username: String,
+            display_name: Option<String>,
             bio: Option<String>,
             avatar_url: Option<String>,
             header_url: Option<String>,
             also_known_as: Option<String>,
         }
         let row = sqlx::query_as::<_, Row>(
-            "SELECT id,username,bio,avatar_url,header_url,also_known_as FROM users WHERE id=$1 AND local=true",
+            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE id=$1 AND local=true",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -587,6 +906,7 @@ impl ApUserRepository for PostgresApUserRepository {
             self.row_to_ap_user(
                 r.id,
                 r.username,
+                r.display_name,
                 r.bio,
                 r.avatar_url,
                 r.header_url,
@@ -600,13 +920,14 @@ impl ApUserRepository for PostgresApUserRepository {
         struct Row {
             id: uuid::Uuid,
             username: String,
+            display_name: Option<String>,
             bio: Option<String>,
             avatar_url: Option<String>,
             header_url: Option<String>,
             also_known_as: Option<String>,
         }
         let row = sqlx::query_as::<_, Row>(
-            "SELECT id,username,bio,avatar_url,header_url,also_known_as FROM users WHERE username=$1 AND local=true",
+            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE username=$1 AND local=true",
         )
         .bind(username)
         .fetch_optional(&self.pool)
@@ -616,6 +937,7 @@ impl ApUserRepository for PostgresApUserRepository {
             self.row_to_ap_user(
                 r.id,
                 r.username,
+                r.display_name,
                 r.bio,
                 r.avatar_url,
                 r.header_url,

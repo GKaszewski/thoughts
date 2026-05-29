@@ -12,7 +12,7 @@ use crate::port::{AcceptNoteInput, ActivityPubRepository};
 use crate::urls::ThoughtsUrls;
 use domain::ports::{EventPublisher, TagRepository};
 use domain::value_objects::UserId;
-use k_ap::ApObjectHandler;
+use k_ap::{ApContentReader, ApObjectHandler};
 
 pub struct ThoughtsObjectHandler {
     repo: Arc<dyn ActivityPubRepository>,
@@ -37,43 +37,10 @@ impl ThoughtsObjectHandler {
     }
 }
 
-#[async_trait]
-impl ApObjectHandler for ThoughtsObjectHandler {
-    async fn get_local_objects_for_user(
-        &self,
-        user_id: uuid::Uuid,
-    ) -> Result<Vec<(Url, serde_json::Value)>> {
-        let uid = UserId::from_uuid(user_id);
-        let entries = self
-            .repo
-            .outbox_entries_for_actor(&uid)
-            .await
-            .map_err(|e| anyhow!("{e}"))?;
-        entries
-            .into_iter()
-            .map(|e| {
-                let note_url = self.urls.thought_url(e.thought.id.as_uuid());
-                let actor_url = self.urls.user_url(&user_id.to_string());
-                let followers = self.urls.user_followers(&user_id.to_string());
-                let in_reply_to = e
-                    .thought
-                    .in_reply_to_id
-                    .map(|id| self.urls.thought_url(id.as_uuid()));
-                let note = ThoughtNote::new_public(ThoughtNoteInput {
-                    id: note_url.clone(),
-                    actor_url,
-                    content: e.thought.content.as_str().to_owned(),
-                    published: e.thought.created_at,
-                    in_reply_to,
-                    sensitive: e.thought.sensitive,
-                    summary: e.thought.content_warning,
-                    followers_url: followers,
-                });
-                Ok((note_url, serde_json::to_value(&note)?))
-            })
-            .collect()
-    }
+// ── ApContentReader ───────────────────────────────────────────────────────────
 
+#[async_trait]
+impl ApContentReader for ThoughtsObjectHandler {
     async fn get_local_objects_page(
         &self,
         user_id: uuid::Uuid,
@@ -112,6 +79,18 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .collect()
     }
 
+    async fn count_local_posts(&self) -> Result<u64> {
+        self.repo
+            .count_local_notes()
+            .await
+            .map_err(|e| anyhow!("{e}"))
+    }
+}
+
+// ── ApObjectHandler ───────────────────────────────────────────────────────────
+
+#[async_trait]
+impl ApObjectHandler for ThoughtsObjectHandler {
     async fn on_create(
         &self,
         ap_id: &Url,
@@ -128,7 +107,6 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .await
             .map_err(|e| anyhow!("{e}"))?;
 
-        // Derive visibility from AP addressing conventions.
         let as_public = "https://www.w3.org/ns/activitystreams#Public";
         let in_to = note.to.iter().any(|s| s == as_public);
         let in_cc = note.cc.iter().any(|s| s == as_public);
@@ -161,7 +139,6 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .await
             .map_err(|e| anyhow!("{e}"))?;
 
-        // Extract and index hashtags from the AP tag array.
         let hashtag_names: Vec<String> = note
             .tag
             .iter()
@@ -177,7 +154,6 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             }
         }
 
-        // Fire mention notifications for local @mentions in the note's tag array.
         let base_url = url::Url::parse(&self.urls.base_url)
             .ok()
             .and_then(|u| u.host_str().map(|h| h.to_string()))
@@ -408,10 +384,7 @@ impl ApObjectHandler for ThoughtsObjectHandler {
         Ok(())
     }
 
-    async fn count_local_posts(&self) -> Result<u64> {
-        self.repo
-            .count_local_notes()
-            .await
-            .map_err(|e| anyhow!("{e}"))
+    async fn on_announce_of_remote(&self, _object_url: &Url, _actor_url: &Url) -> Result<()> {
+        Ok(())
     }
 }

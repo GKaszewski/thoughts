@@ -8,23 +8,25 @@ name = "thoughts-worker"
 path = "src/main.rs"
 
 [dependencies]
-domain              = { workspace = true }
-application         = { workspace = true }
-nats                = { workspace = true }
-event-transport     = { workspace = true }
-event-payload       = { workspace = true }
-k-ap = { git = "https://git.gabrielkaszewski.dev/GKaszewski/k-ap.git", tag = "v0.1.10" }
-activitypub         = { workspace = true }
-postgres            = { workspace = true }
+domain = { workspace = true }
+application = { workspace = true }
+nats = { workspace = true }
+event-transport = { workspace = true }
+event-payload = { workspace = true }
+k-ap = { version = "0.3.0", registry = "gitea" }
+activitypub = { workspace = true }
+postgres = { workspace = true }
 postgres-federation = { workspace = true }
-async-nats          = { workspace = true }
-tokio               = { workspace = true, features = ["full"] }
-futures             = { workspace = true }
-tracing             = { workspace = true }
-tracing-subscriber  = { workspace = true }
-dotenvy             = { workspace = true }
-serde_json          = { workspace = true }
-sqlx                = { workspace = true }
+async-nats = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenvy = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
 
 [dev-dependencies]
 domain = { workspace = true, features = ["test-helpers"] }

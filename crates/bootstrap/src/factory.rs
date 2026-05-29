@@ -15,8 +15,8 @@ use domain::{
     events::DomainEvent,
     ports::{EventPublisher, OutboxWriter},
 };
-use event_transport::EventPublisherAdapter;
-use k_ap::ActivityPubService;
+use event_transport::{EventPublisherAdapter, Transport};
+use k_ap::{ActivityPubService, FederationEvent};
 use nats::NatsTransport;
 use postgres::activitypub::PgActivityPubRepository;
 use postgres::engagement::PgEngagementRepository;
@@ -42,6 +42,39 @@ impl EventPublisher for NoOpEventPublisher {
     }
 }
 
+struct KapPublisher(NatsTransport);
+
+#[async_trait]
+impl k_ap::data::EventPublisher for KapPublisher {
+    async fn publish(&self, event: FederationEvent) -> anyhow::Result<()> {
+        let (subject, payload) = match event {
+            FederationEvent::DeliveryRequested { inbox, activity, signing_actor_id } => (
+                "federation.delivery.requested",
+                serde_json::to_vec(&event_payload::EventPayload::FederationDeliveryRequested {
+                    inbox: inbox.to_string(),
+                    activity,
+                    signing_actor_id: signing_actor_id.to_string(),
+                })?,
+            ),
+            FederationEvent::BackfillRequested { owner_user_id, follower_inbox_url } => (
+                "federation.backfill.requested",
+                serde_json::to_vec(&event_payload::EventPayload::FederationBackfillRequested {
+                    owner_user_id: owner_user_id.to_string(),
+                    follower_inbox_url,
+                })?,
+            ),
+            FederationEvent::DeliveryFailed { inbox, error, .. } => {
+                tracing::warn!(%inbox, %error, "AP delivery failed permanently");
+                return Ok(());
+            }
+        };
+        self.0
+            .publish_bytes(subject, &payload)
+            .await
+            .map_err(|e| anyhow::anyhow!(e))
+    }
+}
+
 pub async fn build(cfg: &Config) -> Infrastructure {
     // 1. Database connection + migrations
     let pool = PgPool::connect(&cfg.database_url)
@@ -54,49 +87,64 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     tracing::info!("Database connected and migrations applied");
 
     // 2. Event publisher — real NATS or no-op fallback
-    let event_publisher: Arc<dyn EventPublisher> = match &cfg.nats_url {
+    let nats_client: Option<async_nats::Client> = match &cfg.nats_url {
         Some(url) => match async_nats::connect(url).await {
             Ok(client) => {
                 tracing::info!("Connected to NATS at {url}");
                 if let Err(e) = nats::ensure_stream(&client).await {
                     tracing::warn!("JetStream stream setup failed: {e} — events may be lost");
                 }
-                Arc::new(EventPublisherAdapter::new(NatsTransport::new(client)))
+                Some(client)
             }
             Err(e) => {
                 tracing::warn!("NATS connect failed ({e}) — falling back to no-op publisher");
-                Arc::new(NoOpEventPublisher)
+                None
             }
         },
         None => {
             tracing::info!("NATS_URL not set — using no-op event publisher");
-            Arc::new(NoOpEventPublisher)
+            None
         }
     };
+    let event_publisher: Arc<dyn EventPublisher> = match &nats_client {
+        Some(client) => Arc::new(EventPublisherAdapter::new(NatsTransport::new(client.clone()))),
+        None => Arc::new(NoOpEventPublisher),
+    };
+    let kap_publisher: Option<Arc<dyn k_ap::data::EventPublisher>> = nats_client
+        .as_ref()
+        .map(|c| Arc::new(KapPublisher(NatsTransport::new(c.clone()))) as _);
 
     // 3. ActivityPub federation
     let connections_repo = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
-    let raw_ap_service = Arc::new(
-        ActivityPubService::builder(
-            Arc::new(PostgresFederationRepository::new(pool.clone())),
-            Arc::new(PostgresApUserRepository::new(
-                pool.clone(),
-                cfg.base_url.clone(),
-            )),
-            Arc::new(ThoughtsObjectHandler::new(
-                Arc::new(PgActivityPubRepository::new(pool.clone())),
-                &cfg.base_url,
-                Some(event_publisher.clone()),
-                Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
-            )),
+    let fed_repo = Arc::new(PostgresFederationRepository::new(pool.clone()));
+    let ap_handler = Arc::new(ThoughtsObjectHandler::new(
+        Arc::new(PgActivityPubRepository::new(pool.clone())),
+        &cfg.base_url,
+        Some(event_publisher.clone()),
+        Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
+    ));
+    let mut ap_builder = ActivityPubService::builder(cfg.base_url.clone())
+        .activity_repo(fed_repo.clone())
+        .follow_repo(fed_repo.clone())
+        .actor_repo(fed_repo.clone())
+        .blocklist_repo(fed_repo.clone())
+        .user_repo(Arc::new(PostgresApUserRepository::new(
+            pool.clone(),
             cfg.base_url.clone(),
-        )
+        )))
+        .content_reader(ap_handler.clone())
+        .object_handler(ap_handler)
         .allow_registration(cfg.allow_registration)
         .software_name("thoughts")
-        .debug(cfg.debug)
-        .build()
-        .await
-        .expect("Failed to build ActivityPubService"),
+        .debug(cfg.debug);
+    if let Some(publisher) = kap_publisher {
+        ap_builder = ap_builder.event_publisher(publisher);
+    }
+    let raw_ap_service = Arc::new(
+        ap_builder
+            .build()
+            .await
+            .expect("Failed to build ActivityPubService"),
     );
     let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo));
 

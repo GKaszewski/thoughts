@@ -88,6 +88,15 @@ pub enum EventPayload {
         mentioned_user_id: String,
         author_user_id: String,
     },
+    FederationDeliveryRequested {
+        inbox: String,
+        activity: serde_json::Value,
+        signing_actor_id: String,
+    },
+    FederationBackfillRequested {
+        owner_user_id: String,
+        follower_inbox_url: String,
+    },
 }
 
 impl EventPayload {
@@ -113,6 +122,8 @@ impl EventPayload {
             Self::RemoteFollowRejected { .. } => "federation.follow.rejected",
             Self::ActorMoved { .. } => "federation.actor.moved",
             Self::MentionReceived { .. } => "mentions.received",
+            Self::FederationDeliveryRequested { .. } => "federation.delivery.requested",
+            Self::FederationBackfillRequested { .. } => "federation.backfill.requested",
         }
     }
 }
@@ -409,6 +420,12 @@ impl TryFrom<EventPayload> for DomainEvent {
                 )?),
                 author_user_id: UserId::from_uuid(parse_uuid(&author_user_id, "author_user_id")?),
             },
+            EventPayload::FederationDeliveryRequested { .. }
+            | EventPayload::FederationBackfillRequested { .. } => {
+                return Err(DomainError::Internal(
+                    "federation infrastructure event — not a domain event".into(),
+                ));
+            }
         })
     }
 }

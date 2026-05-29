@@ -97,6 +97,17 @@ fn build_note_json(
     note
 }
 
+fn thought_to_ap_visibility(
+    v: &domain::models::thought::Visibility,
+) -> k_ap::ApVisibility {
+    match v {
+        domain::models::thought::Visibility::Public => k_ap::ApVisibility::Public,
+        domain::models::thought::Visibility::Unlisted => k_ap::ApVisibility::Public,
+        domain::models::thought::Visibility::Followers => k_ap::ApVisibility::FollowersOnly,
+        domain::models::thought::Visibility::Direct => k_ap::ApVisibility::Private,
+    }
+}
+
 fn k_ap_actor_to_domain(a: k_ap::RemoteActor) -> DomainRemoteActor {
     DomainRemoteActor {
         url: a.url,
@@ -264,7 +275,12 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
             in_reply_to_url,
         );
         self.inner
-            .broadcast_create_note(user_uuid, note)
+            .broadcast_create_note(
+                user_uuid,
+                note,
+                thought_to_ap_visibility(&thought.visibility),
+                vec![],
+            )
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))
     }
@@ -300,7 +316,12 @@ impl crate::port::OutboundFederationPort for ApFederationAdapter {
             in_reply_to_url,
         );
         self.inner
-            .broadcast_update_note(user_uuid, note)
+            .broadcast_update_note(
+                user_uuid,
+                note,
+                thought_to_ap_visibility(&thought.visibility),
+                vec![],
+            )
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))
     }
@@ -384,7 +405,7 @@ impl FederationSchedulerPort for ApFederationAdapter {
         let actor = actor_ap_url.to_string();
         let outbox = outbox_url.to_string();
         tokio::spawn(async move {
-            if let Err(e) = service.backfill_outbox(&outbox, &actor).await {
+            if let Err(e) = service.import_remote_outbox(&outbox, &actor).await {
                 tracing::warn!(actor = %actor, error = %e, "posts backfill failed");
             }
         });
@@ -517,7 +538,7 @@ impl FederationLookupPort for ApFederationAdapter {
             last_fetched_at: chrono::Utc::now(),
             bio: actor.bio,
             banner_url: actor.banner_url.as_ref().map(|u| u.to_string()),
-            also_known_as: actor.also_known_as,
+            also_known_as: actor.also_known_as.into_iter().next(),
             followers_url: actor.followers_url.as_ref().map(|u| u.to_string()),
             following_url: actor.following_url.as_ref().map(|u| u.to_string()),
             attachment: actor

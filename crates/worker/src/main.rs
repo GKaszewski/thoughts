@@ -3,9 +3,13 @@ mod factory;
 mod handlers;
 mod outbox_relay;
 
-use domain::ports::EventConsumer;
+use domain::{errors::DomainError, events::DomainEvent};
+use event_payload::EventPayload;
+use event_transport::MessageSource;
 use futures::StreamExt;
 use nats::CONSUMER_MAX_DELIVER;
+use url::Url;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() {
@@ -21,13 +25,11 @@ async fn main() {
     tracing::info!("Building worker...");
     let infra = factory::build(&database_url, &base_url, &nats_url).await;
 
-    // Spawn DLQ processor as a background task.
     tokio::spawn(dlq::run_dlq_processor(
         infra.dlq_store.clone(),
         infra.event_publisher.clone(),
     ));
 
-    // Spawn outbox relay — polls DB for undelivered events and publishes them.
     tokio::spawn(
         outbox_relay::OutboxRelay {
             pool: infra.pool.clone(),
@@ -38,71 +40,123 @@ async fn main() {
     );
 
     tracing::info!("Worker started, consuming events...");
-    let mut stream = infra.consumer.consume();
+    let mut stream = infra.message_source.messages();
     while let Some(result) = stream.next().await {
         match result {
-            Ok(envelope) => {
-                let event = &envelope.event;
-                let event_type = event_payload::EventPayload::from(event).subject();
-                tracing::info!(
-                    event_type,
-                    delivery = envelope.delivery_count,
-                    "received event"
-                );
-
-                let n = infra.handlers.notification.handle(event).await;
-                let f = infra.handlers.federation.handle(event).await;
-                let fm = infra.handlers.federation_management.handle(event).await;
-
-                if n.is_ok() && f.is_ok() && fm.is_ok() {
-                    (envelope.ack)();
-                    tracing::info!(event_type, "event handled ok");
-                } else {
-                    if let Err(e) = &n {
-                        tracing::error!("notification handler: {e}");
+            Err(e) => tracing::error!("consumer error: {e}"),
+            Ok(raw) => {
+                let payload = match serde_json::from_slice::<EventPayload>(&raw.payload) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        tracing::warn!("failed to deserialize event payload — acking: {e}");
+                        (raw.ack)();
+                        continue;
                     }
-                    if let Err(e) = &f {
-                        tracing::error!("federation handler: {e}");
-                    }
-                    if let Err(e) = &fm {
-                        tracing::error!("federation management handler: {e}");
-                    }
+                };
 
-                    // Last delivery attempt -> move to DLQ then ack.
-                    // Earlier attempts -> nack so NATS retries.
-                    if envelope.delivery_count >= CONSUMER_MAX_DELIVER as u64 {
-                        let error_msg = n
-                            .err()
-                            .or(f.err())
-                            .or(fm.err())
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "unknown error".into());
+                let event_type = payload.subject();
+                tracing::info!(event_type, delivery = raw.delivery_count, "received event");
 
-                        // Serialize event back to payload for storage.
-                        let ep = event_payload::EventPayload::from(event);
-                        let event_type = ep.subject().to_string();
-                        let payload = serde_json::to_value(&ep).unwrap_or(serde_json::Value::Null);
-
-                        if let Err(e) = infra
-                            .dlq_store
-                            .insert(&event_type, &payload, &error_msg)
-                            .await
-                        {
-                            tracing::error!("DLQ insert failed: {e} — message lost");
-                        } else {
-                            tracing::warn!(
-                                event_type,
-                                delivery_count = envelope.delivery_count,
-                                "event exhausted — moved to DLQ"
-                            );
+                let outcome: Result<(), DomainError> = match payload {
+                    // ── k-ap federation events ────────────────────────────
+                    EventPayload::FederationDeliveryRequested {
+                        inbox,
+                        activity,
+                        signing_actor_id,
+                    } => {
+                        let result = async {
+                            let inbox_url = Url::parse(&inbox)
+                                .map_err(|e| DomainError::Internal(e.to_string()))?;
+                            let actor_id = Uuid::parse_str(&signing_actor_id)
+                                .map_err(|e| DomainError::Internal(e.to_string()))?;
+                            infra
+                                .raw_ap_service
+                                .deliver_to_inbox(inbox_url, activity, actor_id)
+                                .await
+                                .map_err(|e| DomainError::Internal(e.to_string()))
                         }
-                        (envelope.ack)(); // ack from NATS — DLQ owns it now
-                    } else {
-                        (envelope.nack)();
+                        .await;
+                        result
+                    }
+                    EventPayload::FederationBackfillRequested {
+                        owner_user_id,
+                        follower_inbox_url,
+                    } => {
+                        let result = async {
+                            let owner_id = Uuid::parse_str(&owner_user_id)
+                                .map_err(|e| DomainError::Internal(e.to_string()))?;
+                            infra
+                                .raw_ap_service
+                                .run_backfill_for_follower(owner_id, follower_inbox_url)
+                                .await
+                                .map_err(|e| DomainError::Internal(e.to_string()))
+                        }
+                        .await;
+                        result
+                    }
+
+                    // ── domain events ──────────────────────────────────────
+                    p => match DomainEvent::try_from(p) {
+                        Err(e) => {
+                            tracing::warn!("unknown event type — acking: {e}");
+                            (raw.ack)();
+                            continue;
+                        }
+                        Ok(event) => {
+                            let n = infra.handlers.notification.handle(&event).await;
+                            let f = infra.handlers.federation.handle(&event).await;
+                            let fm = infra.handlers.federation_management.handle(&event).await;
+                            match (n, f, fm) {
+                                (Ok(()), Ok(()), Ok(())) => Ok(()),
+                                (n, f, fm) => {
+                                    if let Err(e) = &n {
+                                        tracing::error!("notification handler: {e}");
+                                    }
+                                    if let Err(e) = &f {
+                                        tracing::error!("federation handler: {e}");
+                                    }
+                                    if let Err(e) = &fm {
+                                        tracing::error!("federation management handler: {e}");
+                                    }
+                                    Err(n.err().or(f.err()).or(fm.err()).unwrap())
+                                }
+                            }
+                        }
+                    },
+                };
+
+                match outcome {
+                    Ok(()) => {
+                        (raw.ack)();
+                        tracing::info!(event_type, "event handled ok");
+                    }
+                    Err(e) => {
+                        if raw.delivery_count >= CONSUMER_MAX_DELIVER as u64 {
+                            // Rebuild payload from raw bytes for DLQ storage.
+                            let payload_val = serde_json::from_slice::<serde_json::Value>(
+                                &raw.payload,
+                            )
+                            .unwrap_or(serde_json::Value::Null);
+                            if let Err(dlq_err) = infra
+                                .dlq_store
+                                .insert(event_type, &payload_val, &e.to_string())
+                                .await
+                            {
+                                tracing::error!("DLQ insert failed: {dlq_err} — message lost");
+                            } else {
+                                tracing::warn!(
+                                    event_type,
+                                    delivery_count = raw.delivery_count,
+                                    "event exhausted — moved to DLQ"
+                                );
+                            }
+                            (raw.ack)();
+                        } else {
+                            (raw.nack)();
+                        }
                     }
                 }
             }
-            Err(e) => tracing::error!("consumer error: {e}"),
         }
     }
 }

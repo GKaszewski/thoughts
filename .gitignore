@@ -1,4 +1,5 @@
 .env
+/.superpowers/
 
 /target
 /docs/superpowers/

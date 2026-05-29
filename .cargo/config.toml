@@ -1,0 +1,9 @@
+[registry]
+default = "gitea"
+
+[registries.gitea]
+index = "sparse+https://git.gabrielkaszewski.dev/api/packages/GKaszewski/cargo/" # Sparse index
+# index = "https://git.gabrielkaszewski.dev/GKaszewski/_cargo-index.git" # Git
+
+[net]
+git-fetch-with-cli = true

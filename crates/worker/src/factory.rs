@@ -23,10 +23,11 @@ pub struct WorkerHandlers {
 
 pub struct WorkerInfra {
     pub pool: PgPool,
-    pub consumer: event_transport::EventConsumerAdapter<nats::NatsMessageSource>,
+    pub message_source: nats::NatsMessageSource,
     pub handlers: WorkerHandlers,
     pub dlq_store: Arc<PgFailedEventStore>,
     pub event_publisher: Arc<dyn EventPublisher>,
+    pub raw_ap_service: Arc<k_ap::ActivityPubService>,
 }
 
 pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> WorkerInfra {
@@ -43,28 +44,32 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
 
     // ActivityPub service (for federation fan-out)
     let connections_repo_worker = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
+    let fed_repo_worker = Arc::new(PostgresFederationRepository::new(pool.clone()));
+    let ap_handler_worker = Arc::new(ThoughtsObjectHandler::new(
+        Arc::new(PgActivityPubRepository::new(pool.clone())),
+        base_url,
+        None,
+        Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
+    ));
     let raw_ap_service = Arc::new(
-        ActivityPubService::builder(
-            Arc::new(PostgresFederationRepository::new(pool.clone())),
-            Arc::new(PostgresApUserRepository::new(
+        ActivityPubService::builder(base_url.to_string())
+            .activity_repo(fed_repo_worker.clone())
+            .follow_repo(fed_repo_worker.clone())
+            .actor_repo(fed_repo_worker.clone())
+            .blocklist_repo(fed_repo_worker.clone())
+            .user_repo(Arc::new(PostgresApUserRepository::new(
                 pool.clone(),
                 base_url.to_string(),
-            )),
-            Arc::new(ThoughtsObjectHandler::new(
-                Arc::new(PgActivityPubRepository::new(pool.clone())),
-                base_url,
-                None,
-                Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
-            )),
-            base_url,
-        )
-        .software_name("thoughts")
-        .build()
-        .await
-        .expect("ActivityPubService build failed"),
+            )))
+            .content_reader(ap_handler_worker.clone())
+            .object_handler(ap_handler_worker)
+            .software_name("thoughts")
+            .build()
+            .await
+            .expect("ActivityPubService build failed"),
     );
     let ap_service = Arc::new(ApFederationAdapter::new(
-        raw_ap_service,
+        raw_ap_service.clone(),
         connections_repo_worker,
     ));
     let ap_outbound = ap_service.clone() as Arc<dyn OutboundFederationPort>;
@@ -110,18 +115,17 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
     nats::ensure_stream(&nats_client)
         .await
         .expect("JetStream stream setup failed");
-    let consumer = event_transport::EventConsumerAdapter::new(nats::NatsMessageSource::new(
-        nats_client.clone(),
-    ));
+    let message_source = nats::NatsMessageSource::new(nats_client.clone());
     let event_publisher: Arc<dyn EventPublisher> = Arc::new(
         event_transport::EventPublisherAdapter::new(nats::NatsTransport::new(nats_client)),
     );
 
     WorkerInfra {
         pool,
-        consumer,
+        message_source,
         handlers,
         dlq_store,
         event_publisher,
+        raw_ap_service,
     }
 }

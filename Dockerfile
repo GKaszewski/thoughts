@@ -4,6 +4,7 @@ FROM rust:slim-bookworm AS builder
 WORKDIR /build
 
 # Cache dependency compilation separately from source
+COPY .cargo/ .cargo/
 COPY Cargo.toml Cargo.lock ./
 COPY crates/adapters/activitypub/Cargo.toml       crates/adapters/activitypub/Cargo.toml
 COPY crates/adapters/auth/Cargo.toml              crates/adapters/auth/Cargo.toml
