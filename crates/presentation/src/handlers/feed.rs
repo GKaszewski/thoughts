@@ -6,8 +6,13 @@ use crate::{
 };
 use api_types::requests::{PaginationQuery, SearchQuery};
 use api_types::responses::ThoughtResponse;
-use application::use_cases::feed::get_home_feed;
-use application::use_cases::profile::{get_user_by_id_or_username, get_user_by_username};
+use application::use_cases::feed::{
+    get_home_feed, get_popular_tags as uc_get_popular_tags, get_public_feed, get_tag_feed,
+    get_user_feed,
+};
+use application::use_cases::profile::{
+    get_user_by_id_or_username, get_user_by_username, list_local_followers, list_local_following,
+};
 use axum::{
     extract::{Path, Query},
     http::{header, HeaderMap},
@@ -17,8 +22,8 @@ use axum::{
 use domain::{
     models::feed::PageParams,
     ports::{
-        FederationActionPort, FeedFilter, FeedOptions, FeedQuery, FeedRepository, FeedRequest,
-        FeedSort, FollowRepository, SearchPort, TagRepository, UserRepository,
+        FederationActionPort, FeedFilter, FeedOptions, FeedRepository, FeedSort, FollowRepository,
+        SearchPort, TagRepository, UserRepository,
     },
 };
 
@@ -142,13 +147,7 @@ pub async fn public_feed(
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
-    let result = d
-        .feed
-        .query(&FeedRequest {
-            query: FeedQuery::public(page, viewer),
-            options: opts,
-        })
-        .await?;
+    let result = get_public_feed(&*d.feed, viewer, page, opts).await?;
     Ok(Json(serde_json::json!({
         "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
         "total": result.total,
@@ -232,7 +231,7 @@ pub async fn get_following_handler(
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.follows.list_following(&user.id, &page).await?;
+    let result = list_local_following(&*d.follows, &user.id, page).await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
         "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
@@ -275,7 +274,7 @@ pub async fn get_followers_handler(
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.follows.list_followers(&user.id, &page).await?;
+    let result = list_local_followers(&*d.follows, &user.id, page).await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
         "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
@@ -305,13 +304,7 @@ pub async fn user_thoughts_handler(
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
-    let result = d
-        .feed
-        .query(&FeedRequest {
-            query: FeedQuery::user(user.id.clone(), page, viewer),
-            options: opts,
-        })
-        .await?;
+    let result = get_user_feed(&*d.feed, user.id.clone(), page, opts, viewer).await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
         "page": result.page,
@@ -334,11 +327,9 @@ pub async fn get_popular_tags(
     let limit: usize = params
         .get("limit")
         .and_then(|v| v.parse().ok())
-        .unwrap_or(api_types::requests::DEFAULT_PER_PAGE as usize);
-    let tags = d
-        .tags
-        .popular_tags(limit.min(api_types::requests::MAX_PER_PAGE as usize))
-        .await?;
+        .unwrap_or(api_types::requests::DEFAULT_PER_PAGE as usize)
+        .min(api_types::requests::MAX_PER_PAGE as usize);
+    let tags = uc_get_popular_tags(&*d.tags, limit).await?;
     Ok(Json(serde_json::json!({
         "tags": tags.iter().map(|(name, count)| serde_json::json!({
             "name": name,
@@ -368,13 +359,7 @@ pub async fn tag_thoughts_handler(
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
-    let result = d
-        .feed
-        .query(&FeedRequest {
-            query: FeedQuery::tag(&tag_name, page, viewer),
-            options: opts,
-        })
-        .await?;
+    let result = get_tag_feed(&*d.feed, &tag_name, page, opts, viewer).await?;
     Ok(Json(serde_json::json!({
         "tag": tag_name,
         "total": result.total,

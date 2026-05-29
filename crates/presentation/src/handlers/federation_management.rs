@@ -7,6 +7,7 @@ use api_types::responses::{ErrorResponse, ProfileField, RemoteActorResponse};
 use application::use_cases::federation_management::{
     accept_follow_request, get_remote_friends, initiate_actor_move, list_pending_requests,
     list_remote_followers, list_remote_following, reject_follow_request, remove_remote_following,
+    set_also_known_as,
 };
 use axum::{http::StatusCode, Json};
 use domain::ports::{EventPublisher, FederationActionPort, FollowRepository, UserRepository};
@@ -208,6 +209,6 @@ pub async fn patch_also_known_as(
     AuthUser(uid): AuthUser,
     Json(body): Json<AlsoKnownAsBody>,
 ) -> Result<StatusCode, ApiError> {
-    d.users.set_also_known_as(&uid, body.also_known_as).await?;
+    set_also_known_as(&*d.users, &uid, body.also_known_as).await?;
     Ok(StatusCode::NO_CONTENT)
 }

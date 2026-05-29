@@ -9,8 +9,9 @@ use api_types::{
     responses::{ErrorResponse, ProfileField, RemoteActorResponse, UserResponse},
 };
 use application::use_cases::profile::{
-    get_user as fetch_user, get_user_by_id_or_username, update_profile,
-    upload_avatar as upload_avatar_uc, upload_banner as upload_banner_uc, UploadConfig,
+    count_local_users, get_user as fetch_user, get_user_by_id_or_username, get_user_profile,
+    list_local_following, list_users, update_profile, upload_avatar as upload_avatar_uc,
+    upload_banner as upload_banner_uc, UploadConfig,
 };
 use axum::{
     extract::{Multipart, Path, Query},
@@ -67,22 +68,18 @@ pub async fn get_user(
     OptionalAuthUser(viewer): OptionalAuthUser,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
-    let user = get_user_by_id_or_username(&*d.users, &username).await?;
-
     let accept = headers
         .get(header::ACCEPT)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
     if accept.contains("application/activity+json") {
+        let user = get_user_by_id_or_username(&*d.users, &username).await?;
         let json = d.federation.actor_json(&user.id).await?;
         Ok(([(header::CONTENT_TYPE, "application/activity+json")], json).into_response())
     } else {
-        let is_followed = if let Some(viewer_id) = viewer {
-            d.follows.find(&viewer_id, &user.id).await?.is_some()
-        } else {
-            false
-        };
+        let (user, is_followed) =
+            get_user_profile(&*d.users, &*d.follows, &username, viewer.as_ref()).await?;
         let mut resp = to_user_response(&user);
         resp.is_followed_by_viewer = is_followed;
         Ok(Json(resp).into_response())
@@ -154,7 +151,7 @@ pub async fn get_me_following(
         page: q.page(),
         per_page: q.per_page(),
     };
-    let result = d.follows.list_following(&uid, &page).await?;
+    let result = list_local_following(&*d.follows, &uid, page).await?;
     Ok(Json(serde_json::json!({
         "total": result.total,
         "items": result.items.iter().map(to_user_response).collect::<Vec<_>>(),
@@ -197,7 +194,7 @@ pub async fn get_users(
         })));
     }
 
-    let result = d.users.list_paginated(page_params).await?;
+    let result = list_users(&*d.users, page_params).await?;
     let items: Vec<_> = result
         .items
         .iter()
@@ -226,7 +223,7 @@ pub async fn get_users(
     responses((status = 200, description = "Total number of local users"))
 )]
 pub async fn get_user_count(Deps(d): Deps<UsersDeps>) -> Result<Json<serde_json::Value>, ApiError> {
-    let count = d.users.count().await?;
+    let count = count_local_users(&*d.users).await?;
     Ok(Json(serde_json::json!({ "count": count })))
 }
 

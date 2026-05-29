@@ -5,11 +5,13 @@ use domain::{
     errors::DomainError,
     events::DomainEvent,
     models::{
+        feed::{PageParams, Paginated, UserSummary},
         top_friend::TopFriend,
         user::{UpdateProfileInput, User},
     },
     ports::{
-        EventPublisher, MediaStore, TopFriendRepository, UserReader, UserRepository, UserWriter,
+        EventPublisher, FollowRepository, MediaStore, TopFriendRepository, UserReader,
+        UserRepository, UserWriter,
     },
     value_objects::{UserId, Username},
 };
@@ -228,6 +230,47 @@ pub async fn upload_banner(
             user_id: user_id.clone(),
         })
         .await
+}
+
+pub async fn get_user_profile(
+    users: &dyn UserReader,
+    follows: &dyn FollowRepository,
+    id_or_username: &str,
+    viewer_id: Option<&UserId>,
+) -> Result<(User, bool), DomainError> {
+    let user = get_user_by_id_or_username(users, id_or_username).await?;
+    let is_followed = match viewer_id {
+        Some(vid) if vid != &user.id => follows.find(vid, &user.id).await?.is_some(),
+        _ => false,
+    };
+    Ok((user, is_followed))
+}
+
+pub async fn list_users(
+    users: &dyn UserReader,
+    page: PageParams,
+) -> Result<Paginated<UserSummary>, DomainError> {
+    users.list_paginated(page).await
+}
+
+pub async fn count_local_users(users: &dyn UserReader) -> Result<i64, DomainError> {
+    users.count().await
+}
+
+pub async fn list_local_followers(
+    follows: &dyn FollowRepository,
+    user_id: &UserId,
+    page: PageParams,
+) -> Result<Paginated<User>, DomainError> {
+    follows.list_followers(user_id, &page).await
+}
+
+pub async fn list_local_following(
+    follows: &dyn FollowRepository,
+    user_id: &UserId,
+    page: PageParams,
+) -> Result<Paginated<User>, DomainError> {
+    follows.list_following(user_id, &page).await
 }
 
 #[cfg(test)]

@@ -10,7 +10,7 @@ use domain::{
     ports::{
         EventPublisher, FederationActionPort, FederationFollowPort, FederationFollowRequestPort,
         FederationSchedulerPort, FeedOptions, FeedQuery, FeedRepository, FeedRequest,
-        FollowRepository, RemoteActorConnectionRepository, UserReader,
+        FollowRepository, RemoteActorConnectionRepository, UserReader, UserWriter,
     },
     value_objects::UserId,
 };
@@ -185,6 +185,14 @@ pub async fn get_actor_connections_page(
     }
     let has_more = items.len() >= PAGE_SIZE;
     Ok((items, has_more))
+}
+
+pub async fn set_also_known_as(
+    users: &dyn UserWriter,
+    user_id: &UserId,
+    value: Option<String>,
+) -> Result<(), DomainError> {
+    users.set_also_known_as(user_id, value).await
 }
 
 #[cfg(test)]
