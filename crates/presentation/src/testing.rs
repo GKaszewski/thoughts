@@ -97,6 +97,9 @@ impl ActivityPubRepository for NoOpApRepo {
     ) -> Result<Option<ActorApUrls>, DomainError> {
         Ok(None)
     }
+    async fn sync_remote_actor_to_user(&self, _actor_ap_url: &str) -> Result<(), DomainError> {
+        Ok(())
+    }
 }
 
 pub struct NoOpMediaStore;

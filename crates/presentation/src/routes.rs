@@ -135,5 +135,7 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api-keys/{id}", delete(api_keys::delete_api_key_handler));
 
-    openapi::serve(api_routes).route("/media/{*path}", get(media::get_media))
+    openapi::serve(api_routes)
+        .route("/media/{*path}", get(media::get_media))
+        .route("/.well-known/host-meta", get(well_known::host_meta))
 }

@@ -360,15 +360,27 @@ pub trait FederationFetchPort: Send + Sync {
     ) -> Vec<crate::models::actor_connection_summary::ActorConnectionSummary>;
 }
 
+#[async_trait]
+pub trait FederationBlockPort: Send + Sync {
+    async fn block_remote(&self, local_user_id: &UserId, handle: &str) -> Result<(), DomainError>;
+    async fn unblock_remote(&self, local_user_id: &UserId, handle: &str)
+        -> Result<(), DomainError>;
+}
+
 pub trait FederationActionPort:
-    FederationLookupPort + FederationFollowPort + FederationFollowRequestPort + FederationFetchPort
+    FederationLookupPort
+    + FederationFollowPort
+    + FederationFollowRequestPort
+    + FederationFetchPort
+    + FederationBlockPort
 {
 }
 impl<
         T: FederationLookupPort
             + FederationFollowPort
             + FederationFollowRequestPort
-            + FederationFetchPort,
+            + FederationFetchPort
+            + FederationBlockPort,
     > FederationActionPort for T
 {
 }

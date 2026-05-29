@@ -58,17 +58,22 @@ export function ProfileCard({ actor, action }: ProfileCardProps) {
         </Link>
       </Button>
 
-      {actor.alsoKnownAs && (
+      {actor.alsoKnownAs.length > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
           Also known as:{" "}
-          <Link
-            href={actor.alsoKnownAs}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            {actor.alsoKnownAs}
-          </Link>
+          {actor.alsoKnownAs.map((aka, i) => (
+            <span key={aka}>
+              {i > 0 && ", "}
+              <Link
+                href={aka}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                {aka}
+              </Link>
+            </span>
+          ))}
         </p>
       )}
 

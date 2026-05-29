@@ -11,10 +11,12 @@ fn remote_actor(url: &str, handle: &str) -> RemoteActor {
         avatar_url: None,
         bio: None,
         banner_url: None,
-        also_known_as: None,
+        also_known_as: vec![],
         outbox_url: None,
         followers_url: None,
         following_url: None,
+        inbox_url: None,
+        shared_inbox_url: None,
         attachment: vec![],
         last_fetched_at: Utc::now(),
     }

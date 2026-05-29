@@ -44,16 +44,14 @@ pub async fn accept_follow_request(
     user_id: &UserId,
     actor_url: &str,
 ) -> Result<(), DomainError> {
-    federation
-        .mark_follower_accepted(user_id, actor_url)
-        .await?;
     events
         .publish(&DomainEvent::RemoteFollowAccepted {
             local_user_id: user_id.clone(),
             remote_actor_url: actor_url.to_string(),
         })
         .await
-        .map_err(|e| DomainError::Internal(e.to_string()))
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+    federation.mark_follower_accepted(user_id, actor_url).await
 }
 
 pub async fn reject_follow_request(
@@ -62,16 +60,14 @@ pub async fn reject_follow_request(
     user_id: &UserId,
     actor_url: &str,
 ) -> Result<(), DomainError> {
-    federation
-        .mark_follower_rejected(user_id, actor_url)
-        .await?;
     events
         .publish(&DomainEvent::RemoteFollowRejected {
             local_user_id: user_id.clone(),
             remote_actor_url: actor_url.to_string(),
         })
         .await
-        .map_err(|e| DomainError::Internal(e.to_string()))
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+    federation.mark_follower_rejected(user_id, actor_url).await
 }
 
 pub async fn list_remote_followers(
@@ -179,8 +175,9 @@ pub async fn get_actor_connections_page(
         }
     };
     if stale {
+        // Always fetch from page 1 — the full collection is fetched and chunked.
         let _ = scheduler
-            .schedule_connections_fetch(&actor.url, &collection_url, connection_type, page)
+            .schedule_connections_fetch(&actor.url, &collection_url, connection_type, 1)
             .await;
     }
     let has_more = items.len() >= PAGE_SIZE;

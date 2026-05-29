@@ -29,7 +29,7 @@ export const RemoteActorSchema = z.object({
   url: z.string(),
   bio: z.string().nullable(),
   bannerUrl: z.string().nullable(),
-  alsoKnownAs: z.string().nullable(),
+  alsoKnownAs: z.array(z.string()),
   outboxUrl: z.string().nullable(),
   followersUrl: z.string().nullable(),
   followingUrl: z.string().nullable(),

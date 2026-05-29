@@ -222,13 +222,12 @@ impl FollowRepository for PostgresFederationRepository {
     }
 
     async fn count_followers(&self, local_user_id: uuid::Uuid) -> Result<usize> {
-        let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_followers WHERE local_user_id=$1 AND status='accepted'",
-        )
-        .bind(local_user_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))?;
+        let n: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM federation_followers WHERE local_user_id=$1")
+                .bind(local_user_id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(n as usize)
     }
 
@@ -428,11 +427,24 @@ impl FollowRepository for PostgresFederationRepository {
 
     async fn update_following_status(
         &self,
-        _local_user_id: uuid::Uuid,
-        _remote_actor_url: &str,
-        _status: FollowingStatus,
+        local_user_id: uuid::Uuid,
+        remote_actor_url: &str,
+        status: FollowingStatus,
     ) -> Result<()> {
-        Ok(())
+        let s = match status {
+            FollowingStatus::Pending => "pending",
+            FollowingStatus::Accepted => "accepted",
+        };
+        sqlx::query(
+            "UPDATE federation_following SET status=$3 WHERE local_user_id=$1 AND remote_actor_url=$2",
+        )
+        .bind(local_user_id)
+        .bind(remote_actor_url)
+        .bind(s)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| anyhow!(e))
+        .map(|_| ())
     }
 
     async fn get_following_outbox_url(
@@ -743,7 +755,7 @@ impl PostgresApUserRepository {
     }
 
     fn row_to_ap_user(&self, r: UserRow) -> ApUser {
-        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, r.username)).ok();
+        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, r.id)).ok();
         let avatar_url = r.avatar_url.and_then(|u| url::Url::parse(&u).ok());
         let banner_url = r.header_url.and_then(|u| url::Url::parse(&u).ok());
         ApUser {

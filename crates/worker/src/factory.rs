@@ -50,6 +50,8 @@ pub async fn build(database_url: &str, base_url: &str, nats_url: &str) -> Worker
         base_url,
         None,
         Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
+        Arc::new(postgres::like::PgLikeRepository::new(pool.clone())),
+        Arc::new(postgres::boost::PgBoostRepository::new(pool.clone())),
     ));
     let raw_ap_service = Arc::new(
         ActivityPubService::builder(base_url.to_string())

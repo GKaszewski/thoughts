@@ -126,11 +126,17 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     // 3. ActivityPub federation
     let connections_repo = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
     let fed_repo = Arc::new(PostgresFederationRepository::new(pool.clone()));
+    let likes: Arc<dyn domain::ports::LikeRepository> =
+        Arc::new(postgres::like::PgLikeRepository::new(pool.clone()));
+    let boosts: Arc<dyn domain::ports::BoostRepository> =
+        Arc::new(postgres::boost::PgBoostRepository::new(pool.clone()));
     let ap_handler = Arc::new(ThoughtsObjectHandler::new(
         Arc::new(PgActivityPubRepository::new(pool.clone())),
         &cfg.base_url,
         Some(event_publisher.clone()),
         Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),
+        likes.clone(),
+        boosts.clone(),
     ));
     let mut ap_builder = ActivityPubService::builder(cfg.base_url.clone())
         .activity_repo(fed_repo.clone())
@@ -181,8 +187,8 @@ pub async fn build(cfg: &Config) -> Infrastructure {
     let state = AppState {
         users: Arc::new(postgres::user::PgUserRepository::new(pool.clone())),
         thoughts: Arc::new(postgres::thought::PgThoughtRepository::new(pool.clone())),
-        likes: Arc::new(postgres::like::PgLikeRepository::new(pool.clone())),
-        boosts: Arc::new(postgres::boost::PgBoostRepository::new(pool.clone())),
+        likes: likes.clone(),
+        boosts: boosts.clone(),
         follows: Arc::new(postgres::follow::PgFollowRepository::new(pool.clone())),
         blocks: Arc::new(postgres::block::PgBlockRepository::new(pool.clone())),
         tags: Arc::new(postgres::tag::PgTagRepository::new(pool.clone())),

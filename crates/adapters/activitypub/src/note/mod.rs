@@ -74,11 +74,15 @@ pub struct ThoughtNoteInput {
 
 impl ThoughtNote {
     /// Returns `(note, extensions)` if `value` is a Note object, `None` otherwise.
-    pub fn try_from_ap(value: serde_json::Value) -> Option<(Self, Option<serde_json::Value>)> {
-        if value.get("type").and_then(|v| v.as_str()) != Some("Note") {
+    pub fn try_from_ap(mut value: serde_json::Value) -> Option<(Self, Option<serde_json::Value>)> {
+        let obj_type = value.get("type").and_then(|v| v.as_str());
+        if !matches!(obj_type, Some("Note" | "Article" | "Page")) {
             return None;
         }
         let extensions = extract_extensions(&value);
+        if let Some(obj) = value.as_object_mut() {
+            obj.insert("type".to_string(), serde_json::json!("Note"));
+        }
         serde_json::from_value(value)
             .ok()
             .map(|note| (note, extensions))

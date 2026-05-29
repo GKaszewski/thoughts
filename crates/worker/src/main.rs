@@ -1,6 +1,7 @@
 mod dlq;
 mod factory;
 mod handlers;
+mod outbox_cleanup;
 mod outbox_relay;
 
 use domain::{errors::DomainError, events::DomainEvent};
@@ -35,6 +36,15 @@ async fn main() {
             pool: infra.pool.clone(),
             publisher: infra.event_publisher.clone(),
             poll_interval: std::time::Duration::from_secs(5),
+        }
+        .run(),
+    );
+
+    tokio::spawn(
+        outbox_cleanup::OutboxCleanup {
+            pool: infra.pool.clone(),
+            retention_days: 7,
+            interval: std::time::Duration::from_secs(3600),
         }
         .run(),
     );

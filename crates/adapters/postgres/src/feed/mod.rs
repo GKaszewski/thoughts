@@ -113,14 +113,14 @@ impl<'a> FeedSqlBuilder<'a> {
         }
     }
 
-    fn select(&self) -> String {
+    fn select(&self, viewer_param: &str) -> String {
         let (viewer_cols, viewer_joins) = match self.viewer {
-            Some(uid) => (
+            Some(_) => (
                 "(lv.thought_id IS NOT NULL) AS liked_by_viewer,
                  (bv.thought_id IS NOT NULL) AS boosted_by_viewer".to_string(),
                 format!(
-                    "LEFT JOIN (SELECT thought_id FROM likes WHERE user_id='{uid}') lv ON lv.thought_id = t.id
-                     LEFT JOIN (SELECT thought_id FROM boosts WHERE user_id='{uid}') bv ON bv.thought_id = t.id"
+                    "LEFT JOIN (SELECT thought_id FROM likes WHERE user_id={viewer_param}) lv ON lv.thought_id = t.id
+                     LEFT JOIN (SELECT thought_id FROM boosts WHERE user_id={viewer_param}) bv ON bv.thought_id = t.id"
                 ),
             ),
             None => (
@@ -164,13 +164,13 @@ impl<'a> FeedSqlBuilder<'a> {
         )
     }
 
-    fn fed_clause(&self) -> String {
+    fn fed_clause(&self, viewer_param: &str) -> String {
         match self.viewer {
-            Some(fid) => format!(
+            Some(_) => format!(
                 " OR t.user_id IN (
                 SELECT u2.id FROM users u2
                 JOIN federation_following ff ON u2.ap_id = ff.remote_actor_url
-                WHERE ff.local_user_id = '{fid}'
+                WHERE ff.local_user_id = {viewer_param}
             )"
             ),
             None => String::new(),
@@ -217,7 +217,7 @@ impl<'a> FeedSqlBuilder<'a> {
         );
         let data = format!(
             "{} WHERE t.local=true AND t.visibility='public'{} {} LIMIT $1 OFFSET $2",
-            self.select(),
+            self.select("$3"),
             filter,
             order
         );
@@ -225,17 +225,16 @@ impl<'a> FeedSqlBuilder<'a> {
     }
 
     fn home(&self) -> (String, String) {
-        let fed = self.fed_clause();
         let filter = self.filter_sql();
         let order = self.order_sql();
-        let count  = format!(
+        let count = format!(
             "SELECT COUNT(*) FROM thoughts t WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{}",
-            fed, filter
+            self.fed_clause("$2"), filter
         );
         let data =
             format!(
             "{} WHERE (t.user_id=ANY($1){}) AND t.visibility != 'direct'{} {} LIMIT $2 OFFSET $3",
-            self.select(), fed, filter, order
+            self.select("$4"), self.fed_clause("$4"), filter, order
         );
         (count, data)
     }
@@ -249,7 +248,7 @@ impl<'a> FeedSqlBuilder<'a> {
         );
         let data = format!(
             "{} WHERE t.content % $1 AND t.visibility='public'{} {} LIMIT $2 OFFSET $3",
-            self.select(),
+            self.select("$4"),
             filter,
             order
         );
@@ -271,7 +270,7 @@ impl<'a> FeedSqlBuilder<'a> {
              JOIN thought_tags tt ON tt.thought_id = t.id
              JOIN tags tg ON tg.id = tt.tag_id
              WHERE tg.name = $1 AND t.visibility = 'public'{} {} LIMIT $2 OFFSET $3",
-            self.select(),
+            self.select("$4"),
             filter,
             order
         );
@@ -287,7 +286,7 @@ impl<'a> FeedSqlBuilder<'a> {
         );
         let data = format!(
             "{} WHERE t.user_id = $1 AND ($4::uuid = $1 OR (t.visibility != 'direct' AND (t.visibility IN ('public', 'unlisted') OR (t.visibility = 'followers' AND EXISTS(SELECT 1 FROM follows WHERE follower_id = $4 AND following_id = $1 AND state = 'accepted'))))){} {} LIMIT $2 OFFSET $3",
-            self.select(), filter, order
+            self.select("$4"), filter, order
         );
         (count, data)
     }
@@ -300,12 +299,15 @@ impl FeedRepository for PgFeedRepository {
         let page = &req.query.page;
         let builder = FeedSqlBuilder::new(&req.options, &req.query.scope, viewer);
 
+        let viewer_uuid = viewer.unwrap_or(uuid::Uuid::nil());
+
         match &req.query.scope {
             FeedScope::Home { following_ids } => {
                 let ids: Vec<uuid::Uuid> = following_ids.iter().map(|id| id.as_uuid()).collect();
                 let (count_sql, data_sql) = builder.home();
                 let total: i64 = sqlx::query_scalar(&count_sql)
                     .bind(&ids)
+                    .bind(viewer_uuid)
                     .fetch_one(&self.pool)
                     .await
                     .into_domain()?;
@@ -313,6 +315,7 @@ impl FeedRepository for PgFeedRepository {
                     .bind(&ids)
                     .bind(page.limit())
                     .bind(page.offset())
+                    .bind(viewer_uuid)
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
@@ -336,6 +339,7 @@ impl FeedRepository for PgFeedRepository {
                 let rows = sqlx::query_as::<_, FeedRow>(&data_sql)
                     .bind(page.limit())
                     .bind(page.offset())
+                    .bind(viewer_uuid)
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
@@ -361,6 +365,7 @@ impl FeedRepository for PgFeedRepository {
                     .bind(query)
                     .bind(page.limit())
                     .bind(page.offset())
+                    .bind(viewer_uuid)
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
@@ -386,6 +391,7 @@ impl FeedRepository for PgFeedRepository {
                     .bind(tag_name)
                     .bind(page.limit())
                     .bind(page.offset())
+                    .bind(viewer_uuid)
                     .fetch_all(&self.pool)
                     .await
                     .into_domain()?;
@@ -402,7 +408,6 @@ impl FeedRepository for PgFeedRepository {
 
             FeedScope::User { user_id } => {
                 let uid = user_id.as_uuid();
-                let viewer_uuid = viewer.unwrap_or(uuid::Uuid::nil());
                 let (count_sql, data_sql) = builder.user();
                 let total: i64 = sqlx::query_scalar(&count_sql)
                     .bind(uid)

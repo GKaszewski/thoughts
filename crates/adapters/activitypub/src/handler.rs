@@ -10,7 +10,7 @@ use url::Url;
 use crate::note::{ThoughtNote, ThoughtNoteInput};
 use crate::port::{AcceptNoteInput, ActivityPubRepository};
 use crate::urls::ThoughtsUrls;
-use domain::ports::{EventPublisher, TagRepository};
+use domain::ports::{BoostRepository, EventPublisher, LikeRepository, TagRepository};
 use domain::value_objects::UserId;
 use k_ap::{ApContentReader, ApObjectHandler};
 
@@ -19,6 +19,8 @@ pub struct ThoughtsObjectHandler {
     urls: ThoughtsUrls,
     event_publisher: Option<Arc<dyn EventPublisher>>,
     tag_repo: Arc<dyn TagRepository>,
+    likes: Arc<dyn LikeRepository>,
+    boosts: Arc<dyn BoostRepository>,
 }
 
 impl ThoughtsObjectHandler {
@@ -27,12 +29,16 @@ impl ThoughtsObjectHandler {
         base_url: &str,
         event_publisher: Option<Arc<dyn EventPublisher>>,
         tag_repo: Arc<dyn TagRepository>,
+        likes: Arc<dyn LikeRepository>,
+        boosts: Arc<dyn BoostRepository>,
     ) -> Self {
         Self {
             repo,
             urls: ThoughtsUrls::new(base_url),
             event_publisher,
             tag_repo,
+            likes,
+            boosts,
         }
     }
 }
@@ -106,6 +112,10 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             .intern_remote_actor(actor_url.as_str())
             .await
             .map_err(|e| anyhow!("{e}"))?;
+        let _ = self
+            .repo
+            .sync_remote_actor_to_user(actor_url.as_str())
+            .await;
 
         let as_public = "https://www.w3.org/ns/activitystreams#Public";
         let in_to = note.to.iter().any(|s| s == as_public);
@@ -194,17 +204,50 @@ impl ApObjectHandler for ThoughtsObjectHandler {
     async fn on_update(
         &self,
         ap_id: &Url,
-        _actor_url: &Url,
+        actor_url: &Url,
         object: serde_json::Value,
     ) -> Result<()> {
-        let Some((note, _)) = ThoughtNote::try_from_ap(object) else {
-            tracing::debug!(ap_id = %ap_id, "on_update: skipping non-Note object");
-            return Ok(());
-        };
-        self.repo
-            .apply_note_update(ap_id.as_str(), &note.content)
-            .await
-            .map_err(|e| anyhow!("{e}"))
+        let obj_type = object.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        match obj_type {
+            "Note" | "Article" | "Page" => {
+                let Some((note, _)) = ThoughtNote::try_from_ap(object) else {
+                    return Ok(());
+                };
+                self.repo
+                    .apply_note_update(ap_id.as_str(), &note.content)
+                    .await
+                    .map_err(|e| anyhow!("{e}"))
+            }
+            "Person" | "Service" | "Application" | "Group" | "Organization" => {
+                let display_name = object.get("name").and_then(|v| v.as_str());
+                let avatar_url = object
+                    .get("icon")
+                    .and_then(|v| v.get("url"))
+                    .and_then(|v| v.as_str());
+                self.repo
+                    .update_remote_actor_display(
+                        &self
+                            .repo
+                            .find_remote_actor_id(actor_url.as_str())
+                            .await
+                            .map_err(|e| anyhow!("{e}"))?
+                            .ok_or_else(|| anyhow!("unknown actor"))?,
+                        display_name,
+                        avatar_url,
+                    )
+                    .await
+                    .map_err(|e| anyhow!("{e}"))?;
+                let _ = self
+                    .repo
+                    .sync_remote_actor_to_user(actor_url.as_str())
+                    .await;
+                Ok(())
+            }
+            _ => {
+                tracing::debug!(ap_id = %ap_id, obj_type, "on_update: skipping");
+                Ok(())
+            }
+        }
     }
 
     async fn on_delete(&self, ap_id: &Url, _actor_url: &Url) -> Result<()> {
@@ -245,14 +288,24 @@ impl ApObjectHandler for ThoughtsObjectHandler {
         let actor_user_id = match actor_user_id {
             Some(id) => id,
             None => {
-                tracing::debug!(actor = %actor_url, "on_like: remote actor not interned, skipping notification");
+                tracing::debug!(actor = %actor_url, "on_like: remote actor not interned, skipping");
                 return Ok(());
             }
         };
 
+        let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
+        let like_id = domain::value_objects::LikeId::new();
+
+        let like = domain::models::social::Like {
+            id: like_id.clone(),
+            user_id: actor_user_id.clone(),
+            thought_id: thought_id.clone(),
+            ap_id: Some(object_url.to_string()),
+            created_at: Utc::now(),
+        };
+        let _ = self.likes.save(&like).await;
+
         if let Some(ep) = &self.event_publisher {
-            let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
-            let like_id = domain::value_objects::LikeId::new();
             ep.publish(&domain::events::DomainEvent::LikeAdded {
                 like_id,
                 user_id: actor_user_id,
@@ -294,10 +347,13 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             }
         };
 
+        let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
+        let _ = self.likes.delete(&actor_user_id, &thought_id).await;
+
         if let Some(ep) = &self.event_publisher {
             ep.publish(&domain::events::DomainEvent::LikeRemoved {
                 user_id: actor_user_id,
-                thought_id: domain::value_objects::ThoughtId::from_uuid(thought_uuid),
+                thought_id,
             })
             .await
             .map_err(|e| anyhow!("{e}"))?;
@@ -369,11 +425,59 @@ impl ApObjectHandler for ThoughtsObjectHandler {
             None => return Ok(()),
         };
 
+        let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
+        let boost_id = domain::value_objects::BoostId::new();
+
+        let boost = domain::models::social::Boost {
+            id: boost_id.clone(),
+            user_id: actor_user_id.clone(),
+            thought_id: thought_id.clone(),
+            ap_id: Some(object_url.to_string()),
+            created_at: Utc::now(),
+        };
+        let _ = self.boosts.save(&boost).await;
+
         if let Some(ep) = &self.event_publisher {
-            let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
-            let boost_id = domain::value_objects::BoostId::new();
             ep.publish(&domain::events::DomainEvent::BoostAdded {
                 boost_id,
+                user_id: actor_user_id,
+                thought_id,
+            })
+            .await
+            .map_err(|e| anyhow!("{e}"))?;
+        }
+
+        Ok(())
+    }
+
+    async fn on_announce_removed(&self, object_url: &Url, actor_url: &Url) -> Result<()> {
+        let thought_uuid = object_url
+            .path()
+            .strip_prefix(THOUGHTS_PATH_PREFIX)
+            .and_then(|s| s.split('/').next())
+            .and_then(|s| uuid::Uuid::parse_str(s).ok());
+
+        let thought_uuid = match thought_uuid {
+            Some(u) => u,
+            None => return Ok(()),
+        };
+
+        let actor_user_id = self
+            .repo
+            .find_remote_actor_id(actor_url.as_str())
+            .await
+            .map_err(|e| anyhow!("{e}"))?;
+
+        let actor_user_id = match actor_user_id {
+            Some(id) => id,
+            None => return Ok(()),
+        };
+
+        let thought_id = domain::value_objects::ThoughtId::from_uuid(thought_uuid);
+        let _ = self.boosts.delete(&actor_user_id, &thought_id).await;
+
+        if let Some(ep) = &self.event_publisher {
+            ep.publish(&domain::events::DomainEvent::BoostRemoved {
                 user_id: actor_user_id,
                 thought_id,
             })

@@ -847,6 +847,24 @@ impl FederationFetchPort for TestStore {
 }
 
 #[async_trait]
+impl FederationBlockPort for TestStore {
+    async fn block_remote(
+        &self,
+        _local_user_id: &UserId,
+        _handle: &str,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
+    async fn unblock_remote(
+        &self,
+        _local_user_id: &UserId,
+        _handle: &str,
+    ) -> Result<(), DomainError> {
+        Ok(())
+    }
+}
+
+#[async_trait]
 impl RemoteActorConnectionRepository for TestStore {
     async fn upsert_connections(
         &self,

@@ -23,7 +23,8 @@ fn content_to_html(text: &str) -> String {
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-        .replace('"', "&quot;");
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;");
     let paragraphs: Vec<&str> = escaped.split('\n').filter(|s| !s.is_empty()).collect();
     if paragraphs.is_empty() {
         format!("<p>{}</p>", escaped)
@@ -116,13 +117,17 @@ fn k_ap_actor_to_domain(a: k_ap::RemoteActor) -> DomainRemoteActor {
         last_fetched_at: chrono::Utc::now(),
         bio: a.bio,
         banner_url: a.banner_url,
-        also_known_as: a.also_known_as.into_iter().next(),
+        also_known_as: a.also_known_as,
         followers_url: a.followers_url,
         following_url: a.following_url,
+        inbox_url: Some(a.inbox_url),
+        shared_inbox_url: a.shared_inbox_url,
         attachment: vec![],
     }
 }
 
+// TODO: these fetches are unsigned — fails on instances with authorized-fetch (Secure Mode).
+// Fix requires exposing k-ap's signed HTTP client.
 async fn resolve_actor_profiles_from_urls(
     urls: Vec<String>,
 ) -> Vec<domain::models::actor_connection_summary::ActorConnectionSummary> {
@@ -201,7 +206,9 @@ async fn webfinger_resolve_actor_url(handle: &str) -> anyhow::Result<String> {
         .and_then(|links| {
             links.iter().find(|l| {
                 l["rel"].as_str() == Some("self")
-                    && l["type"].as_str() == Some("application/activity+json")
+                    && l["type"].as_str().is_some_and(|t| {
+                        t == "application/activity+json" || t.starts_with("application/ld+json")
+                    })
             })
         })
         .and_then(|l| l["href"].as_str())
@@ -415,11 +422,8 @@ impl FederationSchedulerPort for ApFederationAdapter {
         actor_ap_url: &str,
         collection_url: &str,
         connection_type: &str,
-        page: u32,
+        _page: u32,
     ) -> Result<(), DomainError> {
-        if page != 1 {
-            return Ok(());
-        }
         let actor = actor_ap_url.to_string();
         let collection = collection_url.to_string();
         let conn_type = connection_type.to_string();
@@ -536,9 +540,15 @@ impl FederationLookupPort for ApFederationAdapter {
             last_fetched_at: chrono::Utc::now(),
             bio: actor.bio,
             banner_url: actor.banner_url.as_ref().map(|u| u.to_string()),
-            also_known_as: actor.also_known_as.into_iter().next(),
+            also_known_as: actor
+                .also_known_as
+                .into_iter()
+                .map(|u| u.to_string())
+                .collect(),
             followers_url: actor.followers_url.as_ref().map(|u| u.to_string()),
             following_url: actor.following_url.as_ref().map(|u| u.to_string()),
+            inbox_url: None,
+            shared_inbox_url: None,
             attachment: actor
                 .attachment
                 .into_iter()
@@ -599,20 +609,36 @@ impl FederationFetchPort for ApFederationAdapter {
             .await
             .map_err(|e| DomainError::ExternalService(e.to_string()))?;
 
-        let url = base["first"]
+        let first_url = base["first"]
             .as_str()
             .map(|s| s.to_string())
-            .unwrap_or_else(|| format!("{}?page={}", outbox_url, page));
+            .unwrap_or_else(|| format!("{}?page=1", outbox_url));
 
-        let resp: serde_json::Value = client
-            .get(&url)
-            .header("Accept", "application/activity+json, application/ld+json")
-            .send()
-            .await
-            .map_err(|e| DomainError::ExternalService(e.to_string()))?
-            .json()
-            .await
-            .map_err(|e| DomainError::ExternalService(e.to_string()))?;
+        let mut current_url = first_url;
+        let mut hops = 0u32;
+        let target_page = page.max(1);
+        let max_hops = 10u32;
+
+        let resp: serde_json::Value = loop {
+            let page_resp: serde_json::Value = client
+                .get(&current_url)
+                .header("Accept", "application/activity+json, application/ld+json")
+                .send()
+                .await
+                .map_err(|e| DomainError::ExternalService(e.to_string()))?
+                .json()
+                .await
+                .map_err(|e| DomainError::ExternalService(e.to_string()))?;
+
+            hops += 1;
+            if hops >= target_page || hops >= max_hops {
+                break page_resp;
+            }
+            match page_resp["next"].as_str() {
+                Some(next) => current_url = next.to_string(),
+                None => break page_resp,
+            }
+        };
 
         let empty = vec![];
         let items = resp["orderedItems"].as_array().unwrap_or(&empty);
@@ -847,6 +873,35 @@ impl FederationFollowRequestPort for ApFederationAdapter {
             .mark_follower_rejected(user_id.as_uuid(), actor_url)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))
+    }
+}
+
+// ── FederationBlockPort ──────────────────────────────────────────────────────
+
+#[async_trait]
+impl domain::ports::FederationBlockPort for ApFederationAdapter {
+    async fn block_remote(&self, local_user_id: &UserId, handle: &str) -> Result<(), DomainError> {
+        let actor_url = webfinger_resolve_actor_url(handle)
+            .await
+            .map_err(|e| DomainError::ExternalService(e.to_string()))?;
+        self.inner
+            .block_actor(local_user_id.as_uuid(), &actor_url)
+            .await
+            .map_err(|e| DomainError::ExternalService(e.to_string()))
+    }
+
+    async fn unblock_remote(
+        &self,
+        local_user_id: &UserId,
+        handle: &str,
+    ) -> Result<(), DomainError> {
+        let actor_url = webfinger_resolve_actor_url(handle)
+            .await
+            .map_err(|e| DomainError::ExternalService(e.to_string()))?;
+        self.inner
+            .unblock_actor(local_user_id.as_uuid(), &actor_url)
+            .await
+            .map_err(|e| DomainError::ExternalService(e.to_string()))
     }
 }
 

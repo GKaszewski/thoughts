@@ -101,6 +101,9 @@ pub trait ActivityPubRepository: Send + Sync {
     /// Returns None for users that have not been federated.
     async fn get_actor_ap_urls(&self, user_id: &UserId)
         -> Result<Option<ActorApUrls>, DomainError>;
+
+    /// Sync display_name + avatar_url from remote_actors to users table.
+    async fn sync_remote_actor_to_user(&self, actor_ap_url: &str) -> Result<(), DomainError>;
 }
 
 #[async_trait]

@@ -1,7 +1,7 @@
 use crate::db_error::IntoDbResult;
 use async_trait::async_trait;
 
-const MAX_REMOTE_CONTENT_CHARS: usize = 500;
+const MAX_REMOTE_CONTENT_CHARS: usize = 5000;
 const THOUGHTS_PATH_PREFIX: &str = "/thoughts/";
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -155,24 +155,28 @@ impl ActivityPubRepository for PgActivityPubRepository {
             return Ok(id);
         }
         let new_id = uuid::Uuid::new_v4();
-        // Use the last path segment as username (e.g. /users/alice → "alice").
-        // Falls back to a random short id for long segments (e.g. UUID-based actor URLs).
-        // username column is VARCHAR(32).
-        let last_seg = url::Url::parse(actor_ap_url)
-            .ok()
+        let parsed = url::Url::parse(actor_ap_url).ok();
+        let domain_str = parsed
+            .as_ref()
+            .and_then(|u| u.host_str().map(|s| s.to_string()))
+            .unwrap_or_default();
+        let last_seg = parsed
             .and_then(|u| {
                 u.path_segments()
                     .and_then(|mut s| s.next_back().map(|s| s.to_string()))
             })
             .unwrap_or_default();
-        let handle = if last_seg.is_empty() {
-            format!("remote_{}", &new_id.to_string()[..13])
-        } else if last_seg.len() <= 32 {
-            last_seg
+        let handle = if last_seg.is_empty() || domain_str.is_empty() {
+            format!("r_{}", &new_id.to_string()[..13])
         } else {
-            format!("remote_{}", &new_id.to_string()[..13])
+            let candidate = format!("{}@{}", last_seg, domain_str);
+            if candidate.len() <= 255 {
+                candidate
+            } else {
+                format!("r_{}", &new_id.to_string()[..13])
+            }
         };
-        sqlx::query(
+        let result = sqlx::query(
             "INSERT INTO users(id,username,email,password_hash,local,ap_id,created_at,updated_at)
              VALUES($1,$2,$3,'',false,$4,NOW(),NOW()) ON CONFLICT(ap_id) DO NOTHING",
         )
@@ -181,9 +185,24 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .bind(format!("{}@remote", new_id))
         .bind(actor_ap_url)
         .execute(&self.pool)
-        .await
-        .into_domain()?;
-        // Re-fetch to get whichever id won the race
+        .await;
+
+        if result.is_err() {
+            let fallback = format!("r_{}", &new_id.to_string()[..13]);
+            let new_id2 = uuid::Uuid::new_v4();
+            sqlx::query(
+                "INSERT INTO users(id,username,email,password_hash,local,ap_id,created_at,updated_at)
+                 VALUES($1,$2,$3,'',false,$4,NOW(),NOW()) ON CONFLICT(ap_id) DO NOTHING",
+            )
+            .bind(new_id2)
+            .bind(&fallback)
+            .bind(format!("{}@remote", new_id2))
+            .bind(actor_ap_url)
+            .execute(&self.pool)
+            .await
+            .into_domain()?;
+        }
+
         self.find_remote_actor_id(actor_ap_url)
             .await?
             .ok_or_else(|| {
@@ -344,6 +363,19 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .await
         .into_domain()
         .map(|opt| opt.map(|(ap_id, inbox_url)| ActorApUrls { ap_id, inbox_url }))
+    }
+
+    async fn sync_remote_actor_to_user(&self, actor_ap_url: &str) -> Result<(), DomainError> {
+        sqlx::query(
+            "UPDATE users SET display_name = ra.display_name, avatar_url = ra.avatar_url, updated_at = NOW()
+             FROM remote_actors ra
+             WHERE users.ap_id = ra.url AND users.ap_id = $1 AND users.local = false",
+        )
+        .bind(actor_ap_url)
+        .execute(&self.pool)
+        .await
+        .into_domain()
+        .map(|_| ())
     }
 }
 

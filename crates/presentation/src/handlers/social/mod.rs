@@ -119,7 +119,15 @@ pub async fn post_block(
     AuthUser(uid): AuthUser,
     Path(username): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    block_by_username(&*d.blocks, &*d.users, &*d.events, &uid, &username).await?;
+    block_by_username(
+        &*d.blocks,
+        &*d.users,
+        &*d.federation,
+        &*d.events,
+        &uid,
+        &username,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[utoipa::path(delete, path = "/users/{username}/block", params(("username" = String, Path, description = "Username")), responses((status = 204, description = "Unblocked")), security(("bearer_auth" = [])))]
@@ -128,7 +136,15 @@ pub async fn delete_block(
     AuthUser(uid): AuthUser,
     Path(username): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    unblock_by_username(&*d.blocks, &*d.users, &*d.events, &uid, &username).await?;
+    unblock_by_username(
+        &*d.blocks,
+        &*d.users,
+        &*d.federation,
+        &*d.events,
+        &uid,
+        &username,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[utoipa::path(put, path = "/users/me/top-friends", request_body = SetTopFriendsRequest, responses((status = 204, description = "Top friends updated")), security(("bearer_auth" = [])))]

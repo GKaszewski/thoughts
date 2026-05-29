@@ -9,3 +9,4 @@ pub mod notifications;
 pub mod social;
 pub mod thoughts;
 pub mod users;
+pub mod well_known;

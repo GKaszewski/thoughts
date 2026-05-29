@@ -8,8 +8,8 @@ use domain::{
         user::User,
     },
     ports::{
-        BlockRepository, BoostRepository, EventPublisher, FederationFollowPort, FollowRepository,
-        LikeRepository, UserReader,
+        BlockRepository, BoostRepository, EventPublisher, FederationBlockPort,
+        FederationFollowPort, FollowRepository, LikeRepository, UserReader,
     },
     value_objects::{BoostId, LikeId, ThoughtId, UserId, Username},
 };
@@ -217,10 +217,14 @@ pub async fn reject_follow(
 pub async fn block_by_username(
     blocks: &dyn BlockRepository,
     users: &dyn UserReader,
+    federation: &dyn FederationBlockPort,
     events: &dyn EventPublisher,
     blocker_id: &UserId,
     username: &str,
 ) -> Result<(), DomainError> {
+    if username.contains('@') {
+        return federation.block_remote(blocker_id, username).await;
+    }
     let uname = Username::new(username).map_err(|_| DomainError::NotFound)?;
     let target = users
         .find_by_username(&uname)
@@ -232,10 +236,14 @@ pub async fn block_by_username(
 pub async fn unblock_by_username(
     blocks: &dyn BlockRepository,
     users: &dyn UserReader,
+    federation: &dyn FederationBlockPort,
     events: &dyn EventPublisher,
     blocker_id: &UserId,
     username: &str,
 ) -> Result<(), DomainError> {
+    if username.contains('@') {
+        return federation.unblock_remote(blocker_id, username).await;
+    }
     let uname = Username::new(username).map_err(|_| DomainError::NotFound)?;
     let target = users
         .find_by_username(&uname)

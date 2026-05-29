@@ -35,8 +35,13 @@ async fn main() {
             .allow_headers(tower_http::cors::Any)
     };
 
+    let ap_router = infra
+        .ap_service
+        .router::<presentation::state::AppState>()
+        .layer(axum::extract::DefaultBodyLimit::max(256 * 1024));
+
     let base = presentation::routes::router()
-        .merge(infra.ap_service.router::<presentation::state::AppState>())
+        .merge(ap_router)
         .with_state(infra.state)
         .layer(cors);
 
