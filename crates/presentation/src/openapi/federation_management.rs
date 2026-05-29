@@ -20,6 +20,6 @@ use utoipa::OpenApi;
         crate::handlers::federation_management::HandleBody,
         crate::handlers::federation_management::MoveBody,
         crate::handlers::federation_management::AlsoKnownAsBody,
-    )),
+    ))
 )]
 pub struct FederationManagementDoc;

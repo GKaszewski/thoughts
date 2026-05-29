@@ -10,6 +10,6 @@ use utoipa::OpenApi;
     components(schemas(
         api_types::responses::ActorConnectionPageResponse,
         api_types::responses::ActorConnectionResponse,
-    )),
+    ))
 )]
 pub struct FederationActorsDoc;
