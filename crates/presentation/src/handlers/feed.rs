@@ -197,6 +197,14 @@ pub async fn search_handler(
     })))
 }
 
+#[utoipa::path(
+    get, path = "/users/{username}/following",
+    params(
+        ("username" = String, Path, description = "Username"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Users this account follows"))
+)]
 pub async fn get_following_handler(
     Deps(d): Deps<FeedDeps>,
     Path(param): Path<String>,
@@ -232,6 +240,14 @@ pub async fn get_following_handler(
     .into_response())
 }
 
+#[utoipa::path(
+    get, path = "/users/{username}/followers",
+    params(
+        ("username" = String, Path, description = "Username"),
+        PaginationQuery,
+    ),
+    responses((status = 200, description = "Accounts that follow this user"))
+)]
 pub async fn get_followers_handler(
     Deps(d): Deps<FeedDeps>,
     Path(param): Path<String>,
@@ -304,6 +320,13 @@ pub async fn user_thoughts_handler(
     })))
 }
 
+#[utoipa::path(
+    get, path = "/tags/popular",
+    params(
+        ("limit" = Option<u64>, Query, description = "Max tags to return (default 20, max 100)"),
+    ),
+    responses((status = 200, description = "Most-used tags"))
+)]
 pub async fn get_popular_tags(
     Deps(d): Deps<FeedDeps>,
     Query(params): Query<std::collections::HashMap<String, String>>,
