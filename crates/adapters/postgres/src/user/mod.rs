@@ -37,20 +37,6 @@ pub struct UserRow {
     pub updated_at: DateTime<Utc>,
 }
 
-fn parse_profile_fields(v: Option<serde_json::Value>) -> Vec<(String, String)> {
-    v.and_then(|v| v.as_array().cloned())
-        .map(|arr| {
-            arr.into_iter()
-                .filter_map(|item| {
-                    let name = item.get("name")?.as_str()?.to_string();
-                    let value = item.get("value")?.as_str()?.to_string();
-                    Some((name, value))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 impl From<UserRow> for User {
     fn from(r: UserRow) -> Self {
         User {
@@ -63,7 +49,7 @@ impl From<UserRow> for User {
             avatar_url: r.avatar_url,
             header_url: r.header_url,
             custom_css: r.custom_css,
-            profile_fields: parse_profile_fields(r.profile_fields),
+            profile_fields: crate::jsonb::parse_name_value(r.profile_fields),
             local: r.local,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -238,11 +224,7 @@ impl UserReader for PgUserRepository {
 #[async_trait]
 impl UserWriter for PgUserRepository {
     async fn save(&self, user: &User) -> Result<(), DomainError> {
-        let profile_fields_json: serde_json::Value = user
-            .profile_fields
-            .iter()
-            .map(|(n, v)| serde_json::json!({"name": n, "value": v}))
-            .collect();
+        let profile_fields_json = crate::jsonb::serialize_name_value(&user.profile_fields);
         sqlx::query(
             "INSERT INTO users (id,username,email,password_hash,display_name,bio,avatar_url,header_url,custom_css,profile_fields,local,created_at,updated_at)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
@@ -290,13 +272,10 @@ impl UserWriter for PgUserRepository {
         user_id: &UserId,
         input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
-        let profile_fields_json: Option<serde_json::Value> =
-            input.profile_fields.as_ref().map(|fields| {
-                fields
-                    .iter()
-                    .map(|(n, v)| serde_json::json!({"name": n, "value": v}))
-                    .collect()
-            });
+        let profile_fields_json: Option<serde_json::Value> = input
+            .profile_fields
+            .as_ref()
+            .map(|f| crate::jsonb::serialize_name_value(f));
         sqlx::query(
             "UPDATE users SET \
              display_name    = COALESCE($2, display_name), \

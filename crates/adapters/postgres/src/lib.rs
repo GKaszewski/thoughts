@@ -8,6 +8,7 @@ pub mod engagement;
 pub mod failed_event;
 pub mod feed;
 pub mod follow;
+pub(crate) mod jsonb;
 pub mod like;
 pub mod notification;
 pub mod outbox;

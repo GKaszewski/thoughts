@@ -1,4 +1,7 @@
 const MAX_TOP_FRIENDS: usize = 8;
+const MAX_PROFILE_FIELDS: usize = 4;
+const MAX_FIELD_NAME_LEN: usize = 64;
+const MAX_FIELD_VALUE_LEN: usize = 256;
 
 use bytes::Bytes;
 use domain::{
@@ -55,6 +58,20 @@ pub async fn update_profile(
     user_id: &UserId,
     input: UpdateProfileInput,
 ) -> Result<(), DomainError> {
+    if let Some(ref fields) = input.profile_fields {
+        if fields.len() > MAX_PROFILE_FIELDS {
+            return Err(DomainError::InvalidInput(format!(
+                "profile fields: max {MAX_PROFILE_FIELDS}"
+            )));
+        }
+        for (name, value) in fields {
+            if name.len() > MAX_FIELD_NAME_LEN || value.len() > MAX_FIELD_VALUE_LEN {
+                return Err(DomainError::InvalidInput(
+                    "profile field name or value too long".into(),
+                ));
+            }
+        }
+    }
     users.update_profile(user_id, input).await?;
     events
         .publish(&DomainEvent::ProfileUpdated {

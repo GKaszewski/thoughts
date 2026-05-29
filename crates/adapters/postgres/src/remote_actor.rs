@@ -23,11 +23,7 @@ impl RemoteActorRepository for PgRemoteActorRepository {
         } else {
             Some(a.also_known_as.iter().map(|s| s.as_str()).collect())
         };
-        let attachment_json: serde_json::Value = a
-            .attachment
-            .iter()
-            .map(|(n, v)| serde_json::json!({"name": n, "value": v}))
-            .collect();
+        let attachment_json = crate::jsonb::serialize_name_value(&a.attachment);
         sqlx::query(
             "INSERT INTO remote_actors(url,handle,display_name,avatar_url,last_fetched_at,
              bio,banner_url,outbox_url,followers_url,following_url,also_known_as,attachment)
@@ -101,19 +97,7 @@ impl RemoteActorRepository for PgRemoteActorRepository {
                 following_url: r.following_url,
                 inbox_url: r.inbox_url,
                 shared_inbox_url: r.shared_inbox_url,
-                attachment: r
-                    .attachment
-                    .and_then(|v| v.as_array().cloned())
-                    .map(|arr| {
-                        arr.into_iter()
-                            .filter_map(|item| {
-                                let name = item.get("name")?.as_str()?.to_string();
-                                let value = item.get("value")?.as_str()?.to_string();
-                                Some((name, value))
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default(),
+                attachment: crate::jsonb::parse_name_value(r.attachment),
             })
         })
     }
