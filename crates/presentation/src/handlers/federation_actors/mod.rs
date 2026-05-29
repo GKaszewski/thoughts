@@ -7,7 +7,9 @@ use crate::{
 use activitypub::ActivityPubRepository;
 use api_types::{
     requests::PaginationQuery,
-    responses::{ActorConnectionPageResponse, ActorConnectionResponse},
+    responses::{
+        ActorConnectionPageResponse, ActorConnectionResponse, PagedResponse, ThoughtResponse,
+    },
 };
 use application::use_cases::federation_management::{
     get_actor_connections_page, get_remote_actor_posts,
@@ -58,7 +60,7 @@ pub async fn remote_actor_posts_handler(
     Path(handle): Path<String>,
     Query(q): Query<PaginationQuery>,
     OptionalAuthUser(viewer): OptionalAuthUser,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<ThoughtResponse>>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
@@ -73,12 +75,12 @@ pub async fn remote_actor_posts_handler(
         viewer.as_ref(),
     )
     .await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "page": result.page,
-        "per_page": result.per_page,
-        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_thought_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
