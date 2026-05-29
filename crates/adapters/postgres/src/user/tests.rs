@@ -1,8 +1,5 @@
 use super::*;
-use domain::{
-    models::user::{UpdateProfileInput, User},
-    value_objects::*,
-};
+use domain::models::user::{UpdateProfileInput, User};
 
 #[sqlx::test(migrations = "./migrations")]
 async fn save_and_find_by_id(pool: sqlx::PgPool) {

@@ -3,7 +3,7 @@ use crate::testing::make_state;
 use axum::{
     body::Body,
     http::{header, Request},
-    routing::{get, patch},
+    routing::patch,
     Router,
 };
 use tower::ServiceExt;

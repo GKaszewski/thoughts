@@ -756,7 +756,7 @@ impl PostgresApUserRepository {
             also_known_as: r.also_known_as.into_iter().collect(),
             profile_url,
             attachment: vec![],
-            manually_approves_followers: false,
+            manually_approves_followers: true,
             discoverable: true,
             actor_type: ApActorType::default(),
             featured_url: None,

@@ -1,7 +1,6 @@
 use super::*;
 use crate::test_helpers::seed_user_and_thought;
 use chrono::Utc;
-use domain::value_objects::*;
 
 #[sqlx::test(migrations = "./migrations")]
 async fn like_and_count(pool: sqlx::PgPool) {

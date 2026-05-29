@@ -5,7 +5,6 @@ use domain::{
         user::User,
     },
     ports::{SearchPort, ThoughtRepository, UserWriter},
-    value_objects::*,
 };
 
 async fn seed_thought(pool: &sqlx::PgPool, username: &str, content: &str) -> (User, Thought) {
@@ -102,9 +101,9 @@ async fn search_thoughts_returns_empty_for_no_match(pool: sqlx::PgPool) {
 #[sqlx::test(migrations = "../postgres/migrations")]
 async fn search_thoughts_viewer_context(pool: sqlx::PgPool) {
     use domain::models::social::Like;
-    use domain::ports::{LikeRepository, UserWriter};
+    use domain::ports::LikeRepository;
     use domain::value_objects::LikeId;
-    use postgres::{like::PgLikeRepository, user::PgUserRepository};
+    use postgres::like::PgLikeRepository;
 
     let (alice, thought) = seed_thought(&pool, "alice", "hello world").await;
 

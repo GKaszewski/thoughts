@@ -4,7 +4,7 @@ use crate::testing::make_state;
 use axum::{
     body::Body,
     http::Request,
-    routing::{delete, get, post},
+    routing::{get, post},
     Router,
 };
 use tower::ServiceExt;

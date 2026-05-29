@@ -1,4 +1,3 @@
-use super::*;
 use domain::{
     events::DomainEvent,
     value_objects::{LikeId, ThoughtId, UserId},

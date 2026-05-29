@@ -1,9 +1,6 @@
 use super::*;
 use crate::test_helpers::seed_user;
-use domain::{
-    models::thought::{NewThought, Thought, Visibility},
-    value_objects::*,
-};
+use domain::models::thought::{NewThought, Thought, Visibility};
 
 #[sqlx::test(migrations = "./migrations")]
 async fn save_and_find_thought(pool: sqlx::PgPool) {

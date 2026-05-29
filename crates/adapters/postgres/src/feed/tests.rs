@@ -7,7 +7,6 @@ use domain::{
         user::User,
     },
     ports::{FeedOptions, FeedQuery, FeedRequest, ThoughtRepository, UserWriter},
-    value_objects::*,
 };
 
 async fn seed(pool: &sqlx::PgPool, username: &str, content: &str) -> (User, Thought) {

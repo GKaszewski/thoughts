@@ -1,10 +1,7 @@
 use super::*;
 use crate::test_helpers;
 use chrono::Utc;
-use domain::{
-    models::{notification::NotificationKind, user::User},
-    value_objects::*,
-};
+use domain::models::notification::NotificationKind;
 
 #[sqlx::test(migrations = "./migrations")]
 async fn save_and_list(pool: sqlx::PgPool) {
