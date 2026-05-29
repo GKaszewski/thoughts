@@ -114,11 +114,11 @@ fn k_ap_actor_to_domain(a: k_ap::RemoteActor) -> DomainRemoteActor {
         avatar_url: a.avatar_url,
         outbox_url: a.outbox_url,
         last_fetched_at: chrono::Utc::now(),
-        bio: None,
-        banner_url: None,
-        also_known_as: None,
-        followers_url: None,
-        following_url: None,
+        bio: a.bio,
+        banner_url: a.banner_url,
+        also_known_as: a.also_known_as.into_iter().next(),
+        followers_url: a.followers_url,
+        following_url: a.following_url,
         attachment: vec![],
     }
 }

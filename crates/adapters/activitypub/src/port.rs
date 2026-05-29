@@ -73,7 +73,6 @@ pub trait ActivityPubRepository: Send + Sync {
     // ── Inbox processing (remote → local) ───────────────────────────
 
     /// Persist an incoming remote Note. Idempotent on ap_id.
-
     async fn accept_note(&self, input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError>;
 
     /// Apply an Update to a previously accepted remote Note.

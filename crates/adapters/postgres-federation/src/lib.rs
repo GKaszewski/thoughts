@@ -35,7 +35,8 @@ fn str_status(s: &str) -> FollowerStatus {
     }
 }
 
-fn map_remote_actor(
+#[derive(sqlx::FromRow)]
+struct RemoteActorRow {
     url: String,
     handle: String,
     inbox_url: String,
@@ -43,15 +44,27 @@ fn map_remote_actor(
     display_name: Option<String>,
     avatar_url: Option<String>,
     outbox_url: Option<String>,
-) -> RemoteActor {
+    bio: Option<String>,
+    banner_url: Option<String>,
+    followers_url: Option<String>,
+    following_url: Option<String>,
+    also_known_as: Option<Vec<String>>,
+}
+
+fn map_remote_actor(r: RemoteActorRow) -> RemoteActor {
     RemoteActor {
-        url,
-        handle,
-        inbox_url,
-        shared_inbox_url,
-        display_name,
-        avatar_url,
-        outbox_url,
+        url: r.url,
+        handle: r.handle,
+        inbox_url: r.inbox_url,
+        shared_inbox_url: r.shared_inbox_url,
+        display_name: r.display_name,
+        avatar_url: r.avatar_url,
+        outbox_url: r.outbox_url,
+        bio: r.bio,
+        banner_url: r.banner_url,
+        followers_url: r.followers_url,
+        following_url: r.following_url,
+        also_known_as: r.also_known_as.unwrap_or_default(),
     }
 }
 
@@ -143,18 +156,15 @@ impl FollowRepository for PostgresFederationRepository {
     async fn get_followers(&self, local_user_id: uuid::Uuid) -> Result<Vec<Follower>> {
         #[derive(sqlx::FromRow)]
         struct Row {
-            remote_actor_url: String,
+            #[sqlx(flatten)]
+            actor: RemoteActorRow,
             status: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
         }
         sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, f.status, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+            "SELECT f.remote_actor_url AS url, f.status,
+             COALESCE(r.handle,'') AS handle, COALESCE(r.inbox_url,'') AS inbox_url,
+             r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'",
@@ -166,15 +176,7 @@ impl FollowRepository for PostgresFederationRepository {
         .map(|rows| {
             rows.into_iter()
                 .map(|r| Follower {
-                    actor: map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    ),
+                    actor: map_remote_actor(r.actor),
                     status: str_status(&r.status),
                 })
                 .collect()
@@ -189,18 +191,15 @@ impl FollowRepository for PostgresFederationRepository {
     ) -> Result<Vec<Follower>> {
         #[derive(sqlx::FromRow)]
         struct Row {
-            remote_actor_url: String,
+            #[sqlx(flatten)]
+            actor: RemoteActorRow,
             status: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
         }
         sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, f.status, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+            "SELECT f.remote_actor_url AS url, f.status,
+             COALESCE(r.handle,'') AS handle, COALESCE(r.inbox_url,'') AS inbox_url,
+             r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'
@@ -215,15 +214,7 @@ impl FollowRepository for PostgresFederationRepository {
         .map(|rows| {
             rows.into_iter()
                 .map(|r| Follower {
-                    actor: map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    ),
+                    actor: map_remote_actor(r.actor),
                     status: str_status(&r.status),
                 })
                 .collect()
@@ -258,19 +249,10 @@ impl FollowRepository for PostgresFederationRepository {
         offset: u32,
         limit: usize,
     ) -> Result<Vec<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            remote_actor_url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+        sqlx::query_as::<_, RemoteActorRow>(
+            "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
+             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'
@@ -282,21 +264,7 @@ impl FollowRepository for PostgresFederationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
-        .map(|rows| {
-            rows.into_iter()
-                .map(|r| {
-                    map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    )
-                })
-                .collect()
-        })
+        .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
     async fn get_accepted_follower_inboxes(
@@ -325,19 +293,10 @@ impl FollowRepository for PostgresFederationRepository {
     }
 
     async fn get_pending_followers(&self, local_user_id: uuid::Uuid) -> Result<Vec<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            remote_actor_url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+        sqlx::query_as::<_, RemoteActorRow>(
+            "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
+             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='pending'",
@@ -346,21 +305,7 @@ impl FollowRepository for PostgresFederationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
-        .map(|rows| {
-            rows.into_iter()
-                .map(|r| {
-                    map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    )
-                })
-                .collect()
-        })
+        .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
     async fn update_follower_status(
@@ -432,19 +377,10 @@ impl FollowRepository for PostgresFederationRepository {
     }
 
     async fn get_following(&self, local_user_id: uuid::Uuid) -> Result<Vec<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            remote_actor_url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+        sqlx::query_as::<_, RemoteActorRow>(
+            "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
+             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1",
@@ -453,21 +389,7 @@ impl FollowRepository for PostgresFederationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
-        .map(|rows| {
-            rows.into_iter()
-                .map(|r| {
-                    map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    )
-                })
-                .collect()
-        })
+        .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
     async fn get_following_page(
@@ -476,19 +398,10 @@ impl FollowRepository for PostgresFederationRepository {
         offset: u32,
         limit: usize,
     ) -> Result<Vec<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            remote_actor_url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT f.remote_actor_url, COALESCE(r.handle,'') AS handle,
-             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url
+        sqlx::query_as::<_, RemoteActorRow>(
+            "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
+             COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1
@@ -500,21 +413,7 @@ impl FollowRepository for PostgresFederationRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
-        .map(|rows| {
-            rows.into_iter()
-                .map(|r| {
-                    map_remote_actor(
-                        r.remote_actor_url,
-                        r.handle,
-                        r.inbox_url,
-                        r.shared_inbox_url,
-                        r.display_name,
-                        r.avatar_url,
-                        r.outbox_url,
-                    )
-                })
-                .collect()
-        })
+        .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
     async fn count_following(&self, local_user_id: uuid::Uuid) -> Result<usize> {
@@ -626,12 +525,22 @@ impl ActorRepository for PostgresFederationRepository {
     }
 
     async fn upsert_remote_actor(&self, actor: RemoteActor) -> Result<()> {
+        let also_known_as: Option<Vec<String>> = if actor.also_known_as.is_empty() {
+            None
+        } else {
+            Some(actor.also_known_as)
+        };
         sqlx::query(
-            "INSERT INTO remote_actors(url,handle,display_name,inbox_url,shared_inbox_url,public_key,avatar_url,outbox_url,last_fetched_at)
-             VALUES($1,$2,$3,$4,$5,'',$6,$7,NOW())
-             ON CONFLICT(url) DO UPDATE SET handle=EXCLUDED.handle,display_name=EXCLUDED.display_name,
-             inbox_url=EXCLUDED.inbox_url,shared_inbox_url=EXCLUDED.shared_inbox_url,
-             avatar_url=EXCLUDED.avatar_url,outbox_url=EXCLUDED.outbox_url,last_fetched_at=NOW()",
+            "INSERT INTO remote_actors(url,handle,display_name,inbox_url,shared_inbox_url,public_key,
+             avatar_url,outbox_url,bio,banner_url,followers_url,following_url,also_known_as,last_fetched_at)
+             VALUES($1,$2,$3,$4,$5,'',$6,$7,$8,$9,$10,$11,$12,NOW())
+             ON CONFLICT(url) DO UPDATE SET
+             handle=EXCLUDED.handle, display_name=EXCLUDED.display_name,
+             inbox_url=EXCLUDED.inbox_url, shared_inbox_url=EXCLUDED.shared_inbox_url,
+             avatar_url=EXCLUDED.avatar_url, outbox_url=EXCLUDED.outbox_url,
+             bio=EXCLUDED.bio, banner_url=EXCLUDED.banner_url,
+             followers_url=EXCLUDED.followers_url, following_url=EXCLUDED.following_url,
+             also_known_as=EXCLUDED.also_known_as, last_fetched_at=NOW()",
         )
         .bind(&actor.url)
         .bind(&actor.handle)
@@ -640,6 +549,11 @@ impl ActorRepository for PostgresFederationRepository {
         .bind(&actor.shared_inbox_url)
         .bind(&actor.avatar_url)
         .bind(&actor.outbox_url)
+        .bind(&actor.bio)
+        .bind(&actor.banner_url)
+        .bind(&actor.followers_url)
+        .bind(&actor.following_url)
+        .bind(also_known_as.as_deref())
         .execute(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
@@ -647,36 +561,16 @@ impl ActorRepository for PostgresFederationRepository {
     }
 
     async fn get_remote_actor(&self, actor_url: &str) -> Result<Option<RemoteActor>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            url: String,
-            handle: String,
-            inbox_url: String,
-            shared_inbox_url: Option<String>,
-            display_name: Option<String>,
-            avatar_url: Option<String>,
-            outbox_url: Option<String>,
-        }
-        sqlx::query_as::<_, Row>(
-            "SELECT url,handle,inbox_url,shared_inbox_url,display_name,avatar_url,outbox_url FROM remote_actors WHERE url=$1",
+        sqlx::query_as::<_, RemoteActorRow>(
+            "SELECT url, handle, inbox_url, shared_inbox_url, display_name, avatar_url, outbox_url,
+             bio, banner_url, followers_url, following_url, also_known_as
+             FROM remote_actors WHERE url=$1",
         )
         .bind(actor_url)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| anyhow!(e))
-        .map(|o| {
-            o.map(|r| {
-                map_remote_actor(
-                    r.url,
-                    r.handle,
-                    r.inbox_url,
-                    r.shared_inbox_url,
-                    r.display_name,
-                    r.avatar_url,
-                    r.outbox_url,
-                )
-            })
-        })
+        .map(|o| o.map(map_remote_actor))
     }
 
     async fn add_announce(
@@ -827,6 +721,17 @@ impl BlocklistRepository for PostgresFederationRepository {
 
 // ── PostgresApUserRepository ──────────────────────────────────────────────────
 
+#[derive(sqlx::FromRow)]
+struct UserRow {
+    id: uuid::Uuid,
+    username: String,
+    display_name: Option<String>,
+    bio: Option<String>,
+    avatar_url: Option<String>,
+    header_url: Option<String>,
+    also_known_as: Option<String>,
+}
+
 pub struct PostgresApUserRepository {
     pool: PgPool,
     base_url: String,
@@ -837,27 +742,18 @@ impl PostgresApUserRepository {
         Self { pool, base_url }
     }
 
-    fn row_to_ap_user(
-        &self,
-        id: uuid::Uuid,
-        username: String,
-        display_name: Option<String>,
-        bio: Option<String>,
-        avatar_url: Option<String>,
-        header_url: Option<String>,
-        also_known_as: Option<String>,
-    ) -> ApUser {
-        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
-        let avatar_url = avatar_url.and_then(|u| url::Url::parse(&u).ok());
-        let banner_url = header_url.and_then(|u| url::Url::parse(&u).ok());
+    fn row_to_ap_user(&self, r: UserRow) -> ApUser {
+        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, r.username)).ok();
+        let avatar_url = r.avatar_url.and_then(|u| url::Url::parse(&u).ok());
+        let banner_url = r.header_url.and_then(|u| url::Url::parse(&u).ok());
         ApUser {
-            id,
-            username,
-            display_name,
-            bio,
+            id: r.id,
+            username: r.username,
+            display_name: r.display_name,
+            bio: r.bio,
             avatar_url,
             banner_url,
-            also_known_as: also_known_as.into_iter().collect(),
+            also_known_as: r.also_known_as.into_iter().collect(),
             profile_url,
             attachment: vec![],
             manually_approves_followers: false,
@@ -871,65 +767,25 @@ impl PostgresApUserRepository {
 #[async_trait]
 impl ApUserRepository for PostgresApUserRepository {
     async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<ApUser>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            username: String,
-            display_name: Option<String>,
-            bio: Option<String>,
-            avatar_url: Option<String>,
-            header_url: Option<String>,
-            also_known_as: Option<String>,
-        }
-        let row = sqlx::query_as::<_, Row>(
+        let row = sqlx::query_as::<_, UserRow>(
             "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE id=$1 AND local=true",
         )
         .bind(id)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| anyhow!(e))?;
-        Ok(row.map(|r| {
-            self.row_to_ap_user(
-                r.id,
-                r.username,
-                r.display_name,
-                r.bio,
-                r.avatar_url,
-                r.header_url,
-                r.also_known_as,
-            )
-        }))
+        Ok(row.map(|r| self.row_to_ap_user(r)))
     }
 
     async fn find_by_username(&self, username: &str) -> Result<Option<ApUser>> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            username: String,
-            display_name: Option<String>,
-            bio: Option<String>,
-            avatar_url: Option<String>,
-            header_url: Option<String>,
-            also_known_as: Option<String>,
-        }
-        let row = sqlx::query_as::<_, Row>(
+        let row = sqlx::query_as::<_, UserRow>(
             "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE username=$1 AND local=true",
         )
         .bind(username)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| anyhow!(e))?;
-        Ok(row.map(|r| {
-            self.row_to_ap_user(
-                r.id,
-                r.username,
-                r.display_name,
-                r.bio,
-                r.avatar_url,
-                r.header_url,
-                r.also_known_as,
-            )
-        }))
+        Ok(row.map(|r| self.row_to_ap_user(r)))
     }
 
     async fn count_users(&self) -> Result<usize> {
