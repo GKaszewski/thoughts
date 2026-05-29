@@ -16,13 +16,33 @@ fmt-check:
 clippy:
 	cargo clippy -- -D warnings
 
-# Run the test suite.
+# Run the full test suite (requires DATABASE_URL).
 test:
 	cargo test
+
+# Unit tests only — no database required.
+test-unit:
+	cargo test -p domain -p application -p api-types -p activitypub
+
+# Integration tests only — requires DATABASE_URL.
+test-integration:
+	cargo test -p postgres -p postgres-federation -p postgres-search -p presentation
 
 # Apply fmt + clippy auto-fixes in one shot.
 fix:
 	cargo fmt
 	cargo clippy --fix --allow-dirty --allow-staged
 
-.PHONY: check fmt fmt-check clippy test fix
+# Start infra (Postgres + NATS) for local development.
+dev-infra:
+	docker compose up postgres nats -d
+
+# Stop infra.
+dev-infra-down:
+	docker compose down
+
+# Full Docker stack.
+up:
+	docker compose up --build
+
+.PHONY: check fmt fmt-check clippy test test-unit test-integration fix dev-infra dev-infra-down up

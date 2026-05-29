@@ -52,7 +52,7 @@ WORKDIR /app
 COPY --from=builder /build/target/release/thoughts        ./thoughts
 COPY --from=builder /build/target/release/thoughts-worker ./thoughts-worker
 
-EXPOSE 3000
+EXPOSE 8000
 
 ENV RUST_LOG=info
 

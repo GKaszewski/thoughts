@@ -85,6 +85,11 @@ Users can upload avatar and banner images via `PUT /users/me/avatar` and `PUT /u
 - Rust stable (1.80+)
 - PostgreSQL 15+
 - NATS with JetStream (optional — see [Without NATS](#without-nats))
+- Docker & Docker Compose (for the easiest local setup)
+
+### Private cargo registry
+
+The `k-ap` crate (ActivityPub protocol library) is hosted on a private Gitea registry configured in `.cargo/config.toml`. To build the project you need read access to `git.gabrielkaszewski.dev`. If you're contributing and don't have access, open an issue and I'll sort it out.
 
 ## Environment Variables
 
@@ -121,7 +126,41 @@ Copy `.env.example` to `.env` and fill in your values.
 | `UPLOAD_MAX_BYTES` | `5242880` | Max upload size in bytes (default 5 MiB) |
 | `UPLOAD_ALLOWED_TYPES` | `image/jpeg,image/png,image/gif,image/webp,image/avif` | Comma-separated allowed MIME types |
 
+### Frontend environment
+
+Copy `thoughts-frontend/.env.example` to `thoughts-frontend/.env.local` and adjust:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | API URL for client-side (browser) requests, e.g. `http://localhost:8000` |
+| `NEXT_PUBLIC_SERVER_SIDE_API_URL` | API URL for SSR requests — same as above locally, or `http://api:8000` inside Docker |
+| `NEXT_PUBLIC_FEDIVERSE_DOMAIN` | (Optional) Domain shown on profile fediverse handles, e.g. `yourinstance.example.com` |
+
 ## Run
+
+### Local development (recommended)
+
+Start only the infrastructure containers (Postgres + NATS), then run the Rust backend and Next.js frontend natively for fast iteration:
+
+```bash
+# 1. Start Postgres + NATS
+make dev-infra
+
+# 2. Copy and fill in env files
+cp .env.example .env
+cp thoughts-frontend/.env.example thoughts-frontend/.env.local
+
+# 3. API server (runs migrations automatically on startup)
+cargo run -p bootstrap
+
+# 4. Event worker (separate terminal, optional)
+cargo run -p worker
+
+# 5. Frontend (separate terminal)
+cd thoughts-frontend && bun install && bun dev
+```
+
+### Bare metal
 
 ```bash
 # API server (runs migrations automatically on startup)
@@ -136,14 +175,20 @@ Both processes share the same PostgreSQL database. The worker is optional but re
 ## Test
 
 ```bash
-# Unit tests — no database required
-cargo test -p application
+# Unit tests only — no database required
+make test-unit
 
-# Full workspace (requires DATABASE_URL pointing to a running PostgreSQL)
-cargo test --workspace
+# Integration tests — requires DATABASE_URL pointing to a running PostgreSQL
+make test-integration
+
+# Everything (unit + integration)
+make test
+
+# Full check suite: fmt + clippy + tests
+make check
 ```
 
-The `application` crate contains unit tests for all event services and use cases backed by in-memory fakes from `domain`'s `test-helpers` feature. These are the fastest feedback loop for business logic.
+`make test-unit` runs domain, application, api-types, and activitypub tests using in-memory fakes — the fastest feedback loop for business logic. `make test-integration` runs the adapter crates against a live PostgreSQL.
 
 ## API
 
@@ -203,12 +248,12 @@ docker build -t thoughts-frontend \
 docker run -p 3000:3000 thoughts-frontend
 ```
 
-### Local development stack
+### Full Docker stack
 
 `compose.yml` spins up the full stack: PostgreSQL, NATS (with JetStream and monitoring on port 8222), the API server, the event worker, and the frontend.
 
 ```bash
-docker compose up
+make up          # or: docker compose up --build
 ```
 
 Services:
