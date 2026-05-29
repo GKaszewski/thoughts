@@ -114,12 +114,19 @@ impl<'a> FeedSqlBuilder<'a> {
     }
 
     fn select(&self) -> String {
-        let viewer_checks = match self.viewer {
-            Some(uid) => format!(
-                "EXISTS(SELECT 1 FROM likes WHERE user_id='{uid}' AND thought_id=t.id) AS liked_by_viewer,
-                 EXISTS(SELECT 1 FROM boosts WHERE user_id='{uid}' AND thought_id=t.id) AS boosted_by_viewer"
+        let (viewer_cols, viewer_joins) = match self.viewer {
+            Some(uid) => (
+                "(lv.thought_id IS NOT NULL) AS liked_by_viewer,
+                 (bv.thought_id IS NOT NULL) AS boosted_by_viewer".to_string(),
+                format!(
+                    "LEFT JOIN (SELECT thought_id FROM likes WHERE user_id='{uid}') lv ON lv.thought_id = t.id
+                     LEFT JOIN (SELECT thought_id FROM boosts WHERE user_id='{uid}') bv ON bv.thought_id = t.id"
+                ),
             ),
-            None => "false AS liked_by_viewer, false AS boosted_by_viewer".to_string(),
+            None => (
+                "false AS liked_by_viewer, false AS boosted_by_viewer".to_string(),
+                String::new(),
+            ),
         };
         format!(
             "
@@ -143,13 +150,17 @@ impl<'a> FeedSqlBuilder<'a> {
         u.header_url, u.custom_css,
         u.local AS author_local,
         u.created_at AS author_created_at, u.updated_at AS author_updated_at,
-        (SELECT COUNT(*) FROM likes l WHERE l.thought_id=t.id) AS like_count,
-        (SELECT COUNT(*) FROM boosts b WHERE b.thought_id=t.id) AS boost_count,
-        (SELECT COUNT(*) FROM thoughts r WHERE r.in_reply_to_id=t.id) AS reply_count,
-        {viewer_checks}
+        COALESCE(l_agg.cnt, 0) AS like_count,
+        COALESCE(b_agg.cnt, 0) AS boost_count,
+        COALESCE(r_agg.cnt, 0) AS reply_count,
+        {viewer_cols}
     FROM thoughts t
     JOIN users u ON u.id=t.user_id
-    LEFT JOIN remote_actors ra ON u.ap_id = ra.url"
+    LEFT JOIN remote_actors ra ON u.ap_id = ra.url
+    LEFT JOIN (SELECT thought_id, COUNT(*) AS cnt FROM likes GROUP BY thought_id) l_agg ON l_agg.thought_id = t.id
+    LEFT JOIN (SELECT thought_id, COUNT(*) AS cnt FROM boosts GROUP BY thought_id) b_agg ON b_agg.thought_id = t.id
+    LEFT JOIN (SELECT in_reply_to_id, COUNT(*) AS cnt FROM thoughts WHERE in_reply_to_id IS NOT NULL GROUP BY in_reply_to_id) r_agg ON r_agg.in_reply_to_id = t.id
+    {viewer_joins}"
         )
     }
 

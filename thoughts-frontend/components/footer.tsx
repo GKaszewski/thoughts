@@ -1,11 +1,5 @@
 import Link from "next/link";
-import {
-  BookOpen,
-  Code2,
-  Fingerprint,
-  Globe,
-  Info,
-} from "lucide-react";
+import { BookOpen, Code2, Globe, Info } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -15,30 +9,28 @@ const LINKS = [
     label: "API Reference",
     icon: BookOpen,
     external: true,
+    title: undefined,
   },
   {
     href: `${API_URL}/.well-known/nodeinfo`,
     label: "NodeInfo",
     icon: Info,
     external: true,
-  },
-  {
-    href: `${API_URL}/.well-known/webfinger`,
-    label: "WebFinger",
-    icon: Fingerprint,
-    external: true,
+    title: undefined,
   },
   {
     href: "/about/fediverse",
     label: "About the Fediverse",
     icon: Globe,
     external: false,
+    title: undefined,
   },
   {
     href: "https://git.gabrielkaszewski.dev/GKaszewski/thoughts",
     label: "Source Code",
     icon: Code2,
     external: true,
+    title: undefined,
   },
 ] as const;
 
@@ -52,7 +44,7 @@ export function Footer() {
       />
 
       <div className="container flex flex-wrap items-center justify-center gap-x-1 gap-y-2 px-4 py-3">
-        {LINKS.map(({ href, label, icon: Icon }, i) => (
+        {LINKS.map(({ href, label, icon: Icon, title }, i) => (
           <span key={href} className="flex items-center gap-1">
             {i > 0 && (
               <span className="text-muted-foreground/40 select-none text-xs mx-1">
@@ -64,6 +56,7 @@ export function Footer() {
               {...(href.startsWith("http") || href.startsWith(API_URL)
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
+              title={title}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors duration-150 group"
             >
               <Icon
