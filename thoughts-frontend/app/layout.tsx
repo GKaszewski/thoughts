@@ -6,6 +6,7 @@ import { Header } from "@/components/header";
 import localFont from "next/font/local";
 import Image from "next/image";
 import InstallPrompt from "@/components/install-prompt";
+import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
   title: {
@@ -64,8 +65,11 @@ export default function RootLayout({
           />
         </div>
         <AuthProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
           <InstallPrompt />
           <Toaster />
         </AuthProvider>
