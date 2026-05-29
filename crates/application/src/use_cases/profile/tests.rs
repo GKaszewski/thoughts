@@ -113,24 +113,31 @@ fn default_cfg() -> UploadConfig {
     UploadConfig::default()
 }
 
+fn make_ctx<'a>(
+    store: &'a TestStore,
+    media: &'a MockMedia,
+    cfg: &'a UploadConfig,
+) -> UploadContext<'a> {
+    UploadContext {
+        users: store,
+        media,
+        events: store,
+        upload_config: cfg,
+        base_url: "http://localhost",
+    }
+}
+
 #[tokio::test]
 async fn upload_avatar_rejects_unsupported_mime() {
     let store = TestStore::default();
     let media = MockMedia::default();
     let user = make_user();
     store.users.lock().unwrap().push(user.clone());
-    let err = upload_avatar(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "text/plain",
-        Bytes::from("hi"),
-    )
-    .await
-    .unwrap_err();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    let err = upload_avatar(&ctx, &user.id, "text/plain", Bytes::from("hi"))
+        .await
+        .unwrap_err();
     assert!(matches!(err, DomainError::InvalidInput(_)));
 }
 
@@ -141,18 +148,11 @@ async fn upload_avatar_rejects_oversized_data() {
     let user = make_user();
     store.users.lock().unwrap().push(user.clone());
     let big = Bytes::from(vec![0u8; 6 * 1024 * 1024]);
-    let err = upload_avatar(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "image/jpeg",
-        big,
-    )
-    .await
-    .unwrap_err();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    let err = upload_avatar(&ctx, &user.id, "image/jpeg", big)
+        .await
+        .unwrap_err();
     assert!(matches!(err, DomainError::InvalidInput(_)));
 }
 
@@ -162,18 +162,11 @@ async fn upload_avatar_stores_file_and_updates_url() {
     let media = MockMedia::default();
     let user = make_user();
     store.users.lock().unwrap().push(user.clone());
-    upload_avatar(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "image/jpeg",
-        Bytes::from("img"),
-    )
-    .await
-    .unwrap();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    upload_avatar(&ctx, &user.id, "image/jpeg", Bytes::from("img"))
+        .await
+        .unwrap();
     let key = format!("users/{}/avatar.jpg", user.id.as_uuid());
     assert!(media.store.lock().unwrap().contains_key(&key));
     let saved = store
@@ -203,18 +196,11 @@ async fn upload_avatar_deletes_old_file_on_reupload() {
         .lock()
         .unwrap()
         .insert(old_key.clone(), Bytes::from("old"));
-    upload_avatar(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "image/jpeg",
-        Bytes::from("new"),
-    )
-    .await
-    .unwrap();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    upload_avatar(&ctx, &user.id, "image/jpeg", Bytes::from("new"))
+        .await
+        .unwrap();
     assert!(!media.store.lock().unwrap().contains_key(&old_key));
     assert!(media.deleted.lock().unwrap().contains(&old_key));
 }
@@ -225,18 +211,11 @@ async fn upload_banner_stores_file_and_updates_header_url() {
     let media = MockMedia::default();
     let user = make_user();
     store.users.lock().unwrap().push(user.clone());
-    upload_banner(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "image/png",
-        Bytes::from("banner"),
-    )
-    .await
-    .unwrap();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    upload_banner(&ctx, &user.id, "image/png", Bytes::from("banner"))
+        .await
+        .unwrap();
     let key = format!("users/{}/banner.png", user.id.as_uuid());
     assert!(media.store.lock().unwrap().contains_key(&key));
     let saved = store
@@ -266,18 +245,11 @@ async fn upload_banner_deletes_old_file_on_reupload() {
         .lock()
         .unwrap()
         .insert(old_key.clone(), Bytes::from("old"));
-    upload_banner(
-        &store,
-        &media,
-        &store,
-        &user.id,
-        "http://localhost",
-        &default_cfg(),
-        "image/png",
-        Bytes::from("new"),
-    )
-    .await
-    .unwrap();
+    let cfg = default_cfg();
+    let ctx = make_ctx(&store, &media, &cfg);
+    upload_banner(&ctx, &user.id, "image/png", Bytes::from("new"))
+        .await
+        .unwrap();
     assert!(!media.store.lock().unwrap().contains_key(&old_key));
     assert!(media.deleted.lock().unwrap().contains(&old_key));
 }

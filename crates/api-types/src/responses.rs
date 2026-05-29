@@ -85,6 +85,13 @@ pub struct TopFriendsResponse {
 
 #[derive(Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct NotificationSummaryResponse {
+    pub total: i64,
+    pub unread: u64,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ErrorResponse {
     pub error: String,
 }

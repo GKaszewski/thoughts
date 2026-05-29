@@ -2,6 +2,7 @@ pub mod activitypub;
 pub mod api_key;
 pub mod block;
 pub mod boost;
+pub mod constants;
 mod db_error;
 pub mod engagement;
 pub mod failed_event;

@@ -31,73 +31,60 @@ impl PasswordHasher for NoOpHasher {
     }
 }
 
-/// No-op ActivityPubRepository for presentation layer tests.
 pub struct NoOpApRepo;
 
 #[async_trait]
 impl ActivityPubRepository for NoOpApRepo {
-    async fn outbox_entries_for_actor(
-        &self,
-        _uid: &UserId,
-    ) -> Result<Vec<OutboxEntry>, DomainError> {
+    async fn outbox_entries_for_actor(&self, _: &UserId) -> Result<Vec<OutboxEntry>, DomainError> {
         Ok(vec![])
     }
     async fn outbox_page_for_actor(
         &self,
-        _uid: &UserId,
-        _before: Option<chrono::DateTime<chrono::Utc>>,
-        _limit: usize,
+        _: &UserId,
+        _: Option<chrono::DateTime<chrono::Utc>>,
+        _: usize,
     ) -> Result<Vec<OutboxEntry>, DomainError> {
         Ok(vec![])
     }
-    async fn find_remote_actor_id(
-        &self,
-        _actor_ap_url: &str,
-    ) -> Result<Option<UserId>, DomainError> {
+    async fn find_remote_actor_id(&self, _: &str) -> Result<Option<UserId>, DomainError> {
         Ok(None)
     }
-    async fn intern_remote_actor(&self, _actor_ap_url: &str) -> Result<UserId, DomainError> {
+    async fn intern_remote_actor(&self, _: &str) -> Result<UserId, DomainError> {
         Err(DomainError::NotFound)
     }
     async fn update_remote_actor_display(
         &self,
-        _user_id: &UserId,
-        _display_name: Option<&str>,
-        _avatar_url: Option<&str>,
+        _: &UserId,
+        _: Option<&str>,
+        _: Option<&str>,
     ) -> Result<(), DomainError> {
         Ok(())
     }
     async fn accept_note(
         &self,
-        _input: activitypub::AcceptNoteInput<'_>,
+        _: activitypub::AcceptNoteInput<'_>,
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }
-    async fn apply_note_update(&self, _ap_id: &str, _new_content: &str) -> Result<(), DomainError> {
+    async fn apply_note_update(&self, _: &str, _: &str) -> Result<(), DomainError> {
         Ok(())
     }
-    async fn retract_note(&self, _ap_id: &str) -> Result<(), DomainError> {
+    async fn retract_note(&self, _: &str) -> Result<(), DomainError> {
         Ok(())
     }
-    async fn retract_actor_notes(&self, _actor_ap_url: &str) -> Result<(), DomainError> {
+    async fn retract_actor_notes(&self, _: &str) -> Result<(), DomainError> {
         Ok(())
     }
     async fn count_local_notes(&self) -> Result<u64, DomainError> {
         Ok(0)
     }
-    async fn get_thought_ap_id(
-        &self,
-        _thought_id: &ThoughtId,
-    ) -> Result<Option<String>, DomainError> {
+    async fn get_thought_ap_id(&self, _: &ThoughtId) -> Result<Option<String>, DomainError> {
         Ok(None)
     }
-    async fn get_actor_ap_urls(
-        &self,
-        _user_id: &UserId,
-    ) -> Result<Option<ActorApUrls>, DomainError> {
+    async fn get_actor_ap_urls(&self, _: &UserId) -> Result<Option<ActorApUrls>, DomainError> {
         Ok(None)
     }
-    async fn sync_remote_actor_to_user(&self, _actor_ap_url: &str) -> Result<(), DomainError> {
+    async fn sync_remote_actor_to_user(&self, _: &str) -> Result<(), DomainError> {
         Ok(())
     }
 }

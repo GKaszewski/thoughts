@@ -8,7 +8,7 @@ use std::sync::Arc;
 use application::use_cases::profile::UploadConfig;
 use storage::{build_store, ObjectStorageAdapter, StorageConfig};
 
-use activitypub::{ApFederationAdapter, ThoughtsObjectHandler};
+use activitypub::{build_ap_service, ApFederationAdapter, ApServiceConfig, ThoughtsObjectHandler};
 use auth::ApiKeyServiceImpl;
 use domain::{
     errors::DomainError,
@@ -16,13 +16,13 @@ use domain::{
     ports::{EventPublisher, OutboxWriter},
 };
 use event_transport::{EventPublisherAdapter, Transport};
-use k_ap::{ActivityPubService, FederationEvent};
+use k_ap::FederationEvent;
 use nats::NatsTransport;
 use postgres::activitypub::PgActivityPubRepository;
 use postgres::engagement::PgEngagementRepository;
 use postgres::outbox::PgOutboxWriter;
 use postgres::remote_actor_connections::PgRemoteActorConnectionRepository;
-use postgres_federation::{PostgresApUserRepository, PostgresFederationRepository};
+use postgres_federation::{PgApUserRepository, PgFederationRepository};
 use presentation::state::AppState;
 
 use crate::config::Config;
@@ -125,7 +125,7 @@ pub async fn build(cfg: &Config) -> Infrastructure {
 
     // 3. ActivityPub federation
     let connections_repo = Arc::new(PgRemoteActorConnectionRepository::new(pool.clone()));
-    let fed_repo = Arc::new(PostgresFederationRepository::new(pool.clone()));
+    let fed_repo = Arc::new(PgFederationRepository::new(pool.clone()));
     let likes: Arc<dyn domain::ports::LikeRepository> =
         Arc::new(postgres::like::PgLikeRepository::new(pool.clone()));
     let boosts: Arc<dyn domain::ports::BoostRepository> =
@@ -138,30 +138,20 @@ pub async fn build(cfg: &Config) -> Infrastructure {
         likes.clone(),
         boosts.clone(),
     ));
-    let mut ap_builder = ActivityPubService::builder(cfg.base_url.clone())
-        .activity_repo(fed_repo.clone())
-        .follow_repo(fed_repo.clone())
-        .actor_repo(fed_repo.clone())
-        .blocklist_repo(fed_repo.clone())
-        .user_repo(Arc::new(PostgresApUserRepository::new(
-            pool.clone(),
-            cfg.base_url.clone(),
-        )))
-        .content_reader(ap_handler.clone())
-        .object_handler(ap_handler)
-        .allow_registration(cfg.allow_registration)
-        .software_name("thoughts")
-        .debug(cfg.debug);
-    if let Some(publisher) = kap_publisher {
-        ap_builder = ap_builder.event_publisher(publisher);
-    }
-    let raw_ap_service = Arc::new(
-        ap_builder
-            .build()
-            .await
-            .expect("Failed to build ActivityPubService"),
-    );
-    let ap_service = Arc::new(ApFederationAdapter::new(raw_ap_service, connections_repo));
+    let (_raw, ap_service) = build_ap_service(ApServiceConfig {
+        base_url: cfg.base_url.clone(),
+        activity_repo: fed_repo.clone(),
+        follow_repo: fed_repo.clone(),
+        actor_repo: fed_repo.clone(),
+        blocklist_repo: fed_repo.clone(),
+        user_repo: Arc::new(PgApUserRepository::new(pool.clone(), cfg.base_url.clone())),
+        ap_handler,
+        connections_repo,
+        event_publisher: kap_publisher,
+        allow_registration: cfg.allow_registration,
+        debug: cfg.debug,
+    })
+    .await;
 
     // 4. Storage adapter
     let storage_cfg = StorageConfig {

@@ -8,6 +8,10 @@ use domain::{
 };
 use std::sync::Arc;
 
+fn should_broadcast(t: &domain::models::thought::Thought) -> bool {
+    t.local && matches!(t.visibility, Visibility::Public | Visibility::Unlisted)
+}
+
 pub struct FederationEventService {
     pub thoughts: Arc<dyn ThoughtRepository>,
     pub users: Arc<dyn UserReader>,
@@ -32,15 +36,7 @@ impl FederationEventService {
                 ..
             } => {
                 let thought = match self.thoughts.find_by_id(thought_id).await? {
-                    Some(t)
-                        if t.local
-                            && matches!(
-                                t.visibility,
-                                Visibility::Public | Visibility::Unlisted
-                            ) =>
-                    {
-                        t
-                    }
+                    Some(t) if should_broadcast(&t) => t,
                     _ => {
                         tracing::debug!(thought_id = %thought_id, "federation: skipping ThoughtCreated (remote or non-public)");
                         return Ok(());
@@ -86,15 +82,7 @@ impl FederationEventService {
                 user_id,
             } => {
                 let thought = match self.thoughts.find_by_id(thought_id).await? {
-                    Some(t)
-                        if t.local
-                            && matches!(
-                                t.visibility,
-                                Visibility::Public | Visibility::Unlisted
-                            ) =>
-                    {
-                        t
-                    }
+                    Some(t) if should_broadcast(&t) => t,
                     _ => return Ok(()),
                 };
                 let user = match self.users.find_by_id(user_id).await? {
@@ -125,14 +113,10 @@ impl FederationEventService {
                 user_id,
                 thought_id,
             } => {
-                let booster = match self.users.find_by_id(user_id).await? {
-                    Some(u) if u.local => u,
-                    _ => {
-                        tracing::debug!(user_id = %user_id, "federation: skipping BoostAdded (remote user)");
-                        return Ok(());
-                    }
-                };
-                let _ = booster;
+                if !matches!(self.users.find_by_id(user_id).await?, Some(u) if u.local) {
+                    tracing::debug!(user_id = %user_id, "federation: skipping BoostAdded (remote user)");
+                    return Ok(());
+                }
                 if self.thoughts.find_by_id(thought_id).await?.is_none() {
                     return Ok(());
                 }
@@ -160,14 +144,10 @@ impl FederationEventService {
                 user_id,
                 thought_id,
             } => {
-                let liker = match self.users.find_by_id(user_id).await? {
-                    Some(u) if u.local => u,
-                    _ => {
-                        tracing::debug!(user_id = %user_id, "federation: skipping LikeAdded (remote user)");
-                        return Ok(());
-                    }
-                };
-                let _ = liker;
+                if !matches!(self.users.find_by_id(user_id).await?, Some(u) if u.local) {
+                    tracing::debug!(user_id = %user_id, "federation: skipping LikeAdded (remote user)");
+                    return Ok(());
+                }
                 let thought = match self.thoughts.find_by_id(thought_id).await? {
                     Some(t) => t,
                     _ => return Ok(()),
@@ -193,11 +173,9 @@ impl FederationEventService {
                 user_id,
                 thought_id,
             } => {
-                let liker = match self.users.find_by_id(user_id).await? {
-                    Some(u) if u.local => u,
-                    _ => return Ok(()),
-                };
-                let _ = liker;
+                if !matches!(self.users.find_by_id(user_id).await?, Some(u) if u.local) {
+                    return Ok(());
+                }
                 let thought = match self.thoughts.find_by_id(thought_id).await? {
                     Some(t) => t,
                     _ => return Ok(()),

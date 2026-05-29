@@ -3,7 +3,7 @@ use crate::{
     errors::ApiError,
     extractors::{AuthUser, Deps},
 };
-use api_types::requests::NotificationUpdateRequest;
+use api_types::{requests::NotificationUpdateRequest, responses::NotificationSummaryResponse};
 use application::use_cases::notifications::{
     count_unread_notifications, list_notifications as uc_list_notifications,
     mark_all_notifications_read, mark_notification_read as uc_mark_notification_read,
@@ -22,17 +22,17 @@ deps_struct!(NotificationsDeps {
 pub async fn list_notifications(
     Deps(d): Deps<NotificationsDeps>,
     AuthUser(uid): AuthUser,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<NotificationSummaryResponse>, ApiError> {
     let page = PageParams {
         page: 1,
         per_page: 20,
     };
     let result = uc_list_notifications(&*d.notifications, &uid, page).await?;
     let unread = count_unread_notifications(&*d.notifications, &uid).await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "unread": unread
-    })))
+    Ok(Json(NotificationSummaryResponse {
+        total: result.total,
+        unread,
+    }))
 }
 
 #[utoipa::path(patch, path = "/notifications/{id}", params(("id" = uuid::Uuid, Path, description = "Notification ID")), request_body = NotificationUpdateRequest, responses((status = 204, description = "Marked read")), security(("bearer_auth" = [])))]

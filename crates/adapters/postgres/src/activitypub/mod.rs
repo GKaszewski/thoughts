@@ -13,6 +13,40 @@ use domain::{
     value_objects::{Content, ThoughtId, UserId, Username},
 };
 
+#[derive(sqlx::FromRow)]
+struct OutboxRow {
+    id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    content: String,
+    created_at: DateTime<Utc>,
+    in_reply_to_id: Option<uuid::Uuid>,
+    content_warning: Option<String>,
+    sensitive: bool,
+    username: String,
+    updated_at: Option<DateTime<Utc>>,
+}
+
+impl OutboxRow {
+    fn into_entry(self) -> OutboxEntry {
+        OutboxEntry {
+            thought: Thought {
+                id: ThoughtId::from_uuid(self.id),
+                user_id: UserId::from_uuid(self.user_id),
+                content: Content::new_remote(self.content),
+                in_reply_to_id: self.in_reply_to_id.map(ThoughtId::from_uuid),
+                visibility: Visibility::Public,
+                content_warning: self.content_warning,
+                sensitive: self.sensitive,
+                local: true,
+                created_at: self.created_at,
+                updated_at: self.updated_at,
+                note_extensions: None,
+            },
+            author_username: Username::from_trusted(self.username),
+        }
+    }
+}
+
 pub struct PgActivityPubRepository {
     pool: PgPool,
 }
@@ -29,19 +63,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
         &self,
         user_id: &UserId,
     ) -> Result<Vec<OutboxEntry>, DomainError> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            user_id: uuid::Uuid,
-            content: String,
-            created_at: DateTime<Utc>,
-            in_reply_to_id: Option<uuid::Uuid>,
-            content_warning: Option<String>,
-            sensitive: bool,
-            username: String,
-            updated_at: Option<DateTime<Utc>>,
-        }
-        sqlx::query_as::<_, Row>(
+        sqlx::query_as::<_, OutboxRow>(
             "SELECT t.id, t.user_id, t.content, t.created_at, t.in_reply_to_id, t.content_warning, t.sensitive, u.username, t.updated_at
              FROM thoughts t JOIN users u ON u.id=t.user_id
              WHERE t.user_id=$1 AND t.local=true AND t.visibility='public'
@@ -51,26 +73,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
         .fetch_all(&self.pool)
         .await
         .into_domain()
-        .map(|rows| {
-            rows.into_iter()
-                .map(|r| OutboxEntry {
-                    thought: Thought {
-                        id: ThoughtId::from_uuid(r.id),
-                        user_id: UserId::from_uuid(r.user_id),
-                        content: Content::new_remote(r.content),
-                        in_reply_to_id: r.in_reply_to_id.map(ThoughtId::from_uuid),
-                        visibility: Visibility::Public,
-                        content_warning: r.content_warning,
-                        sensitive: r.sensitive,
-                        local: true,
-                        created_at: r.created_at,
-                        updated_at: r.updated_at,
-                        note_extensions: None,
-                    },
-                    author_username: Username::from_trusted(r.username),
-                })
-                .collect()
-        })
+        .map(|rows| rows.into_iter().map(OutboxRow::into_entry).collect())
     }
 
     async fn outbox_page_for_actor(
@@ -79,20 +82,8 @@ impl ActivityPubRepository for PgActivityPubRepository {
         before: Option<DateTime<Utc>>,
         limit: usize,
     ) -> Result<Vec<OutboxEntry>, DomainError> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            user_id: uuid::Uuid,
-            content: String,
-            created_at: DateTime<Utc>,
-            in_reply_to_id: Option<uuid::Uuid>,
-            content_warning: Option<String>,
-            sensitive: bool,
-            username: String,
-            updated_at: Option<DateTime<Utc>>,
-        }
         let rows = if let Some(before) = before {
-            sqlx::query_as::<_, Row>(
+            sqlx::query_as::<_, OutboxRow>(
                 "SELECT t.id, t.user_id, t.content, t.created_at, t.in_reply_to_id, t.content_warning, t.sensitive, u.username, t.updated_at
                  FROM thoughts t JOIN users u ON u.id=t.user_id
                  WHERE t.user_id=$1 AND t.local=true AND t.visibility='public' AND t.created_at < $2
@@ -104,7 +95,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
             .fetch_all(&self.pool)
             .await
         } else {
-            sqlx::query_as::<_, Row>(
+            sqlx::query_as::<_, OutboxRow>(
                 "SELECT t.id, t.user_id, t.content, t.created_at, t.in_reply_to_id, t.content_warning, t.sensitive, u.username, t.updated_at
                  FROM thoughts t JOIN users u ON u.id=t.user_id
                  WHERE t.user_id=$1 AND t.local=true AND t.visibility='public'
@@ -117,25 +108,7 @@ impl ActivityPubRepository for PgActivityPubRepository {
         }
         .into_domain()?;
 
-        Ok(rows
-            .into_iter()
-            .map(|r| OutboxEntry {
-                thought: Thought {
-                    id: ThoughtId::from_uuid(r.id),
-                    user_id: UserId::from_uuid(r.user_id),
-                    content: Content::new_remote(r.content),
-                    in_reply_to_id: r.in_reply_to_id.map(ThoughtId::from_uuid),
-                    visibility: Visibility::Public,
-                    content_warning: r.content_warning,
-                    sensitive: r.sensitive,
-                    local: true,
-                    created_at: r.created_at,
-                    updated_at: r.updated_at,
-                    note_extensions: None,
-                },
-                author_username: Username::from_trusted(r.username),
-            })
-            .collect())
+        Ok(rows.into_iter().map(OutboxRow::into_entry).collect())
     }
 
     async fn find_remote_actor_id(

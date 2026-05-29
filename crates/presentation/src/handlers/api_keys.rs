@@ -37,11 +37,13 @@ pub async fn post_api_key(
     Deps(d): Deps<ApiKeysDeps>,
     AuthUser(uid): AuthUser,
     Json(body): Json<CreateApiKeyRequest>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<CreatedApiKeyResponse>, ApiError> {
     let (key, raw) = create_api_key(&*d.api_keys, &uid, body.name).await?;
-    Ok(Json(
-        serde_json::json!({ "id": key.id.as_uuid(), "name": key.name, "key": raw }),
-    ))
+    Ok(Json(CreatedApiKeyResponse {
+        id: key.id.as_uuid(),
+        name: key.name,
+        key: raw,
+    }))
 }
 #[utoipa::path(delete, path = "/api-keys/{id}", params(("id" = uuid::Uuid, Path, description = "Key ID")), responses((status = 204, description = "Deleted")), security(("bearer_auth" = [])))]
 pub async fn delete_api_key_handler(

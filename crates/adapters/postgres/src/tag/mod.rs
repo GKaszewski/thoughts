@@ -12,6 +12,12 @@ use domain::{
 };
 use sqlx::PgPool;
 
+#[derive(sqlx::FromRow)]
+struct TagRow {
+    id: i32,
+    name: String,
+}
+
 pub struct PgTagRepository {
     pool: PgPool,
 }
@@ -30,12 +36,7 @@ impl TagRepository for PgTagRepository {
             .execute(&self.pool)
             .await
             .into_domain()?;
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: i32,
-            name: String,
-        }
-        let row = sqlx::query_as::<_, Row>("SELECT id,name FROM tags WHERE name=$1")
+        let row = sqlx::query_as::<_, TagRow>("SELECT id,name FROM tags WHERE name=$1")
             .bind(&name)
             .fetch_one(&self.pool)
             .await
@@ -72,12 +73,7 @@ impl TagRepository for PgTagRepository {
     }
 
     async fn list_for_thought(&self, thought_id: &ThoughtId) -> Result<Vec<Tag>, DomainError> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: i32,
-            name: String,
-        }
-        sqlx::query_as::<_, Row>(
+        sqlx::query_as::<_, TagRow>(
             "SELECT t.id,t.name FROM tags t JOIN thought_tags tt ON tt.tag_id=t.id WHERE tt.thought_id=$1"
         ).bind(thought_id.as_uuid()).fetch_all(&self.pool).await
         .into_domain()

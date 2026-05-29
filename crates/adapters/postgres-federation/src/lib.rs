@@ -1,7 +1,16 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+
+trait IntoAnyhow<T> {
+    fn into_anyhow(self) -> Result<T>;
+}
+impl<T> IntoAnyhow<T> for std::result::Result<T, sqlx::Error> {
+    fn into_anyhow(self) -> Result<T> {
+        self.map_err(|e| anyhow::anyhow!(e))
+    }
+}
 
 use k_ap::{
     ActivityRepository, ActorRepository, ApActorType, ApUser, ApUserRepository, BlockedDomain,
@@ -10,11 +19,11 @@ use k_ap::{
 
 // ── PostgresFederationRepository ─────────────────────────────────────────────
 
-pub struct PostgresFederationRepository {
+pub struct PgFederationRepository {
     pool: PgPool,
 }
 
-impl PostgresFederationRepository {
+impl PgFederationRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -71,7 +80,7 @@ fn map_remote_actor(r: RemoteActorRow) -> RemoteActor {
 // ── ActivityRepository ────────────────────────────────────────────────────────
 
 #[async_trait]
-impl ActivityRepository for PostgresFederationRepository {
+impl ActivityRepository for PgFederationRepository {
     async fn is_activity_processed(&self, activity_id: &str) -> Result<bool> {
         let n: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM federation_processed_activities WHERE activity_id=$1",
@@ -79,7 +88,7 @@ impl ActivityRepository for PostgresFederationRepository {
         .bind(activity_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(n > 0)
     }
 
@@ -90,7 +99,7 @@ impl ActivityRepository for PostgresFederationRepository {
         .bind(activity_id)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 }
@@ -98,7 +107,7 @@ impl ActivityRepository for PostgresFederationRepository {
 // ── FollowRepository ──────────────────────────────────────────────────────────
 
 #[async_trait]
-impl FollowRepository for PostgresFederationRepository {
+impl FollowRepository for PgFederationRepository {
     async fn add_follower(
         &self,
         local_user_id: uuid::Uuid,
@@ -118,7 +127,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(follow_activity_id)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -134,7 +143,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(remote_actor_url)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
     }
 
     async fn remove_follower(
@@ -149,7 +158,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(remote_actor_url)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -172,7 +181,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| {
             rows.into_iter()
                 .map(|r| Follower {
@@ -210,7 +219,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(offset as i64)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| {
             rows.into_iter()
                 .map(|r| Follower {
@@ -227,7 +236,7 @@ impl FollowRepository for PostgresFederationRepository {
                 .bind(local_user_id)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| anyhow!(e))?;
+                .into_anyhow()?;
         Ok(n as usize)
     }
 
@@ -238,7 +247,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(n as usize)
     }
 
@@ -262,7 +271,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(offset as i64)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
@@ -287,7 +296,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(rows)
     }
 
@@ -303,7 +312,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
@@ -321,7 +330,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(status_str(&status))
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -344,7 +353,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(&actor.outbox_url)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -360,7 +369,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(remote_actor_url)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
     }
 
     async fn remove_following(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<()> {
@@ -371,7 +380,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(actor_url)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -387,7 +396,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
@@ -411,7 +420,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(offset as i64)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| rows.into_iter().map(map_remote_actor).collect())
     }
 
@@ -421,7 +430,7 @@ impl FollowRepository for PostgresFederationRepository {
                 .bind(local_user_id)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| anyhow!(e))?;
+                .into_anyhow()?;
         Ok(n as usize)
     }
 
@@ -443,7 +452,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(s)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -459,7 +468,7 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(remote_actor_url)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
     }
 
     async fn migrate_follower_actor(
@@ -467,7 +476,7 @@ impl FollowRepository for PostgresFederationRepository {
         old_actor_url: &str,
         new_actor_url: &str,
     ) -> Result<Vec<uuid::Uuid>> {
-        let mut tx = self.pool.begin().await.map_err(|e| anyhow!(e))?;
+        let mut tx = self.pool.begin().await.into_anyhow()?;
 
         let affected: Vec<uuid::Uuid> = sqlx::query_scalar(
             "INSERT INTO federation_following(local_user_id, remote_actor_url, follow_activity_id, outbox_url)
@@ -481,15 +490,15 @@ impl FollowRepository for PostgresFederationRepository {
         .bind(new_actor_url)
         .fetch_all(&mut *tx)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
 
         sqlx::query("DELETE FROM federation_following WHERE remote_actor_url = $1")
             .bind(old_actor_url)
             .execute(&mut *tx)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .into_anyhow()?;
 
-        tx.commit().await.map_err(|e| anyhow!(e))?;
+        tx.commit().await.into_anyhow()?;
         Ok(affected)
     }
 }
@@ -497,7 +506,7 @@ impl FollowRepository for PostgresFederationRepository {
 // ── ActorRepository ───────────────────────────────────────────────────────────
 
 #[async_trait]
-impl ActorRepository for PostgresFederationRepository {
+impl ActorRepository for PgFederationRepository {
     async fn get_local_actor_keypair(
         &self,
         user_id: uuid::Uuid,
@@ -513,7 +522,7 @@ impl ActorRepository for PostgresFederationRepository {
         .bind(user_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(row.and_then(|r| match (r.public_key, r.private_key) {
             (Some(pub_k), Some(priv_k)) => Some((pub_k, priv_k)),
             _ => None,
@@ -532,7 +541,7 @@ impl ActorRepository for PostgresFederationRepository {
             .bind(&private_key)
             .execute(&self.pool)
             .await
-            .map_err(|e| anyhow!(e))
+            .into_anyhow()
             .map(|_| ())
     }
 
@@ -568,7 +577,7 @@ impl ActorRepository for PostgresFederationRepository {
         .bind(also_known_as.as_deref())
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -581,7 +590,7 @@ impl ActorRepository for PostgresFederationRepository {
         .bind(actor_url)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|o| o.map(map_remote_actor))
     }
 
@@ -602,7 +611,7 @@ impl ActorRepository for PostgresFederationRepository {
         .bind(announced_at)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -612,7 +621,7 @@ impl ActorRepository for PostgresFederationRepository {
             .bind(actor_url)
             .execute(&self.pool)
             .await
-            .map_err(|e| anyhow!(e))
+            .into_anyhow()
             .map(|_| ())
     }
 
@@ -622,7 +631,7 @@ impl ActorRepository for PostgresFederationRepository {
                 .bind(object_url)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| anyhow!(e))?;
+                .into_anyhow()?;
         Ok(n as usize)
     }
 }
@@ -630,7 +639,7 @@ impl ActorRepository for PostgresFederationRepository {
 // ── BlocklistRepository ───────────────────────────────────────────────────────
 
 #[async_trait]
-impl BlocklistRepository for PostgresFederationRepository {
+impl BlocklistRepository for PgFederationRepository {
     async fn add_blocked_domain(&self, domain: &str, reason: Option<&str>) -> Result<()> {
         sqlx::query(
             "INSERT INTO federation_blocked_domains(domain,reason) VALUES($1,$2) ON CONFLICT(domain) DO NOTHING",
@@ -639,7 +648,7 @@ impl BlocklistRepository for PostgresFederationRepository {
         .bind(reason)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -648,7 +657,7 @@ impl BlocklistRepository for PostgresFederationRepository {
             .bind(domain)
             .execute(&self.pool)
             .await
-            .map_err(|e| anyhow!(e))
+            .into_anyhow()
             .map(|_| ())
     }
 
@@ -664,7 +673,7 @@ impl BlocklistRepository for PostgresFederationRepository {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|rows| {
             rows.into_iter()
                 .map(|r| BlockedDomain {
@@ -682,7 +691,7 @@ impl BlocklistRepository for PostgresFederationRepository {
                 .bind(domain)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| anyhow!(e))?;
+                .into_anyhow()?;
         Ok(n > 0)
     }
 
@@ -694,7 +703,7 @@ impl BlocklistRepository for PostgresFederationRepository {
         .bind(actor_url)
         .execute(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
         .map(|_| ())
     }
 
@@ -704,7 +713,7 @@ impl BlocklistRepository for PostgresFederationRepository {
             .bind(actor_url)
             .execute(&self.pool)
             .await
-            .map_err(|e| anyhow!(e))
+            .into_anyhow()
             .map(|_| ())
     }
 
@@ -715,7 +724,7 @@ impl BlocklistRepository for PostgresFederationRepository {
         .bind(local_user_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))
+        .into_anyhow()
     }
 
     async fn is_actor_blocked(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<bool> {
@@ -726,7 +735,7 @@ impl BlocklistRepository for PostgresFederationRepository {
         .bind(actor_url)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(n > 0)
     }
 }
@@ -744,12 +753,12 @@ struct UserRow {
     also_known_as: Option<String>,
 }
 
-pub struct PostgresApUserRepository {
+pub struct PgApUserRepository {
     pool: PgPool,
     base_url: String,
 }
 
-impl PostgresApUserRepository {
+impl PgApUserRepository {
     pub fn new(pool: PgPool, base_url: String) -> Self {
         Self { pool, base_url }
     }
@@ -777,7 +786,7 @@ impl PostgresApUserRepository {
 }
 
 #[async_trait]
-impl ApUserRepository for PostgresApUserRepository {
+impl ApUserRepository for PgApUserRepository {
     async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<ApUser>> {
         let row = sqlx::query_as::<_, UserRow>(
             "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE id=$1 AND local=true",
@@ -785,7 +794,7 @@ impl ApUserRepository for PostgresApUserRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(row.map(|r| self.row_to_ap_user(r)))
     }
 
@@ -796,7 +805,7 @@ impl ApUserRepository for PostgresApUserRepository {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| anyhow!(e))?;
+        .into_anyhow()?;
         Ok(row.map(|r| self.row_to_ap_user(r)))
     }
 
@@ -804,7 +813,7 @@ impl ApUserRepository for PostgresApUserRepository {
         let n: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE local=true")
             .fetch_one(&self.pool)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .into_anyhow()?;
         Ok(n as usize)
     }
 }

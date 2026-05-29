@@ -6,12 +6,12 @@ use crate::{
 };
 use api_types::{
     requests::{PaginationQuery, UpdateProfileRequest},
-    responses::{ErrorResponse, ProfileField, RemoteActorResponse, UserResponse},
+    responses::{ErrorResponse, PagedResponse, ProfileField, RemoteActorResponse, UserResponse},
 };
 use application::use_cases::profile::{
     count_local_users, get_user as fetch_user, get_user_by_id_or_username, get_user_profile,
     list_local_following, list_users, update_profile, upload_avatar as upload_avatar_uc,
-    upload_banner as upload_banner_uc, UploadConfig,
+    upload_banner as upload_banner_uc, UploadConfig, UploadContext,
 };
 use axum::{
     extract::{Multipart, Path, Query},
@@ -54,6 +54,13 @@ impl FromAppState for UsersDeps {
     }
 }
 
+fn wants_activity_json(headers: &HeaderMap) -> bool {
+    headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|a| a.contains("application/activity+json"))
+}
+
 #[utoipa::path(
     get, path = "/users/{username}",
     params(("username" = String, Path, description = "Username")),
@@ -68,12 +75,7 @@ pub async fn get_user(
     OptionalAuthUser(viewer): OptionalAuthUser,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
-    let accept = headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    if accept.contains("application/activity+json") {
+    if wants_activity_json(&headers) {
         let user = get_user_by_id_or_username(&*d.users, &username).await?;
         let json = d.federation.actor_json(&user.id).await?;
         Ok(([(header::CONTENT_TYPE, "application/activity+json")], json).into_response())
@@ -145,17 +147,19 @@ pub async fn get_me_following(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
     Query(q): Query<PaginationQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<UserResponse>>, ApiError> {
     use domain::models::feed::PageParams;
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
     let result = list_local_following(&*d.follows, &uid, page).await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "items": result.items.iter().map(to_user_response).collect::<Vec<_>>(),
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_user_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
@@ -170,7 +174,7 @@ pub async fn get_me_following(
 pub async fn get_users(
     Deps(d): Deps<UsersDeps>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<UserResponse>>, ApiError> {
     use domain::models::feed::PageParams;
     let page = params
         .get("page")
@@ -184,38 +188,37 @@ pub async fn get_users(
 
     if let Some(q) = params.get("q").filter(|q| !q.trim().is_empty()) {
         let result = d.search.search_users(q, &page_params).await?;
-        let users: Vec<_> = result
-            .items
-            .iter()
-            .map(crate::handlers::auth::to_user_response)
-            .collect();
-        return Ok(Json(serde_json::json!({
-            "items": users, "total": result.total, "page": result.page, "per_page": result.per_page
-        })));
+        return Ok(Json(PagedResponse {
+            items: result.items.iter().map(to_user_response).collect(),
+            total: result.total,
+            page: result.page,
+            per_page: result.per_page,
+        }));
     }
 
     let result = list_users(&*d.users, page_params).await?;
-    let items: Vec<_> = result
+    let items: Vec<UserResponse> = result
         .items
         .iter()
-        .map(|u| {
-            serde_json::json!({
-                "id": u.id.as_uuid(),
-                "username": u.username,
-                "displayName": u.display_name,
-                "avatarUrl": u.avatar_url,
-                "bio": u.bio,
-                "headerUrl": null,
-                "customCss": null,
-                "local": true,
-                "isFollowedByViewer": false,
-                "joinedAt": null,
-            })
+        .map(|u| UserResponse {
+            id: u.id.as_uuid(),
+            username: u.username.clone(),
+            display_name: u.display_name.clone(),
+            bio: u.bio.clone(),
+            avatar_url: u.avatar_url.clone(),
+            header_url: None,
+            custom_css: None,
+            local: true,
+            is_followed_by_viewer: false,
+            created_at: chrono::Utc::now(),
         })
         .collect();
-    Ok(Json(serde_json::json!({
-        "items": items, "total": result.total, "page": result.page, "per_page": result.per_page
-    })))
+    Ok(Json(PagedResponse {
+        items,
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
@@ -266,6 +269,25 @@ pub async fn lookup_handler(
     }))
 }
 
+async fn extract_upload_field(
+    mut multipart: Multipart,
+) -> Result<(String, axum::body::Bytes), ApiError> {
+    let field = multipart
+        .next_field()
+        .await
+        .map_err(|_| ApiError::BadRequest("invalid multipart".into()))?
+        .ok_or_else(|| ApiError::BadRequest("no file field".into()))?;
+    let content_type = field
+        .content_type()
+        .ok_or_else(|| ApiError::BadRequest("missing content-type on field".into()))?
+        .to_string();
+    let data = field
+        .bytes()
+        .await
+        .map_err(|_| ApiError::BadRequest("failed to read upload".into()))?;
+    Ok((content_type, data))
+}
+
 #[utoipa::path(
     put, path = "/users/me/avatar",
     request_body(content = String, content_type = "multipart/form-data", description = "Image file (JPEG, PNG, WebP, AVIF, GIF)"),
@@ -278,35 +300,17 @@ pub async fn lookup_handler(
 pub async fn upload_avatar(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
-    mut multipart: Multipart,
+    multipart: Multipart,
 ) -> Result<Json<UserResponse>, ApiError> {
-    let field = multipart
-        .next_field()
-        .await
-        .map_err(|_| ApiError::BadRequest("invalid multipart".into()))?
-        .ok_or_else(|| ApiError::BadRequest("no file field".into()))?;
-    // Content-type is client-supplied; the use-case allowlist prevents obviously
-    // wrong types, but magic-byte validation is not performed. Serve media files
-    // from an isolated origin to prevent MIME-based XSS.
-    let content_type = field
-        .content_type()
-        .ok_or_else(|| ApiError::BadRequest("missing content-type on field".into()))?
-        .to_string();
-    let data = field
-        .bytes()
-        .await
-        .map_err(|_| ApiError::BadRequest("failed to read upload".into()))?;
-    upload_avatar_uc(
-        &*d.users,
-        &*d.media,
-        &*d.events,
-        &uid,
-        &d.base_url,
-        &d.upload_config,
-        &content_type,
-        data,
-    )
-    .await?;
+    let (content_type, data) = extract_upload_field(multipart).await?;
+    let ctx = UploadContext {
+        users: &*d.users,
+        media: &*d.media,
+        events: &*d.events,
+        upload_config: &d.upload_config,
+        base_url: &d.base_url,
+    };
+    upload_avatar_uc(&ctx, &uid, &content_type, data).await?;
     let user = fetch_user(&*d.users, &uid).await?;
     Ok(Json(to_user_response(&user)))
 }
@@ -323,35 +327,17 @@ pub async fn upload_avatar(
 pub async fn upload_banner(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
-    mut multipart: Multipart,
+    multipart: Multipart,
 ) -> Result<Json<UserResponse>, ApiError> {
-    let field = multipart
-        .next_field()
-        .await
-        .map_err(|_| ApiError::BadRequest("invalid multipart".into()))?
-        .ok_or_else(|| ApiError::BadRequest("no file field".into()))?;
-    // Content-type is client-supplied; the use-case allowlist prevents obviously
-    // wrong types, but magic-byte validation is not performed. Serve media files
-    // from an isolated origin to prevent MIME-based XSS.
-    let content_type = field
-        .content_type()
-        .ok_or_else(|| ApiError::BadRequest("missing content-type on field".into()))?
-        .to_string();
-    let data = field
-        .bytes()
-        .await
-        .map_err(|_| ApiError::BadRequest("failed to read upload".into()))?;
-    upload_banner_uc(
-        &*d.users,
-        &*d.media,
-        &*d.events,
-        &uid,
-        &d.base_url,
-        &d.upload_config,
-        &content_type,
-        data,
-    )
-    .await?;
+    let (content_type, data) = extract_upload_field(multipart).await?;
+    let ctx = UploadContext {
+        users: &*d.users,
+        media: &*d.media,
+        events: &*d.events,
+        upload_config: &d.upload_config,
+        base_url: &d.base_url,
+    };
+    upload_banner_uc(&ctx, &uid, &content_type, data).await?;
     let user = fetch_user(&*d.users, &uid).await?;
     Ok(Json(to_user_response(&user)))
 }

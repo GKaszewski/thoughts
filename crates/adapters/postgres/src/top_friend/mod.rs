@@ -44,24 +44,14 @@ impl TopFriendRepository for PgTopFriendRepository {
 
     async fn list_for_user(&self, user_id: &UserId) -> Result<Vec<(TopFriend, User)>, DomainError> {
         #[derive(sqlx::FromRow)]
-        struct Row {
+        struct TopFriendRow {
             tf_user_id: uuid::Uuid,
             friend_id: uuid::Uuid,
             position: i16,
-            id: uuid::Uuid,
-            username: String,
-            email: String,
-            password_hash: String,
-            display_name: Option<String>,
-            bio: Option<String>,
-            avatar_url: Option<String>,
-            header_url: Option<String>,
-            custom_css: Option<String>,
-            local: bool,
-            created_at: chrono::DateTime<chrono::Utc>,
-            updated_at: chrono::DateTime<chrono::Utc>,
+            #[sqlx(flatten)]
+            user: crate::user::UserRow,
         }
-        let rows = sqlx::query_as::<_, Row>(
+        let rows = sqlx::query_as::<_, TopFriendRow>(
             "SELECT tf.user_id AS tf_user_id, tf.friend_id, tf.position,
              u.id, u.username, u.email, u.password_hash, u.display_name, u.bio,
              u.avatar_url, u.header_url, u.custom_css, u.local,
@@ -77,27 +67,12 @@ impl TopFriendRepository for PgTopFriendRepository {
         Ok(rows
             .into_iter()
             .map(|r| {
-                use domain::value_objects::{Email, PasswordHash, Username};
                 let tf = TopFriend {
                     user_id: UserId::from_uuid(r.tf_user_id),
                     friend_id: UserId::from_uuid(r.friend_id),
                     position: r.position,
                 };
-                let u = User {
-                    id: UserId::from_uuid(r.id),
-                    username: Username::from_trusted(r.username),
-                    email: Email::from_trusted(r.email),
-                    password_hash: PasswordHash(r.password_hash),
-                    display_name: r.display_name,
-                    bio: r.bio,
-                    avatar_url: r.avatar_url,
-                    header_url: r.header_url,
-                    custom_css: r.custom_css,
-                    local: r.local,
-                    created_at: r.created_at,
-                    updated_at: r.updated_at,
-                };
-                (tf, u)
+                (tf, User::from(r.user))
             })
             .collect())
     }

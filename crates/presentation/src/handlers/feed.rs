@@ -5,7 +5,7 @@ use crate::{
     handlers::auth::to_user_response,
 };
 use api_types::requests::{PaginationQuery, SearchQuery};
-use api_types::responses::ThoughtResponse;
+use api_types::responses::{PagedResponse, ThoughtResponse};
 use application::use_cases::feed::{
     get_home_feed, get_popular_tags as uc_get_popular_tags, get_public_feed, get_tag_feed,
     get_user_feed,
@@ -75,6 +75,13 @@ impl TryFrom<FeedOptionsQuery> for FeedOptions {
     }
 }
 
+fn wants_activity_json(headers: &HeaderMap) -> bool {
+    headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|a| a.contains("application/activity+json"))
+}
+
 deps_struct!(FeedDeps {
     feed: FeedRepository,
     follows: FollowRepository,
@@ -116,19 +123,19 @@ pub async fn home_feed(
     AuthUser(uid): AuthUser,
     Query(q): Query<PaginationQuery>,
     Query(opts_q): Query<FeedOptionsQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<ThoughtResponse>>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
     let result = get_home_feed(&*d.feed, &*d.follows, &uid, page, opts).await?;
-    Ok(Json(serde_json::json!({
-        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
-        "total": result.total,
-        "page": result.page,
-        "per_page": result.per_page,
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_thought_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
@@ -141,19 +148,19 @@ pub async fn public_feed(
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
     Query(opts_q): Query<FeedOptionsQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<ThoughtResponse>>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
     let result = get_public_feed(&*d.feed, viewer, page, opts).await?;
-    Ok(Json(serde_json::json!({
-        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
-        "total": result.total,
-        "page": result.page,
-        "per_page": result.per_page,
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_thought_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
@@ -210,12 +217,7 @@ pub async fn get_following_handler(
     Query(q): Query<PaginationQuery>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
-    let accept = headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    if accept.contains("application/activity+json") {
+    if wants_activity_json(&headers) {
         let user = get_user_by_id_or_username(&*d.users, &param).await?;
         let user_id = user.id;
         let page = q.page().try_into().ok();
@@ -232,10 +234,12 @@ pub async fn get_following_handler(
         per_page: q.per_page(),
     };
     let result = list_local_following(&*d.follows, &user.id, page).await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
-    }))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_user_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    })
     .into_response())
 }
 
@@ -253,12 +257,7 @@ pub async fn get_followers_handler(
     Query(q): Query<PaginationQuery>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
-    let accept = headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    if accept.contains("application/activity+json") {
+    if wants_activity_json(&headers) {
         let user = get_user_by_id_or_username(&*d.users, &param).await?;
         let user_id = user.id;
         let page = q.page().try_into().ok();
@@ -275,10 +274,12 @@ pub async fn get_followers_handler(
         per_page: q.per_page(),
     };
     let result = list_local_followers(&*d.follows, &user.id, page).await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "items": result.items.iter().map(to_user_response).collect::<Vec<_>>()
-    }))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_user_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    })
     .into_response())
 }
 
@@ -297,7 +298,7 @@ pub async fn user_thoughts_handler(
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
     Query(opts_q): Query<FeedOptionsQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<ThoughtResponse>>, ApiError> {
     let user = get_user_by_username(&*d.users, &username).await?;
     let page = PageParams {
         page: q.page(),
@@ -305,12 +306,12 @@ pub async fn user_thoughts_handler(
     };
     let opts = FeedOptions::try_from(opts_q)?;
     let result = get_user_feed(&*d.feed, user.id.clone(), page, opts, viewer).await?;
-    Ok(Json(serde_json::json!({
-        "total": result.total,
-        "page": result.page,
-        "per_page": result.per_page,
-        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>()
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_thought_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }
 
 #[utoipa::path(
@@ -353,18 +354,17 @@ pub async fn tag_thoughts_handler(
     OptionalAuthUser(viewer): OptionalAuthUser,
     Query(q): Query<PaginationQuery>,
     Query(opts_q): Query<FeedOptionsQuery>,
-) -> Result<Json<serde_json::Value>, ApiError> {
+) -> Result<Json<PagedResponse<ThoughtResponse>>, ApiError> {
     let page = PageParams {
         page: q.page(),
         per_page: q.per_page(),
     };
     let opts = FeedOptions::try_from(opts_q)?;
     let result = get_tag_feed(&*d.feed, &tag_name, page, opts, viewer).await?;
-    Ok(Json(serde_json::json!({
-        "tag": tag_name,
-        "total": result.total,
-        "page": result.page,
-        "per_page": result.per_page,
-        "items": result.items.iter().map(to_thought_response).collect::<Vec<_>>(),
-    })))
+    Ok(Json(PagedResponse {
+        items: result.items.iter().map(to_thought_response).collect(),
+        total: result.total,
+        page: result.page,
+        per_page: result.per_page,
+    }))
 }

@@ -118,17 +118,25 @@ fn mime_to_ext(mime: &str) -> Result<&'static str, DomainError> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+pub struct UploadContext<'a> {
+    pub users: &'a dyn UserRepository,
+    pub media: &'a dyn MediaStore,
+    pub events: &'a dyn EventPublisher,
+    pub upload_config: &'a UploadConfig,
+    pub base_url: &'a str,
+}
+
 async fn store_image(
-    media: &dyn MediaStore,
-    base_url: &str,
-    cfg: &UploadConfig,
+    ctx: &UploadContext<'_>,
     content_type: &str,
     data: Bytes,
     user_id: &UserId,
     key_segment: &str,
     old_url: Option<&str>,
 ) -> Result<String, DomainError> {
+    let cfg = ctx.upload_config;
+    let media = ctx.media;
+    let base_url = ctx.base_url;
     if !cfg.allowed_content_types.iter().any(|t| t == content_type) {
         return Err(DomainError::InvalidInput("unsupported content type".into()));
     }
@@ -148,25 +156,19 @@ async fn store_image(
     Ok(key)
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn upload_avatar(
-    users: &dyn UserRepository,
-    media: &dyn MediaStore,
-    events: &dyn EventPublisher,
+    ctx: &UploadContext<'_>,
     user_id: &UserId,
-    base_url: &str,
-    cfg: &UploadConfig,
     content_type: &str,
     data: Bytes,
 ) -> Result<(), DomainError> {
-    let current = users
+    let current = ctx
+        .users
         .find_by_id(user_id)
         .await?
         .ok_or(DomainError::NotFound)?;
     let key = store_image(
-        media,
-        base_url,
-        cfg,
+        ctx,
         content_type,
         data,
         user_id,
@@ -174,41 +176,35 @@ pub async fn upload_avatar(
         current.avatar_url.as_deref(),
     )
     .await?;
-    users
+    ctx.users
         .update_profile(
             user_id,
             UpdateProfileInput {
-                avatar_url: Some(format!("{base_url}/media/{key}")),
+                avatar_url: Some(format!("{}/media/{key}", ctx.base_url)),
                 ..Default::default()
             },
         )
         .await?;
-    events
+    ctx.events
         .publish(&DomainEvent::ProfileUpdated {
             user_id: user_id.clone(),
         })
         .await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn upload_banner(
-    users: &dyn UserRepository,
-    media: &dyn MediaStore,
-    events: &dyn EventPublisher,
+    ctx: &UploadContext<'_>,
     user_id: &UserId,
-    base_url: &str,
-    cfg: &UploadConfig,
     content_type: &str,
     data: Bytes,
 ) -> Result<(), DomainError> {
-    let current = users
+    let current = ctx
+        .users
         .find_by_id(user_id)
         .await?
         .ok_or(DomainError::NotFound)?;
     let key = store_image(
-        media,
-        base_url,
-        cfg,
+        ctx,
         content_type,
         data,
         user_id,
@@ -216,16 +212,16 @@ pub async fn upload_banner(
         current.header_url.as_deref(),
     )
     .await?;
-    users
+    ctx.users
         .update_profile(
             user_id,
             UpdateProfileInput {
-                header_url: Some(format!("{base_url}/media/{key}")),
+                header_url: Some(format!("{}/media/{key}", ctx.base_url)),
                 ..Default::default()
             },
         )
         .await?;
-    events
+    ctx.events
         .publish(&DomainEvent::ProfileUpdated {
             user_id: user_id.clone(),
         })

@@ -9,6 +9,27 @@ use domain::{
 };
 use sqlx::PgPool;
 
+#[derive(sqlx::FromRow)]
+struct ApiKeyRow {
+    id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    key_hash: String,
+    name: String,
+    created_at: DateTime<Utc>,
+}
+
+impl ApiKeyRow {
+    fn into_domain(self) -> ApiKey {
+        ApiKey {
+            id: ApiKeyId::from_uuid(self.id),
+            user_id: UserId::from_uuid(self.user_id),
+            key_hash: self.key_hash,
+            name: self.name,
+            created_at: self.created_at,
+        }
+    }
+}
+
 pub struct PgApiKeyRepository {
     pool: PgPool,
 }
@@ -36,45 +57,21 @@ impl ApiKeyRepository for PgApiKeyRepository {
     }
 
     async fn find_by_hash(&self, hash: &str) -> Result<Option<ApiKey>, DomainError> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            user_id: uuid::Uuid,
-            key_hash: String,
-            name: String,
-            created_at: DateTime<Utc>,
-        }
-        sqlx::query_as::<_, Row>(
+        sqlx::query_as::<_, ApiKeyRow>(
             "SELECT id,user_id,key_hash,name,created_at FROM api_keys WHERE key_hash=$1",
         )
         .bind(hash)
         .fetch_optional(&self.pool)
         .await
         .into_domain()
-        .map(|o| {
-            o.map(|r| ApiKey {
-                id: ApiKeyId::from_uuid(r.id),
-                user_id: UserId::from_uuid(r.user_id),
-                key_hash: r.key_hash,
-                name: r.name,
-                created_at: r.created_at,
-            })
-        })
+        .map(|o| o.map(ApiKeyRow::into_domain))
     }
 
     async fn list_for_user(&self, user_id: &UserId) -> Result<Vec<ApiKey>, DomainError> {
-        #[derive(sqlx::FromRow)]
-        struct Row {
-            id: uuid::Uuid,
-            user_id: uuid::Uuid,
-            key_hash: String,
-            name: String,
-            created_at: DateTime<Utc>,
-        }
-        sqlx::query_as::<_, Row>("SELECT id,user_id,key_hash,name,created_at FROM api_keys WHERE user_id=$1 ORDER BY created_at DESC")
+        sqlx::query_as::<_, ApiKeyRow>("SELECT id,user_id,key_hash,name,created_at FROM api_keys WHERE user_id=$1 ORDER BY created_at DESC")
             .bind(user_id.as_uuid()).fetch_all(&self.pool).await
             .into_domain()
-            .map(|rows| rows.into_iter().map(|r| ApiKey { id: ApiKeyId::from_uuid(r.id), user_id: UserId::from_uuid(r.user_id), key_hash: r.key_hash, name: r.name, created_at: r.created_at }).collect())
+            .map(|rows| rows.into_iter().map(ApiKeyRow::into_domain).collect())
     }
 
     async fn delete(&self, id: &ApiKeyId, user_id: &UserId) -> Result<(), DomainError> {
