@@ -1,5 +1,7 @@
 mod api_keys;
 mod auth;
+mod federation_actors;
+mod federation_management;
 mod feed;
 mod health;
 mod notifications;
@@ -48,6 +50,8 @@ fn build() -> utoipa::openapi::OpenApi {
     api.merge(notifications::NotificationsDoc::openapi());
     api.merge(api_keys::ApiKeysDoc::openapi());
     api.merge(health::HealthDoc::openapi());
+    api.merge(federation_management::FederationManagementDoc::openapi());
+    api.merge(federation_actors::FederationActorsDoc::openapi());
     SecurityAddon.modify(&mut api);
     api
 }
