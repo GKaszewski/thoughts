@@ -3,11 +3,13 @@ use async_trait::async_trait;
 use domain::value_objects::{ThoughtId, UserId};
 use std::sync::{Arc, Mutex};
 
+type CallLog = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
+
 struct SpyTransport {
-    calls: Arc<Mutex<Vec<(String, Vec<u8>)>>>,
+    calls: CallLog,
 }
 impl SpyTransport {
-    fn new() -> (Self, Arc<Mutex<Vec<(String, Vec<u8>)>>>) {
+    fn new() -> (Self, CallLog) {
         let calls = Arc::new(Mutex::new(vec![]));
         (
             Self {
