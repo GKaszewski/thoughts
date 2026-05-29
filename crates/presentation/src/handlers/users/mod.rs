@@ -138,6 +138,12 @@ pub async fn get_me(
     Ok(Json(to_user_response(&user)))
 }
 
+#[utoipa::path(
+    get, path = "/users/me/following",
+    params(PaginationQuery),
+    responses((status = 200, description = "Users I follow")),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_me_following(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
@@ -155,6 +161,15 @@ pub async fn get_me_following(
     })))
 }
 
+#[utoipa::path(
+    get, path = "/users",
+    params(
+        ("page" = Option<u64>, Query, description = "Page number (default 1)"),
+        ("per_page" = Option<u64>, Query, description = "Items per page (default 20, max 100)"),
+        ("q" = Option<String>, Query, description = "Search query to filter users"),
+    ),
+    responses((status = 200, description = "Paginated user list"))
+)]
 pub async fn get_users(
     Deps(d): Deps<UsersDeps>,
     Query(params): Query<std::collections::HashMap<String, String>>,
@@ -206,16 +221,30 @@ pub async fn get_users(
     })))
 }
 
+#[utoipa::path(
+    get, path = "/users/count",
+    responses((status = 200, description = "Total number of local users"))
+)]
 pub async fn get_user_count(Deps(d): Deps<UsersDeps>) -> Result<Json<serde_json::Value>, ApiError> {
     let count = d.users.count().await?;
     Ok(Json(serde_json::json!({ "count": count })))
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct LookupQuery {
+    /// Fediverse handle in the format `@user@instance.tld`
     pub handle: String,
 }
 
+#[utoipa::path(
+    get, path = "/users/lookup",
+    params(LookupQuery),
+    responses(
+        (status = 200, description = "Remote actor profile", body = RemoteActorResponse),
+        (status = 404, description = "Actor not found", body = ErrorResponse),
+    ),
+)]
 pub async fn lookup_handler(
     Deps(d): Deps<UsersDeps>,
     Query(q): Query<LookupQuery>,
@@ -240,6 +269,15 @@ pub async fn lookup_handler(
     }))
 }
 
+#[utoipa::path(
+    put, path = "/users/me/avatar",
+    request_body(content = String, content_type = "multipart/form-data", description = "Image file (JPEG, PNG, WebP, AVIF, GIF)"),
+    responses(
+        (status = 200, description = "Updated user profile", body = UserResponse),
+        (status = 400, description = "Invalid or missing file", body = ErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn upload_avatar(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
@@ -276,6 +314,15 @@ pub async fn upload_avatar(
     Ok(Json(to_user_response(&user)))
 }
 
+#[utoipa::path(
+    put, path = "/users/me/banner",
+    request_body(content = String, content_type = "multipart/form-data", description = "Image file (JPEG, PNG, WebP, AVIF, GIF)"),
+    responses(
+        (status = 200, description = "Updated user profile", body = UserResponse),
+        (status = 400, description = "Invalid or missing file", body = ErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn upload_banner(
     Deps(d): Deps<UsersDeps>,
     AuthUser(uid): AuthUser,
