@@ -32,6 +32,7 @@ async fn like_creates_notification_for_thought_author() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {
@@ -62,6 +63,7 @@ async fn self_like_creates_no_notification() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {
@@ -111,6 +113,7 @@ async fn reply_creates_notification_for_original_author() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.thoughts.lock().unwrap().push(original.clone());
     let svc = NotificationEventService {
@@ -141,6 +144,7 @@ async fn self_reply_creates_no_notification() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.thoughts.lock().unwrap().push(original.clone());
     let svc = NotificationEventService {
@@ -169,6 +173,7 @@ async fn self_boost_creates_no_notification() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.thoughts.lock().unwrap().push(thought.clone());
     let svc = NotificationEventService {

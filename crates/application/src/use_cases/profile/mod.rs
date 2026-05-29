@@ -2,6 +2,9 @@ const MAX_TOP_FRIENDS: usize = 8;
 const MAX_PROFILE_FIELDS: usize = 4;
 const MAX_FIELD_NAME_LEN: usize = 64;
 const MAX_FIELD_VALUE_LEN: usize = 256;
+const MAX_CUSTOM_MOODS: usize = 8;
+const MAX_MOOD_LABEL_LEN: usize = 32;
+const MAX_MOOD_EMOJI_LEN: usize = 8;
 
 use bytes::Bytes;
 use domain::{
@@ -68,6 +71,20 @@ pub async fn update_profile(
             if name.len() > MAX_FIELD_NAME_LEN || value.len() > MAX_FIELD_VALUE_LEN {
                 return Err(DomainError::InvalidInput(
                     "profile field name or value too long".into(),
+                ));
+            }
+        }
+    }
+    if let Some(ref moods) = input.custom_moods {
+        if moods.len() > MAX_CUSTOM_MOODS {
+            return Err(DomainError::InvalidInput(format!(
+                "custom moods: max {MAX_CUSTOM_MOODS}"
+            )));
+        }
+        for (label, emoji) in moods {
+            if label.len() > MAX_MOOD_LABEL_LEN || emoji.len() > MAX_MOOD_EMOJI_LEN {
+                return Err(DomainError::InvalidInput(
+                    "custom mood label or emoji too long".into(),
                 ));
             }
         }

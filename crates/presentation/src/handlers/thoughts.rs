@@ -61,6 +61,7 @@ pub async fn post_thought(
             visibility: body.visibility,
             content_warning: body.content_warning,
             sensitive: body.sensitive.unwrap_or(false),
+            mood: body.mood,
         },
     )
     .await?;

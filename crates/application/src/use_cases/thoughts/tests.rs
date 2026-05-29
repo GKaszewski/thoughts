@@ -22,6 +22,7 @@ fn input(uid: UserId) -> CreateThoughtInput {
         visibility: None,
         content_warning: None,
         sensitive: false,
+        mood: None,
     }
 }
 
@@ -207,6 +208,7 @@ async fn create_reply_sets_in_reply_to_id() {
             visibility: None,
             content_warning: None,
             sensitive: false,
+            mood: None,
         },
     )
     .await
@@ -243,6 +245,7 @@ fn make_thought(user_id: UserId) -> Thought {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     })
 }
 
@@ -295,6 +298,7 @@ async fn get_thread_views_batches_correctly() {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     <TestStore as ThoughtRepository>::save(&store, &reply)
         .await

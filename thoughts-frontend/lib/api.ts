@@ -16,6 +16,7 @@ export const UserSchema = z.object({
   headerUrl: z.string().nullable(),
   customCss: z.string().nullable(),
   profileFields: z.array(ProfileFieldSchema).default([]),
+  customMoods: z.array(ProfileFieldSchema).default([]),
   local: z.boolean(),
   isFollowedByViewer: z.boolean(),
   joinedAt: z.coerce.date().nullable(),
@@ -55,6 +56,7 @@ export const ThoughtSchema = z.object({
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date().nullable(),
   noteExtensions: z.record(z.string(), z.unknown()).nullish(),
+  mood: z.string().nullable().optional(),
 });
 
 export const RegisterSchema = z.object({
@@ -72,6 +74,7 @@ export const CreateThoughtSchema = z.object({
   content: z.string().min(1).max(128),
   visibility: z.enum(["public", "followers", "unlisted", "direct"]).optional(),
   inReplyToId: z.string().uuid().optional(),
+  mood: z.string().max(64).optional(),
 });
 
 export const UpdateProfileSchema = z.object({
@@ -79,6 +82,7 @@ export const UpdateProfileSchema = z.object({
   bio: z.string().max(4000).optional(),
   customCss: z.string().optional(),
   profileFields: z.array(ProfileFieldSchema).max(4).optional(),
+  customMoods: z.array(ProfileFieldSchema).max(8).optional(),
 });
 
 export const SearchResultsSchema = z.object({
@@ -121,6 +125,7 @@ export const ThoughtThreadSchema: z.ZodType<{
   createdAt: Date;
   updatedAt: Date | null;
   noteExtensions?: Record<string, unknown> | null;
+  mood?: string | null;
   replies: ThoughtThread[];
 }> = z.object({
   id: z.string().uuid(),
@@ -138,6 +143,7 @@ export const ThoughtThreadSchema: z.ZodType<{
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date().nullable(),
   noteExtensions: z.record(z.string(), z.unknown()).nullish(),
+  mood: z.string().nullable().optional(),
   replies: z.lazy(() => z.array(ThoughtThreadSchema)),
 });
 

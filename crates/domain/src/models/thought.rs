@@ -22,6 +22,7 @@ pub struct Thought {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
     pub note_extensions: Option<serde_json::Value>,
+    pub mood: Option<String>,
 }
 
 impl Visibility {
@@ -55,6 +56,7 @@ pub struct NewThought {
     pub visibility: Visibility,
     pub content_warning: Option<String>,
     pub sensitive: bool,
+    pub mood: Option<String>,
 }
 
 impl Thought {
@@ -71,6 +73,7 @@ impl Thought {
             created_at: Utc::now(),
             updated_at: None,
             note_extensions: None,
+            mood: p.mood,
         }
     }
 }

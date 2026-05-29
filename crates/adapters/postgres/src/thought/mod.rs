@@ -35,6 +35,7 @@ pub(crate) struct ThoughtRow {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
     pub note_extensions: Option<serde_json::Value>,
+    pub mood: Option<String>,
 }
 
 impl TryFrom<ThoughtRow> for Thought {
@@ -52,19 +53,20 @@ impl TryFrom<ThoughtRow> for Thought {
             created_at: r.created_at,
             updated_at: r.updated_at,
             note_extensions: r.note_extensions,
+            mood: r.mood,
         })
     }
 }
 
 const THOUGHT_SELECT: &str =
-    "SELECT id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions FROM thoughts";
+    "SELECT id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions,mood FROM thoughts";
 
 #[async_trait]
 impl ThoughtRepository for PgThoughtRepository {
     async fn save(&self, t: &Thought) -> Result<(), DomainError> {
         sqlx::query(
-            "INSERT INTO thoughts(id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            "INSERT INTO thoughts(id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,mood)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
              ON CONFLICT(id) DO UPDATE SET content=EXCLUDED.content,updated_at=NOW()"
         )
         .bind(t.id.as_uuid())
@@ -76,6 +78,7 @@ impl ThoughtRepository for PgThoughtRepository {
         .bind(t.sensitive)
         .bind(t.local)
         .bind(t.created_at)
+        .bind(&t.mood)
         .execute(&self.pool)
         .await
         .into_domain()
@@ -119,11 +122,11 @@ impl ThoughtRepository for PgThoughtRepository {
         sqlx::query_as::<_, ThoughtRow>(
             "WITH RECURSIVE thread AS (
                 SELECT id,user_id,content,in_reply_to_id,
-                       visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions
+                       visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions,mood
                 FROM thoughts WHERE id = $1
                 UNION ALL
                 SELECT t.id,t.user_id,t.content,t.in_reply_to_id,
-                       t.visibility,t.content_warning,t.sensitive,t.local,t.created_at,t.updated_at,t.note_extensions
+                       t.visibility,t.content_warning,t.sensitive,t.local,t.created_at,t.updated_at,t.note_extensions,t.mood
                 FROM thoughts t JOIN thread ON t.in_reply_to_id = thread.id
             )
             SELECT * FROM thread ORDER BY created_at ASC",

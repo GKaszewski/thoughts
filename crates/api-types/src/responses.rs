@@ -20,6 +20,7 @@ pub struct UserResponse {
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
     pub profile_fields: Vec<ProfileField>,
+    pub custom_moods: Vec<ProfileField>,
     pub local: bool,
     pub is_followed_by_viewer: bool,
     #[serde(rename = "joinedAt")]
@@ -48,6 +49,8 @@ pub struct ThoughtResponse {
     pub updated_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note_extensions: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mood: Option<String>,
 }
 
 #[derive(Serialize, utoipa::ToSchema)]

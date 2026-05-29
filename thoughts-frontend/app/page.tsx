@@ -114,7 +114,7 @@ async function FeedPage({
           <header className="mb-6">
             <h1 className="text-3xl font-bold text-shadow-sm">Your Feed</h1>
           </header>
-          <ThoughtForm />
+          <ThoughtForm currentUser={me} />
 
           <div className="block lg:hidden space-y-6">{sidebar}</div>
 

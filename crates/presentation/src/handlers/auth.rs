@@ -32,6 +32,14 @@ pub fn to_user_response(u: &domain::models::user::User) -> UserResponse {
                 value: v.clone(),
             })
             .collect(),
+        custom_moods: u
+            .custom_moods
+            .iter()
+            .map(|(n, v)| ProfileField {
+                name: n.clone(),
+                value: v.clone(),
+            })
+            .collect(),
         local: u.local,
         is_followed_by_viewer: false,
         created_at: u.created_at,
@@ -48,6 +56,7 @@ pub fn to_summary_response(u: &UserSummary) -> UserResponse {
         header_url: None,
         custom_css: None,
         profile_fields: vec![],
+        custom_moods: vec![],
         local: true,
         is_followed_by_viewer: false,
         created_at: chrono::Utc::now(),

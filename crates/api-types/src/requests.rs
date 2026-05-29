@@ -31,6 +31,7 @@ pub struct CreateThoughtRequest {
     pub visibility: Option<String>,
     pub content_warning: Option<String>,
     pub sensitive: Option<bool>,
+    pub mood: Option<String>,
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -48,6 +49,7 @@ pub struct UpdateProfileRequest {
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
     pub profile_fields: Option<Vec<crate::responses::ProfileField>>,
+    pub custom_moods: Option<Vec<crate::responses::ProfileField>>,
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]

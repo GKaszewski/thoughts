@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/api";
 import { EditProfileForm } from "@/components/edit-profile-form";
+import { CustomMoodsEditor } from "@/components/custom-moods-editor";
 
 export default async function EditProfilePage() {
   const token = (await cookies()).get("auth_token")?.value;
@@ -32,6 +33,7 @@ export default async function EditProfilePage() {
         </p>
       </div>
       <EditProfileForm currentUser={me} token={token} />
+      <CustomMoodsEditor initial={me.customMoods} />
     </div>
   );
 }

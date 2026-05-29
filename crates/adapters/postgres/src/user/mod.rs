@@ -32,6 +32,7 @@ pub struct UserRow {
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
     pub profile_fields: Option<serde_json::Value>,
+    pub custom_moods: Option<serde_json::Value>,
     pub local: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -50,6 +51,7 @@ impl From<UserRow> for User {
             header_url: r.header_url,
             custom_css: r.custom_css,
             profile_fields: crate::jsonb::parse_name_value(r.profile_fields),
+            custom_moods: crate::jsonb::parse_name_value(r.custom_moods),
             local: r.local,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -59,7 +61,7 @@ impl From<UserRow> for User {
 
 pub const USER_SELECT: &str =
     "SELECT id,username,email,password_hash,display_name,bio,avatar_url,header_url,\
-     custom_css,profile_fields,local,created_at,updated_at FROM users";
+     custom_css,profile_fields,custom_moods,local,created_at,updated_at FROM users";
 
 #[async_trait]
 impl UserReader for PgUserRepository {
@@ -225,15 +227,17 @@ impl UserReader for PgUserRepository {
 impl UserWriter for PgUserRepository {
     async fn save(&self, user: &User) -> Result<(), DomainError> {
         let profile_fields_json = crate::jsonb::serialize_name_value(&user.profile_fields);
+        let custom_moods_json = crate::jsonb::serialize_name_value(&user.custom_moods);
         sqlx::query(
-            "INSERT INTO users (id,username,email,password_hash,display_name,bio,avatar_url,header_url,custom_css,profile_fields,local,created_at,updated_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            "INSERT INTO users (id,username,email,password_hash,display_name,bio,avatar_url,header_url,custom_css,profile_fields,custom_moods,local,created_at,updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
              ON CONFLICT(id) DO UPDATE SET
                username=EXCLUDED.username, email=EXCLUDED.email,
                password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name,
                bio=EXCLUDED.bio, avatar_url=EXCLUDED.avatar_url,
                header_url=EXCLUDED.header_url, custom_css=EXCLUDED.custom_css,
                profile_fields=EXCLUDED.profile_fields,
+               custom_moods=EXCLUDED.custom_moods,
                local=EXCLUDED.local,
                updated_at=NOW()"
         )
@@ -247,6 +251,7 @@ impl UserWriter for PgUserRepository {
         .bind(&user.header_url)
         .bind(&user.custom_css)
         .bind(&profile_fields_json)
+        .bind(&custom_moods_json)
         .bind(user.local)
         .bind(user.created_at)
         .bind(user.updated_at)
@@ -276,6 +281,10 @@ impl UserWriter for PgUserRepository {
             .profile_fields
             .as_ref()
             .map(|f| crate::jsonb::serialize_name_value(f));
+        let custom_moods_json: Option<serde_json::Value> = input
+            .custom_moods
+            .as_ref()
+            .map(|f| crate::jsonb::serialize_name_value(f));
         sqlx::query(
             "UPDATE users SET \
              display_name    = COALESCE($2, display_name), \
@@ -284,6 +293,7 @@ impl UserWriter for PgUserRepository {
              header_url      = COALESCE($5, header_url), \
              custom_css      = COALESCE($6, custom_css), \
              profile_fields  = COALESCE($7, profile_fields), \
+             custom_moods    = COALESCE($8, custom_moods), \
              updated_at      = NOW() \
              WHERE id = $1",
         )
@@ -294,6 +304,7 @@ impl UserWriter for PgUserRepository {
         .bind(input.header_url)
         .bind(input.custom_css)
         .bind(profile_fields_json)
+        .bind(custom_moods_json)
         .execute(&self.pool)
         .await
         .into_domain()

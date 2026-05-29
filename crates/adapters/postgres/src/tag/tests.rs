@@ -37,6 +37,7 @@ async fn attach_and_list(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     trepo.save(&t).await.unwrap();
     let repo = PgTagRepository::new(pool);

@@ -27,6 +27,7 @@ async fn seed_thought(pool: &sqlx::PgPool, username: &str, content: &str) -> (Us
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     trepo.save(&t).await.unwrap();
     (u, t)

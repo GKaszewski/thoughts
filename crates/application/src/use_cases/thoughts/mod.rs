@@ -26,6 +26,7 @@ pub struct CreateThoughtInput {
     pub visibility: Option<String>,
     pub content_warning: Option<String>,
     pub sensitive: bool,
+    pub mood: Option<String>,
 }
 pub struct CreateThoughtOutput {
     pub thought: Thought,
@@ -39,6 +40,11 @@ pub async fn create_thought(
     outbox: &dyn OutboxWriter,
     input: CreateThoughtInput,
 ) -> Result<CreateThoughtOutput, DomainError> {
+    if let Some(ref m) = input.mood {
+        if m.len() > 64 {
+            return Err(DomainError::InvalidInput("mood: max 64 chars".into()));
+        }
+    }
     let content = Content::new_local(input.content)?;
     let visibility = match input.visibility.as_deref() {
         Some("followers") => Visibility::Followers,
@@ -54,6 +60,7 @@ pub async fn create_thought(
         visibility,
         content_warning: input.content_warning,
         sensitive: input.sensitive,
+        mood: input.mood,
     });
     thoughts.save(&thought).await?;
 

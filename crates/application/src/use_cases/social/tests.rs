@@ -34,6 +34,7 @@ async fn like_and_unlike() {
             visibility: Visibility::Public,
             content_warning: None,
             sensitive: false,
+            mood: None,
         }));
     like_thought(&store, &store, &alice.id, &tid).await.unwrap();
     assert_eq!(store.likes.lock().unwrap().len(), 1);

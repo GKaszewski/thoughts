@@ -95,6 +95,16 @@ fn build_note_json(
             .collect();
         note["tag"] = serde_json::json!(ap_tags);
     }
+    if let Some(ref mood) = thought.mood {
+        note["mood"] = serde_json::json!(mood);
+    }
+    if let Some(ref ext) = thought.note_extensions {
+        if let Some(obj) = ext.as_object() {
+            for (k, v) in obj {
+                note.as_object_mut().unwrap().entry(k).or_insert(v.clone());
+            }
+        }
+    }
     note
 }
 

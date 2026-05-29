@@ -117,6 +117,9 @@ pub async fn patch_profile(
             profile_fields: body
                 .profile_fields
                 .map(|f| f.into_iter().map(|pf| (pf.name, pf.value)).collect()),
+            custom_moods: body
+                .custom_moods
+                .map(|f| f.into_iter().map(|pf| (pf.name, pf.value)).collect()),
         },
     )
     .await?;

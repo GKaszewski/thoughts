@@ -41,6 +41,7 @@ impl OutboxRow {
                 created_at: self.created_at,
                 updated_at: self.updated_at,
                 note_extensions: None,
+                mood: None,
             },
             author_username: Username::from_trusted(self.username),
         }

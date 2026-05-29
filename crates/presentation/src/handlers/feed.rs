@@ -109,6 +109,7 @@ pub fn to_thought_response(e: &domain::models::feed::FeedEntry) -> ThoughtRespon
         created_at: e.thought.created_at,
         updated_at: e.thought.updated_at,
         note_extensions: e.thought.note_extensions.clone(),
+        mood: e.thought.mood.clone(),
     }
 }
 

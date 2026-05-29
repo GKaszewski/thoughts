@@ -223,6 +223,11 @@ export function ThoughtCard({
               }}
             />
           )}
+          {(thought.mood || (meta?.mood as string | undefined)) && (
+            <p className="text-xs text-muted-foreground italic mt-2">
+              feeling {thought.mood || (meta?.mood as string)}
+            </p>
+          )}
         </CardContent>
 
         {token && (
@@ -244,6 +249,7 @@ export function ThoughtCard({
             <ThoughtForm
               replyToId={thought.id}
               onSuccess={() => setIsReplyOpen(false)}
+              currentUser={currentUser}
             />
           </div>
         )}

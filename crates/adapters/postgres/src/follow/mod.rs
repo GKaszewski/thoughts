@@ -120,7 +120,7 @@ impl FollowRepository for PgFollowRepository {
         .into_domain()?;
 
         let rows = sqlx::query_as::<_, crate::user::UserRow>(
-            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.profile_fields,u.local,u.created_at,u.updated_at
+            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.profile_fields,u.custom_moods,u.local,u.created_at,u.updated_at
              FROM users u JOIN follows f ON f.follower_id=u.id
              WHERE f.following_id=$1 AND f.state='accepted'
              ORDER BY f.created_at DESC LIMIT $2 OFFSET $3"
@@ -154,7 +154,7 @@ impl FollowRepository for PgFollowRepository {
         .into_domain()?;
 
         let rows = sqlx::query_as::<_, crate::user::UserRow>(
-            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.profile_fields,u.local,u.created_at,u.updated_at
+            "SELECT u.id,u.username,u.email,u.password_hash,u.display_name,u.bio,u.avatar_url,u.header_url,u.custom_css,u.profile_fields,u.custom_moods,u.local,u.created_at,u.updated_at
              FROM users u JOIN follows f ON f.following_id=u.id
              WHERE f.follower_id=$1 AND f.state='accepted'
              ORDER BY f.created_at DESC LIMIT $2 OFFSET $3"
@@ -210,7 +210,7 @@ impl FollowRepository for PgFollowRepository {
 
         let rows = sqlx::query_as::<_, crate::user::UserRow>(
             "SELECT u.id, u.username, u.email, u.password_hash, u.display_name, u.bio,
-                    u.avatar_url, u.header_url, u.custom_css, u.profile_fields, u.local,
+                    u.avatar_url, u.header_url, u.custom_css, u.profile_fields, u.custom_moods, u.local,
                     u.created_at, u.updated_at
              FROM users u
              JOIN follows f1

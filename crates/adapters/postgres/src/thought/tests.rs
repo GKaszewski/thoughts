@@ -14,6 +14,7 @@ async fn save_and_find_thought(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     repo.save(&t).await.unwrap();
     let found = repo.find_by_id(&t.id).await.unwrap().unwrap();
@@ -33,6 +34,7 @@ async fn delete_thought(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     repo.save(&t).await.unwrap();
     repo.delete(&t.id, &user.id).await.unwrap();
@@ -52,6 +54,7 @@ async fn delete_wrong_owner_returns_not_found(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     repo.save(&t).await.unwrap();
     let err = repo.delete(&t.id, &bob.id).await.unwrap_err();
@@ -70,6 +73,7 @@ async fn get_thread_returns_root_and_replies(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     let reply = Thought::new_local(NewThought {
         id: ThoughtId::new(),
@@ -79,6 +83,7 @@ async fn get_thread_returns_root_and_replies(pool: sqlx::PgPool) {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     repo.save(&root).await.unwrap();
     repo.save(&reply).await.unwrap();

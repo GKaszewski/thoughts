@@ -100,6 +100,7 @@ fn local_thought(author_id: UserId) -> Thought {
         visibility: Visibility::Public,
         content_warning: None,
         sensitive: false,
+        mood: None,
     })
 }
 
@@ -283,6 +284,7 @@ async fn direct_thought_created_does_not_broadcast() {
         visibility: Visibility::Direct,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.users.lock().unwrap().push(alice.clone());
     store.thoughts.lock().unwrap().push(thought.clone());
@@ -312,6 +314,7 @@ async fn followers_only_thought_does_not_broadcast_publicly() {
         visibility: Visibility::Followers,
         content_warning: None,
         sensitive: false,
+        mood: None,
     });
     store.users.lock().unwrap().push(alice.clone());
     store.thoughts.lock().unwrap().push(thought.clone());

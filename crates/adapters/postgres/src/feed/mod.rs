@@ -36,6 +36,7 @@ struct FeedRow {
     thought_created_at: DateTime<Utc>,
     thought_updated_at: Option<DateTime<Utc>>,
     note_extensions: Option<serde_json::Value>,
+    mood: Option<String>,
     #[sqlx(flatten)]
     author: crate::user::UserRow,
     like_count: i64,
@@ -58,6 +59,7 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         created_at: r.thought_created_at,
         updated_at: r.thought_updated_at,
         note_extensions: r.note_extensions,
+        mood: r.mood,
     };
     let author = User::from(r.author);
     Ok(FeedEntry {
@@ -112,7 +114,7 @@ impl<'a> FeedSqlBuilder<'a> {
         t.in_reply_to_id,
         t.visibility, t.content_warning, t.sensitive, t.local AS t_local,
         t.created_at AS thought_created_at, t.updated_at AS thought_updated_at,
-        t.note_extensions,
+        t.note_extensions, t.mood,
         u.id,
         CASE WHEN NOT u.local AND ra.handle IS NOT NULL AND ra.handle != ''
              THEN '@' || ra.handle ||
@@ -124,7 +126,7 @@ impl<'a> FeedSqlBuilder<'a> {
         COALESCE(ra.display_name, u.display_name) AS display_name,
         u.bio,
         COALESCE(ra.avatar_url, u.avatar_url) AS avatar_url,
-        u.header_url, u.custom_css, u.profile_fields,
+        u.header_url, u.custom_css, u.profile_fields, u.custom_moods,
         u.local,
         u.created_at, u.updated_at,
         COALESCE(l_agg.cnt, 0) AS like_count,
