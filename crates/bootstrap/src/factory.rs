@@ -48,7 +48,11 @@ struct KapPublisher(NatsTransport);
 impl k_ap::data::EventPublisher for KapPublisher {
     async fn publish(&self, event: FederationEvent) -> anyhow::Result<()> {
         let (subject, payload) = match event {
-            FederationEvent::DeliveryRequested { inbox, activity, signing_actor_id } => (
+            FederationEvent::DeliveryRequested {
+                inbox,
+                activity,
+                signing_actor_id,
+            } => (
                 "federation.delivery.requested",
                 serde_json::to_vec(&event_payload::EventPayload::FederationDeliveryRequested {
                     inbox: inbox.to_string(),
@@ -56,7 +60,10 @@ impl k_ap::data::EventPublisher for KapPublisher {
                     signing_actor_id: signing_actor_id.to_string(),
                 })?,
             ),
-            FederationEvent::BackfillRequested { owner_user_id, follower_inbox_url } => (
+            FederationEvent::BackfillRequested {
+                owner_user_id,
+                follower_inbox_url,
+            } => (
                 "federation.backfill.requested",
                 serde_json::to_vec(&event_payload::EventPayload::FederationBackfillRequested {
                     owner_user_id: owner_user_id.to_string(),
@@ -107,7 +114,9 @@ pub async fn build(cfg: &Config) -> Infrastructure {
         }
     };
     let event_publisher: Arc<dyn EventPublisher> = match &nats_client {
-        Some(client) => Arc::new(EventPublisherAdapter::new(NatsTransport::new(client.clone()))),
+        Some(client) => Arc::new(EventPublisherAdapter::new(NatsTransport::new(
+            client.clone(),
+        ))),
         None => Arc::new(NoOpEventPublisher),
     };
     let kap_publisher: Option<Arc<dyn k_ap::data::EventPublisher>> = nats_client

@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 use k_ap::{
     ActivityRepository, ActorRepository, ApActorType, ApUser, ApUserRepository, BlockedDomain,
-    BlocklistRepository, Follower, FollowerStatus, FollowingStatus, FollowRepository, RemoteActor,
+    BlocklistRepository, FollowRepository, Follower, FollowerStatus, FollowingStatus, RemoteActor,
 };
 
 // ── PostgresFederationRepository ─────────────────────────────────────────────
@@ -518,13 +518,12 @@ impl FollowRepository for PostgresFederationRepository {
     }
 
     async fn count_following(&self, local_user_id: uuid::Uuid) -> Result<usize> {
-        let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_following WHERE local_user_id=$1",
-        )
-        .bind(local_user_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))?;
+        let n: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM federation_following WHERE local_user_id=$1")
+                .bind(local_user_id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(n as usize)
     }
 
@@ -616,16 +615,14 @@ impl ActorRepository for PostgresFederationRepository {
         public_key: String,
         private_key: String,
     ) -> Result<()> {
-        sqlx::query(
-            "UPDATE users SET public_key=$2, private_key=$3, updated_at=NOW() WHERE id=$1",
-        )
-        .bind(user_id)
-        .bind(&public_key)
-        .bind(&private_key)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))
-        .map(|_| ())
+        sqlx::query("UPDATE users SET public_key=$2, private_key=$3, updated_at=NOW() WHERE id=$1")
+            .bind(user_id)
+            .bind(&public_key)
+            .bind(&private_key)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| anyhow!(e))
+            .map(|_| ())
     }
 
     async fn upsert_remote_actor(&self, actor: RemoteActor) -> Result<()> {
@@ -704,25 +701,22 @@ impl ActorRepository for PostgresFederationRepository {
     }
 
     async fn remove_announce(&self, activity_id: &str, actor_url: &str) -> Result<()> {
-        sqlx::query(
-            "DELETE FROM federation_announces WHERE activity_id=$1 AND actor_url=$2",
-        )
-        .bind(activity_id)
-        .bind(actor_url)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))
-        .map(|_| ())
+        sqlx::query("DELETE FROM federation_announces WHERE activity_id=$1 AND actor_url=$2")
+            .bind(activity_id)
+            .bind(actor_url)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| anyhow!(e))
+            .map(|_| ())
     }
 
     async fn count_announces(&self, object_url: &str) -> Result<usize> {
-        let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_announces WHERE object_url=$1",
-        )
-        .bind(object_url)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))?;
+        let n: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM federation_announces WHERE object_url=$1")
+                .bind(object_url)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(n as usize)
     }
 }
@@ -777,13 +771,12 @@ impl BlocklistRepository for PostgresFederationRepository {
     }
 
     async fn is_domain_blocked(&self, domain: &str) -> Result<bool> {
-        let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM federation_blocked_domains WHERE domain=$1",
-        )
-        .bind(domain)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))?;
+        let n: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM federation_blocked_domains WHERE domain=$1")
+                .bind(domain)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| anyhow!(e))?;
         Ok(n > 0)
     }
 
@@ -799,20 +792,14 @@ impl BlocklistRepository for PostgresFederationRepository {
         .map(|_| ())
     }
 
-    async fn remove_blocked_actor(
-        &self,
-        local_user_id: uuid::Uuid,
-        actor_url: &str,
-    ) -> Result<()> {
-        sqlx::query(
-            "DELETE FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2",
-        )
-        .bind(local_user_id)
-        .bind(actor_url)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| anyhow!(e))
-        .map(|_| ())
+    async fn remove_blocked_actor(&self, local_user_id: uuid::Uuid, actor_url: &str) -> Result<()> {
+        sqlx::query("DELETE FROM federation_blocked_actors WHERE local_user_id=$1 AND actor_url=$2")
+            .bind(local_user_id)
+            .bind(actor_url)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| anyhow!(e))
+            .map(|_| ())
     }
 
     async fn get_blocked_actors(&self, local_user_id: uuid::Uuid) -> Result<Vec<String>> {
@@ -860,8 +847,7 @@ impl PostgresApUserRepository {
         header_url: Option<String>,
         also_known_as: Option<String>,
     ) -> ApUser {
-        let profile_url =
-            url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
+        let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, username)).ok();
         let avatar_url = avatar_url.and_then(|u| url::Url::parse(&u).ok());
         let banner_url = header_url.and_then(|u| url::Url::parse(&u).ok());
         ApUser {

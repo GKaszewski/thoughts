@@ -133,10 +133,9 @@ async fn main() {
                     Err(e) => {
                         if raw.delivery_count >= CONSUMER_MAX_DELIVER as u64 {
                             // Rebuild payload from raw bytes for DLQ storage.
-                            let payload_val = serde_json::from_slice::<serde_json::Value>(
-                                &raw.payload,
-                            )
-                            .unwrap_or(serde_json::Value::Null);
+                            let payload_val =
+                                serde_json::from_slice::<serde_json::Value>(&raw.payload)
+                                    .unwrap_or(serde_json::Value::Null);
                             if let Err(dlq_err) = infra
                                 .dlq_store
                                 .insert(event_type, &payload_val, &e.to_string())

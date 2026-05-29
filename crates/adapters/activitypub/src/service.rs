@@ -97,9 +97,7 @@ fn build_note_json(
     note
 }
 
-fn thought_to_ap_visibility(
-    v: &domain::models::thought::Visibility,
-) -> k_ap::ApVisibility {
+fn thought_to_ap_visibility(v: &domain::models::thought::Visibility) -> k_ap::ApVisibility {
     match v {
         domain::models::thought::Visibility::Public => k_ap::ApVisibility::Public,
         domain::models::thought::Visibility::Unlisted => k_ap::ApVisibility::Public,
