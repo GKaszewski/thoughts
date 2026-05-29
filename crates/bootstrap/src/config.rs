@@ -31,12 +31,12 @@ impl Config {
         Self {
             database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL is required"),
             jwt_secret: std::env::var("JWT_SECRET").expect("JWT_SECRET is required"),
-            base_url: std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".into()),
+            base_url: std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:8000".into()),
             nats_url: std::env::var("NATS_URL").ok(),
             port: std::env::var("PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
-                .unwrap_or(3000),
+                .unwrap_or(8000),
             allow_registration: std::env::var("ALLOW_REGISTRATION")
                 .map(|v| v == "true")
                 .unwrap_or(true),

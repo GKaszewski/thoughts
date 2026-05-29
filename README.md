@@ -14,7 +14,14 @@ A self-hosted microblogging server with full ActivityPub federation. Write short
 - JWT authentication (Bearer token) with API key support for third-party clients
 - OpenAPI documentation at `/docs` (Swagger UI) and `/scalar` (Scalar)
 - Full-text search over thoughts and users via PostgreSQL trigram indexes
-- Top friends — pin up to 5 users as highlighted contacts
+- **Profile fields** — up to 4 custom key/value fields (Website, Pronouns, etc.), federated as AP `PropertyValue` attachment
+- **Custom CSS** — per-user stylesheet applied to their profile page
+- **Visibility levels** — public, followers-only, unlisted, and direct posts
+- **Content warnings** — optional CW label and sensitive flag on posts
+- **Feed controls** — sort by newest, oldest, most liked, most boosted, or most discussed; filter to originals only, replies only, local only, or hide sensitive
+- **Popular tags** — trending hashtag discovery
+- Top friends — pin up to 8 users as highlighted contacts
+- Account migration — set `alsoKnownAs` for Fediverse actor moves
 - Home feed, public feed, and per-user thought timelines
 - Rate limiting and registration control
 
@@ -108,7 +115,7 @@ Copy `.env.example` to `.env` and fill in your values.
 | Variable | Default | Description |
 |---|---|---|
 | `HOST` | `0.0.0.0` | Interface to bind |
-| `PORT` | `3000` | Port to listen on |
+| `PORT` | `8000` | Port to listen on |
 | `NATS_URL` | — | NATS connection string. If unset, a no-op publisher is used and events are not delivered to the worker |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins for CORS, e.g. `https://app.example.com` |
 | `RATE_LIMIT` | disabled | Max requests per minute per IP |
@@ -201,18 +208,7 @@ Interactive API documentation is available at runtime:
 
 ## Frontend
 
-The Next.js frontend lives in `thoughts-frontend/`. It requires two environment variables:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000        # client-side requests
-NEXT_PUBLIC_SERVER_SIDE_API_URL=http://localhost:8000  # SSR requests
-```
-
-```bash
-cd thoughts-frontend
-bun install
-bun run dev   # http://localhost:3000
-```
+The Next.js frontend lives in `thoughts-frontend/`. See [Frontend environment](#frontend-environment) for required env vars, or follow the [local development](#local-development-recommended) steps above.
 
 ## Docker
 
@@ -270,7 +266,7 @@ Services:
 
 Contributions are welcome. A few guidelines:
 
-- **Run tests before opening a PR.** At minimum: `cargo test -p application` (no database needed). For adapter changes: `cargo test --workspace` with a live database.
+- **Run tests before opening a PR.** At minimum: `make test-unit` (no database needed). For adapter changes: `make test-integration` with a live database. `make check` runs the full suite (fmt + clippy + tests).
 - **Keep the hexagonal boundary.** `domain` and `application` must not import any adapter crate. Use `&dyn Port` traits for all I/O.
 - **No ORM.** The project uses raw `sqlx`. Keep it that way.
 - **ActivityPub changes** — test against a live Mastodon instance if possible, or use the AP debug logs (`RUST_ENV=development`).
