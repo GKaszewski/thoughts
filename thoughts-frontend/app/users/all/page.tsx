@@ -22,8 +22,8 @@ export default async function AllUsersPage({
     );
   }
 
-  const { items, total, per_page } = usersData;
-  const totalPages = Math.ceil(total / per_page);
+  const { items, total, perPage } = usersData;
+  const totalPages = Math.ceil(total / perPage);
 
   return (
     <div className="container mx-auto max-w-2xl p-4 sm:p-6">

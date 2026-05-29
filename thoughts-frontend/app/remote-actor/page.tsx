@@ -68,7 +68,7 @@ export default async function RemoteActorPage({
   const postsData = postsResult.status === "fulfilled" ? postsResult.value : null;
   const posts = postsData?.items ?? [];
   const totalPages = postsData
-    ? Math.ceil(postsData.total / postsData.per_page)
+    ? Math.ceil(postsData.total / postsData.perPage)
     : 1;
   const me =
     meResult.status === "fulfilled" ? (meResult.value as Me | null) : null;

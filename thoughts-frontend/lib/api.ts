@@ -299,7 +299,7 @@ export const getRemoteActorPosts = (
     z.object({
       total: z.number(),
       page: z.number(),
-      per_page: z.number(),
+      perPage: z.number(),
       items: z.array(ThoughtSchema),
     }),
     token
@@ -347,8 +347,8 @@ export const getAllUsers = (page: number = 1, pageSize: number = 20) =>
   apiFetch(
     `/users?page=${page}&per_page=${pageSize}`,
     { next: { tags: ['users'] } },
-    z.object({ items: z.array(UserSchema), total: z.number(), page: z.number(), per_page: z.number() })
-      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.per_page) }))
+    z.object({ items: z.array(UserSchema), total: z.number(), page: z.number(), perPage: z.number() })
+      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.perPage) }))
   );
 
 export const getAllUsersCount = () =>
@@ -381,8 +381,8 @@ export const getFeed = (token: string, page = 1, pageSize = 20, opts: FeedOption
   return apiFetch(
     `/feed?${params.toString()}`,
     { next: { tags: ["feed"] } },
-    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() })
-      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.per_page) })),
+    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), perPage: z.number() })
+      .transform((d) => ({ ...d, totalPages: Math.ceil(d.total / d.perPage) })),
     token
   );
 };
@@ -391,7 +391,7 @@ export const getUserThoughts = (username: string, token: string | null, page = 1
   apiFetch(
     `/users/${username}/thoughts?page=${page}`,
     { next: { tags: [`profile:${username}`] } },
-    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() }),
+    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), perPage: z.number() }),
     token
   );
 
@@ -427,7 +427,7 @@ export const getThoughtsByTag = (tagName: string, token: string | null) =>
   apiFetch(
     `/tags/${tagName}`,
     { next: { tags: [`tag:${tagName}`, 'feed'] } },
-    z.object({ tag: z.string(), items: z.array(ThoughtSchema), total: z.number(), page: z.number(), per_page: z.number() }),
+    z.object({ items: z.array(ThoughtSchema), total: z.number(), page: z.number(), perPage: z.number() }),
     token
   );
 

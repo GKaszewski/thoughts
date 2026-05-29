@@ -100,7 +100,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const thoughtsData = thoughtsResult.status === "fulfilled" ? thoughtsResult.value : null;
   const thoughts = thoughtsData?.items ?? [];
   const totalPages = thoughtsData
-    ? Math.ceil(thoughtsData.total / thoughtsData.per_page)
+    ? Math.ceil(thoughtsData.total / thoughtsData.perPage)
     : 1;
 
   const localFollowersCount =
