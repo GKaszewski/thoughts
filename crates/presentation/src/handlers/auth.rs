@@ -5,6 +5,7 @@ use api_types::{
 };
 use application::use_cases::auth::{login, register, LoginInput, RegisterInput};
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use domain::models::feed::UserSummary;
 use domain::ports::{AuthService, EventPublisher, PasswordHasher, UserRepository};
 
 deps_struct!(AuthDeps {
@@ -34,6 +35,22 @@ pub fn to_user_response(u: &domain::models::user::User) -> UserResponse {
         local: u.local,
         is_followed_by_viewer: false,
         created_at: u.created_at,
+    }
+}
+
+pub fn to_summary_response(u: &UserSummary) -> UserResponse {
+    UserResponse {
+        id: u.id.as_uuid(),
+        username: u.username.clone(),
+        display_name: u.display_name.clone(),
+        bio: u.bio.clone(),
+        avatar_url: u.avatar_url.clone(),
+        header_url: None,
+        custom_css: None,
+        profile_fields: vec![],
+        local: true,
+        is_followed_by_viewer: false,
+        created_at: chrono::Utc::now(),
     }
 }
 

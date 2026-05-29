@@ -5,6 +5,7 @@ use domain::{
         user::User,
     },
     ports::{SearchPort, ThoughtRepository, UserWriter},
+    value_objects::{Content, Email, PasswordHash, ThoughtId, UserId, Username},
 };
 
 async fn seed_thought(pool: &sqlx::PgPool, username: &str, content: &str) -> (User, Thought) {

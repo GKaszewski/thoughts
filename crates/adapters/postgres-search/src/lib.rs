@@ -9,9 +9,9 @@ use domain::{
         user::User,
     },
     ports::SearchPort,
-    value_objects::{Content, Email, PasswordHash, ThoughtId, UserId, Username},
+    value_objects::{Content, ThoughtId, UserId},
 };
-use postgres::user::{UserRow, USER_SELECT};
+use postgres::user::USER_SELECT;
 use sqlx::PgPool;
 
 pub struct PgSearchRepository {
@@ -34,25 +34,15 @@ struct FeedRow {
     sensitive: bool,
     t_local: bool,
     thought_created_at: DateTime<Utc>,
-    updated_at: Option<DateTime<Utc>>,
-    author_id: uuid::Uuid,
-    username: String,
-    email: String,
-    password_hash: String,
-    display_name: Option<String>,
-    bio: Option<String>,
-    avatar_url: Option<String>,
-    header_url: Option<String>,
-    custom_css: Option<String>,
-    author_local: bool,
-    author_created_at: DateTime<Utc>,
-    author_updated_at: DateTime<Utc>,
+    thought_updated_at: Option<DateTime<Utc>>,
+    note_extensions: Option<serde_json::Value>,
+    #[sqlx(flatten)]
+    author: postgres::user::UserRow,
     like_count: i64,
     boost_count: i64,
     reply_count: i64,
     liked_by_viewer: bool,
     boosted_by_viewer: bool,
-    note_extensions: Option<serde_json::Value>,
 }
 
 fn feed_select(viewer: Option<uuid::Uuid>) -> String {
@@ -68,11 +58,11 @@ fn feed_select(viewer: Option<uuid::Uuid>) -> String {
          t.id AS thought_id, t.user_id AS t_user_id, t.content,\n\
          t.in_reply_to_id,\n\
          t.visibility, t.content_warning, t.sensitive, t.local AS t_local,\n\
-         t.created_at AS thought_created_at, t.updated_at, t.note_extensions,\n\
-         u.id AS author_id, u.username, u.email, u.password_hash,\n\
-         u.display_name, u.bio, u.avatar_url, u.header_url, u.custom_css,\n\
-         u.local AS author_local,\n\
-         u.created_at AS author_created_at, u.updated_at AS author_updated_at,\n\
+         t.created_at AS thought_created_at, t.updated_at AS thought_updated_at, t.note_extensions,\n\
+         u.id, u.username, u.email, u.password_hash,\n\
+         u.display_name, u.bio, u.avatar_url, u.header_url, u.custom_css, u.profile_fields,\n\
+         u.local,\n\
+         u.created_at, u.updated_at,\n\
          (SELECT COUNT(*) FROM likes  l WHERE l.thought_id=t.id) AS like_count,\n\
          (SELECT COUNT(*) FROM boosts b WHERE b.thought_id=t.id) AS boost_count,\n\
          (SELECT COUNT(*) FROM thoughts r WHERE r.in_reply_to_id=t.id) AS reply_count,\n\
@@ -92,24 +82,10 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         sensitive: r.sensitive,
         local: r.t_local,
         created_at: r.thought_created_at,
-        updated_at: r.updated_at,
+        updated_at: r.thought_updated_at,
         note_extensions: r.note_extensions,
     };
-    let author = User {
-        id: UserId::from_uuid(r.author_id),
-        username: Username::from_trusted(r.username),
-        email: Email::from_trusted(r.email),
-        password_hash: PasswordHash(r.password_hash),
-        display_name: r.display_name,
-        bio: r.bio,
-        avatar_url: r.avatar_url,
-        header_url: r.header_url,
-        custom_css: r.custom_css,
-        profile_fields: vec![],
-        local: r.author_local,
-        created_at: r.author_created_at,
-        updated_at: r.author_updated_at,
-    };
+    let author = User::from(r.author);
     Ok(FeedEntry {
         thought,
         author,
@@ -190,7 +166,7 @@ impl SearchPort for PgSearchRepository {
              ORDER BY similarity(username || ' ' || COALESCE(display_name,''), $1) DESC
              LIMIT $2 OFFSET $3"
         );
-        let rows = sqlx::query_as::<_, UserRow>(&sql)
+        let rows = sqlx::query_as::<_, postgres::user::UserRow>(&sql)
             .bind(query)
             .bind(page.limit())
             .bind(page.offset())

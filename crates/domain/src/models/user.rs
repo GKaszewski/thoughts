@@ -52,4 +52,23 @@ impl User {
             updated_at: now,
         }
     }
+
+    pub fn new_remote(id: UserId, username: Username, email: Email) -> Self {
+        let now = Utc::now();
+        Self {
+            id,
+            username,
+            email,
+            password_hash: PasswordHash(String::new()),
+            display_name: None,
+            bio: None,
+            avatar_url: None,
+            header_url: None,
+            custom_css: None,
+            profile_fields: vec![],
+            local: false,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 }

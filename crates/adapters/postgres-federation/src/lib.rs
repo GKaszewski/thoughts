@@ -832,3 +832,91 @@ impl ApUserRepository for PgApUserRepository {
         Ok(n as usize)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use k_ap::ApUserRepository;
+
+    async fn seed_local_user(pool: &PgPool, username: &str) -> uuid::Uuid {
+        let id = uuid::Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO users (id,username,email,password_hash,local,created_at,updated_at)
+             VALUES ($1,$2,$3,'h',true,NOW(),NOW())",
+        )
+        .bind(id)
+        .bind(username)
+        .bind(format!("{username}@test.com"))
+        .execute(pool)
+        .await
+        .unwrap();
+        id
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn find_by_id_returns_local_user(pool: PgPool) {
+        let id = seed_local_user(&pool, "alice").await;
+        let repo = PgApUserRepository::new(pool, "https://example.com".into());
+
+        let user = repo.find_by_id(id).await.unwrap().unwrap();
+        assert_eq!(user.username, "alice");
+        assert!(user.attachment.is_empty());
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn find_by_username_returns_local_user(pool: PgPool) {
+        seed_local_user(&pool, "bob").await;
+        let repo = PgApUserRepository::new(pool, "https://example.com".into());
+
+        let user = repo.find_by_username("bob").await.unwrap().unwrap();
+        assert_eq!(user.username, "bob");
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn find_by_id_returns_none_for_missing(pool: PgPool) {
+        let repo = PgApUserRepository::new(pool, "https://example.com".into());
+        let result = repo.find_by_id(uuid::Uuid::new_v4()).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn profile_fields_map_to_attachment(pool: PgPool) {
+        let id = seed_local_user(&pool, "carol").await;
+        let fields = serde_json::json!([
+            {"name": "Website", "value": "https://carol.dev"},
+            {"name": "Pronouns", "value": "she/her"}
+        ]);
+        sqlx::query("UPDATE users SET profile_fields = $2 WHERE id = $1")
+            .bind(id)
+            .bind(&fields)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let repo = PgApUserRepository::new(pool, "https://example.com".into());
+        let user = repo.find_by_id(id).await.unwrap().unwrap();
+
+        assert_eq!(user.attachment.len(), 2);
+        assert_eq!(user.attachment[0].name, "Website");
+        assert_eq!(user.attachment[0].value, "https://carol.dev");
+        assert_eq!(user.attachment[1].name, "Pronouns");
+        assert_eq!(user.attachment[1].value, "she/her");
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn count_users_counts_local_only(pool: PgPool) {
+        seed_local_user(&pool, "local1").await;
+        seed_local_user(&pool, "local2").await;
+        sqlx::query(
+            "INSERT INTO users (id,username,email,password_hash,local,created_at,updated_at)
+             VALUES ($1,'remote','r@r.com','h',false,NOW(),NOW())",
+        )
+        .bind(uuid::Uuid::new_v4())
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let repo = PgApUserRepository::new(pool, "https://example.com".into());
+        assert_eq!(repo.count_users().await.unwrap(), 2);
+    }
+}

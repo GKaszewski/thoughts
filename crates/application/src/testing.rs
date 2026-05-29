@@ -5,7 +5,7 @@ use domain::{
     errors::DomainError,
     models::user::User,
     testing::TestStore,
-    value_objects::{Email, PasswordHash, ThoughtId, UserId, Username},
+    value_objects::{Email, ThoughtId, UserId, Username},
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -63,21 +63,11 @@ impl ActivityPubRepository for TestApRepo {
         let handle = url::Url::parse(actor_ap_url)
             .map(|u| u.path().trim_start_matches('/').replace('/', "_"))
             .unwrap_or_else(|_| format!("remote_{}", &uid.to_string()[..8]));
-        let user = User {
-            id: uid.clone(),
-            username: Username::from_trusted(handle),
-            email: Email::from_trusted(format!("{}@remote", uid)),
-            password_hash: PasswordHash("".into()),
-            display_name: None,
-            bio: None,
-            avatar_url: None,
-            header_url: None,
-            custom_css: None,
-            profile_fields: vec![],
-            local: false,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let user = User::new_remote(
+            uid.clone(),
+            Username::from_trusted(handle),
+            Email::from_trusted(format!("{}@remote", uid)),
+        );
         self.inner.users.lock().unwrap().push(user);
         self.inner
             .actor_ap_ids

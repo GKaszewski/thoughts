@@ -10,7 +10,7 @@ use domain::{
         user::User,
     },
     ports::{FeedOptions, FeedRepository, FeedRequest, FeedScope, FeedSort},
-    value_objects::{Content, Email, PasswordHash, ThoughtId, UserId, Username},
+    value_objects::{Content, ThoughtId, UserId},
 };
 use sqlx::PgPool;
 
@@ -34,20 +34,10 @@ struct FeedRow {
     sensitive: bool,
     t_local: bool,
     thought_created_at: DateTime<Utc>,
-    updated_at: Option<DateTime<Utc>>,
+    thought_updated_at: Option<DateTime<Utc>>,
     note_extensions: Option<serde_json::Value>,
-    author_id: uuid::Uuid,
-    username: String,
-    email: String,
-    password_hash: String,
-    display_name: Option<String>,
-    bio: Option<String>,
-    avatar_url: Option<String>,
-    header_url: Option<String>,
-    custom_css: Option<String>,
-    author_local: bool,
-    author_created_at: DateTime<Utc>,
-    author_updated_at: DateTime<Utc>,
+    #[sqlx(flatten)]
+    author: crate::user::UserRow,
     like_count: i64,
     boost_count: i64,
     reply_count: i64,
@@ -66,24 +56,10 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         sensitive: r.sensitive,
         local: r.t_local,
         created_at: r.thought_created_at,
-        updated_at: r.updated_at,
+        updated_at: r.thought_updated_at,
         note_extensions: r.note_extensions,
     };
-    let author = User {
-        id: UserId::from_uuid(r.author_id),
-        username: Username::from_trusted(r.username),
-        email: Email::from_trusted(r.email),
-        password_hash: PasswordHash(r.password_hash),
-        display_name: r.display_name,
-        bio: r.bio,
-        avatar_url: r.avatar_url,
-        header_url: r.header_url,
-        custom_css: r.custom_css,
-        profile_fields: vec![],
-        local: r.author_local,
-        created_at: r.author_created_at,
-        updated_at: r.author_updated_at,
-    };
+    let author = User::from(r.author);
     Ok(FeedEntry {
         thought,
         author,
@@ -135,9 +111,9 @@ impl<'a> FeedSqlBuilder<'a> {
         t.id AS thought_id, t.user_id AS t_user_id, t.content,
         t.in_reply_to_id,
         t.visibility, t.content_warning, t.sensitive, t.local AS t_local,
-        t.created_at AS thought_created_at, t.updated_at,
+        t.created_at AS thought_created_at, t.updated_at AS thought_updated_at,
         t.note_extensions,
-        u.id AS author_id,
+        u.id,
         CASE WHEN NOT u.local AND ra.handle IS NOT NULL AND ra.handle != ''
              THEN '@' || ra.handle ||
                   CASE WHEN ra.handle NOT LIKE '%@%'
@@ -148,9 +124,9 @@ impl<'a> FeedSqlBuilder<'a> {
         COALESCE(ra.display_name, u.display_name) AS display_name,
         u.bio,
         COALESCE(ra.avatar_url, u.avatar_url) AS avatar_url,
-        u.header_url, u.custom_css,
-        u.local AS author_local,
-        u.created_at AS author_created_at, u.updated_at AS author_updated_at,
+        u.header_url, u.custom_css, u.profile_fields,
+        u.local,
+        u.created_at, u.updated_at,
         COALESCE(l_agg.cnt, 0) AS like_count,
         COALESCE(b_agg.cnt, 0) AS boost_count,
         COALESCE(r_agg.cnt, 0) AS reply_count,

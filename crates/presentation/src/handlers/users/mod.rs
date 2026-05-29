@@ -1,7 +1,7 @@
 use crate::{
     errors::ApiError,
     extractors::{AuthUser, Deps, FromAppState, OptionalAuthUser},
-    handlers::auth::to_user_response,
+    handlers::auth::{to_summary_response, to_user_response},
     state::AppState,
 };
 use api_types::{
@@ -200,23 +200,7 @@ pub async fn get_users(
     }
 
     let result = list_users(&*d.users, page_params).await?;
-    let items: Vec<UserResponse> = result
-        .items
-        .iter()
-        .map(|u| UserResponse {
-            id: u.id.as_uuid(),
-            username: u.username.clone(),
-            display_name: u.display_name.clone(),
-            bio: u.bio.clone(),
-            avatar_url: u.avatar_url.clone(),
-            header_url: None,
-            custom_css: None,
-            profile_fields: vec![],
-            local: true,
-            is_followed_by_viewer: false,
-            created_at: chrono::Utc::now(),
-        })
-        .collect();
+    let items: Vec<UserResponse> = result.items.iter().map(to_summary_response).collect();
     Ok(Json(PagedResponse {
         items,
         total: result.total,
