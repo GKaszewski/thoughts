@@ -114,6 +114,9 @@ pub async fn patch_profile(
             avatar_url: body.avatar_url,
             header_url: body.header_url,
             custom_css: body.custom_css,
+            profile_fields: body
+                .profile_fields
+                .map(|f| f.into_iter().map(|pf| (pf.name, pf.value)).collect()),
         },
     )
     .await?;
@@ -208,6 +211,7 @@ pub async fn get_users(
             avatar_url: u.avatar_url.clone(),
             header_url: None,
             custom_css: None,
+            profile_fields: vec![],
             local: true,
             is_followed_by_viewer: false,
             created_at: chrono::Utc::now(),

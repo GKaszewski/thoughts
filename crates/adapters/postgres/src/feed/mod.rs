@@ -79,6 +79,7 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         avatar_url: r.avatar_url,
         header_url: r.header_url,
         custom_css: r.custom_css,
+        profile_fields: vec![],
         local: r.author_local,
         created_at: r.author_created_at,
         updated_at: r.author_updated_at,

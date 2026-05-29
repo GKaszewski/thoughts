@@ -8,6 +8,7 @@ pub struct UpdateProfileInput {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
+    pub profile_fields: Option<Vec<(String, String)>>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +22,7 @@ pub struct User {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
+    pub profile_fields: Vec<(String, String)>,
     pub local: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -44,6 +46,7 @@ impl User {
             avatar_url: None,
             header_url: None,
             custom_css: None,
+            profile_fields: vec![],
             local: true,
             created_at: now,
             updated_at: now,

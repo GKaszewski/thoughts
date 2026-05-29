@@ -1,7 +1,7 @@
 use crate::{deps_struct, errors::ApiError, extractors::Deps};
 use api_types::{
     requests::{LoginRequest, RegisterRequest},
-    responses::{AuthResponse, ErrorResponse, UserResponse},
+    responses::{AuthResponse, ErrorResponse, ProfileField, UserResponse},
 };
 use application::use_cases::auth::{login, register, LoginInput, RegisterInput};
 use axum::{http::StatusCode, response::IntoResponse, Json};
@@ -23,6 +23,14 @@ pub fn to_user_response(u: &domain::models::user::User) -> UserResponse {
         avatar_url: u.avatar_url.clone(),
         header_url: u.header_url.clone(),
         custom_css: u.custom_css.clone(),
+        profile_fields: u
+            .profile_fields
+            .iter()
+            .map(|(n, v)| ProfileField {
+                name: n.clone(),
+                value: v.clone(),
+            })
+            .collect(),
         local: u.local,
         is_followed_by_viewer: false,
         created_at: u.created_at,

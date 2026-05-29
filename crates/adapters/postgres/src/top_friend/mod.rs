@@ -54,7 +54,7 @@ impl TopFriendRepository for PgTopFriendRepository {
         let rows = sqlx::query_as::<_, TopFriendRow>(
             "SELECT tf.user_id AS tf_user_id, tf.friend_id, tf.position,
              u.id, u.username, u.email, u.password_hash, u.display_name, u.bio,
-             u.avatar_url, u.header_url, u.custom_css, u.local,
+             u.avatar_url, u.header_url, u.custom_css, u.profile_fields, u.local,
              u.created_at, u.updated_at
              FROM top_friends tf JOIN users u ON u.id=tf.friend_id
              WHERE tf.user_id=$1 ORDER BY tf.position",

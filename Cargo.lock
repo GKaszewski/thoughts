@@ -2554,6 +2554,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "k-ap",
+ "serde_json",
  "sqlx",
  "tokio",
  "tracing",

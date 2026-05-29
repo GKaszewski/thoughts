@@ -73,6 +73,7 @@ impl ActivityPubRepository for TestApRepo {
             avatar_url: None,
             header_url: None,
             custom_css: None,
+            profile_fields: vec![],
             local: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),

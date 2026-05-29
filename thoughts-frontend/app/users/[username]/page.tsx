@@ -224,6 +224,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 {user.bio}
               </p>
 
+              {user.profileFields.length > 0 && (
+                <div className="mt-4 space-y-0 text-sm">
+                  {user.profileFields.map((field) => (
+                    <div
+                      key={field.name}
+                      className="grid grid-cols-[minmax(0,5rem)_1fr] gap-2 border-t py-1"
+                    >
+                      <span
+                        className="font-medium text-muted-foreground truncate"
+                        title={field.name}
+                      >
+                        {field.name}
+                      </span>
+                      <span className="break-all min-w-0">
+                        {field.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {isOwnProfile && (
                 <div
                   id="profile-card__stats"

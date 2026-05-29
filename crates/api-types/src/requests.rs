@@ -47,6 +47,7 @@ pub struct UpdateProfileRequest {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
+    pub profile_fields: Option<Vec<crate::responses::ProfileField>>,
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]

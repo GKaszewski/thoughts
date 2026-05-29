@@ -31,9 +31,24 @@ pub struct UserRow {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
+    pub profile_fields: Option<serde_json::Value>,
     pub local: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+fn parse_profile_fields(v: Option<serde_json::Value>) -> Vec<(String, String)> {
+    v.and_then(|v| v.as_array().cloned())
+        .map(|arr| {
+            arr.into_iter()
+                .filter_map(|item| {
+                    let name = item.get("name")?.as_str()?.to_string();
+                    let value = item.get("value")?.as_str()?.to_string();
+                    Some((name, value))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 impl From<UserRow> for User {
@@ -48,6 +63,7 @@ impl From<UserRow> for User {
             avatar_url: r.avatar_url,
             header_url: r.header_url,
             custom_css: r.custom_css,
+            profile_fields: parse_profile_fields(r.profile_fields),
             local: r.local,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -57,7 +73,7 @@ impl From<UserRow> for User {
 
 pub const USER_SELECT: &str =
     "SELECT id,username,email,password_hash,display_name,bio,avatar_url,header_url,\
-     custom_css,local,created_at,updated_at FROM users";
+     custom_css,profile_fields,local,created_at,updated_at FROM users";
 
 #[async_trait]
 impl UserReader for PgUserRepository {
@@ -222,14 +238,20 @@ impl UserReader for PgUserRepository {
 #[async_trait]
 impl UserWriter for PgUserRepository {
     async fn save(&self, user: &User) -> Result<(), DomainError> {
+        let profile_fields_json: serde_json::Value = user
+            .profile_fields
+            .iter()
+            .map(|(n, v)| serde_json::json!({"name": n, "value": v}))
+            .collect();
         sqlx::query(
-            "INSERT INTO users (id,username,email,password_hash,display_name,bio,avatar_url,header_url,custom_css,local,created_at,updated_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            "INSERT INTO users (id,username,email,password_hash,display_name,bio,avatar_url,header_url,custom_css,profile_fields,local,created_at,updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
              ON CONFLICT(id) DO UPDATE SET
                username=EXCLUDED.username, email=EXCLUDED.email,
                password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name,
                bio=EXCLUDED.bio, avatar_url=EXCLUDED.avatar_url,
                header_url=EXCLUDED.header_url, custom_css=EXCLUDED.custom_css,
+               profile_fields=EXCLUDED.profile_fields,
                local=EXCLUDED.local,
                updated_at=NOW()"
         )
@@ -242,6 +264,7 @@ impl UserWriter for PgUserRepository {
         .bind(&user.avatar_url)
         .bind(&user.header_url)
         .bind(&user.custom_css)
+        .bind(&profile_fields_json)
         .bind(user.local)
         .bind(user.created_at)
         .bind(user.updated_at)
@@ -267,14 +290,22 @@ impl UserWriter for PgUserRepository {
         user_id: &UserId,
         input: UpdateProfileInput,
     ) -> Result<(), DomainError> {
+        let profile_fields_json: Option<serde_json::Value> =
+            input.profile_fields.as_ref().map(|fields| {
+                fields
+                    .iter()
+                    .map(|(n, v)| serde_json::json!({"name": n, "value": v}))
+                    .collect()
+            });
         sqlx::query(
             "UPDATE users SET \
-             display_name  = COALESCE($2, display_name), \
-             bio           = COALESCE($3, bio), \
-             avatar_url    = COALESCE($4, avatar_url), \
-             header_url    = COALESCE($5, header_url), \
-             custom_css    = COALESCE($6, custom_css), \
-             updated_at    = NOW() \
+             display_name    = COALESCE($2, display_name), \
+             bio             = COALESCE($3, bio), \
+             avatar_url      = COALESCE($4, avatar_url), \
+             header_url      = COALESCE($5, header_url), \
+             custom_css      = COALESCE($6, custom_css), \
+             profile_fields  = COALESCE($7, profile_fields), \
+             updated_at      = NOW() \
              WHERE id = $1",
         )
         .bind(user_id.as_uuid())
@@ -283,6 +314,7 @@ impl UserWriter for PgUserRepository {
         .bind(input.avatar_url)
         .bind(input.header_url)
         .bind(input.custom_css)
+        .bind(profile_fields_json)
         .execute(&self.pool)
         .await
         .into_domain()

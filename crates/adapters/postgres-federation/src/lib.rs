@@ -13,8 +13,9 @@ impl<T> IntoAnyhow<T> for std::result::Result<T, sqlx::Error> {
 }
 
 use k_ap::{
-    ActivityRepository, ActorRepository, ApActorType, ApUser, ApUserRepository, BlockedDomain,
-    BlocklistRepository, FollowRepository, Follower, FollowerStatus, FollowingStatus, RemoteActor,
+    ActivityRepository, ActorRepository, ApActorType, ApProfileField, ApUser, ApUserRepository,
+    BlockedDomain, BlocklistRepository, FollowRepository, Follower, FollowerStatus,
+    FollowingStatus, RemoteActor,
 };
 
 // ── PostgresFederationRepository ─────────────────────────────────────────────
@@ -751,6 +752,7 @@ struct UserRow {
     avatar_url: Option<String>,
     header_url: Option<String>,
     also_known_as: Option<String>,
+    profile_fields: Option<serde_json::Value>,
 }
 
 pub struct PgApUserRepository {
@@ -767,6 +769,19 @@ impl PgApUserRepository {
         let profile_url = url::Url::parse(&format!("{}/users/{}", self.base_url, r.id)).ok();
         let avatar_url = r.avatar_url.and_then(|u| url::Url::parse(&u).ok());
         let banner_url = r.header_url.and_then(|u| url::Url::parse(&u).ok());
+        let attachment = r
+            .profile_fields
+            .and_then(|v| v.as_array().cloned())
+            .map(|arr| {
+                arr.into_iter()
+                    .filter_map(|item| {
+                        let name = item.get("name")?.as_str()?.to_string();
+                        let value = item.get("value")?.as_str()?.to_string();
+                        Some(ApProfileField { name, value })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
         ApUser {
             id: r.id,
             username: r.username,
@@ -776,7 +791,7 @@ impl PgApUserRepository {
             banner_url,
             also_known_as: r.also_known_as.into_iter().collect(),
             profile_url,
-            attachment: vec![],
+            attachment,
             manually_approves_followers: true,
             discoverable: true,
             actor_type: ApActorType::default(),
@@ -789,7 +804,7 @@ impl PgApUserRepository {
 impl ApUserRepository for PgApUserRepository {
     async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<ApUser>> {
         let row = sqlx::query_as::<_, UserRow>(
-            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE id=$1 AND local=true",
+            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as,profile_fields FROM users WHERE id=$1 AND local=true",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -800,7 +815,7 @@ impl ApUserRepository for PgApUserRepository {
 
     async fn find_by_username(&self, username: &str) -> Result<Option<ApUser>> {
         let row = sqlx::query_as::<_, UserRow>(
-            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as FROM users WHERE username=$1 AND local=true",
+            "SELECT id,username,display_name,bio,avatar_url,header_url,also_known_as,profile_fields FROM users WHERE username=$1 AND local=true",
         )
         .bind(username)
         .fetch_optional(&self.pool)

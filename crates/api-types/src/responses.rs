@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Serialize, utoipa::ToSchema)]
@@ -19,6 +19,7 @@ pub struct UserResponse {
     pub avatar_url: Option<String>,
     pub header_url: Option<String>,
     pub custom_css: Option<String>,
+    pub profile_fields: Vec<ProfileField>,
     pub local: bool,
     pub is_followed_by_viewer: bool,
     #[serde(rename = "joinedAt")]
@@ -105,7 +106,7 @@ pub struct CreatedApiKeyResponse {
     pub key: String,
 }
 
-#[derive(Serialize, Clone, utoipa::ToSchema)]
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileField {
     pub name: String,

@@ -1,6 +1,12 @@
 import { cache } from "react";
 import { z } from "zod";
 
+export const ProfileFieldSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+});
+export type ProfileField = z.infer<typeof ProfileFieldSchema>;
+
 export const UserSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
@@ -9,18 +15,13 @@ export const UserSchema = z.object({
   avatarUrl: z.string().nullable(),
   headerUrl: z.string().nullable(),
   customCss: z.string().nullable(),
+  profileFields: z.array(ProfileFieldSchema).default([]),
   local: z.boolean(),
   isFollowedByViewer: z.boolean(),
   joinedAt: z.coerce.date().nullable(),
 });
 
 export const MeSchema = UserSchema;
-
-export const ProfileFieldSchema = z.object({
-  name: z.string(),
-  value: z.string(),
-});
-export type ProfileField = z.infer<typeof ProfileFieldSchema>;
 
 export const RemoteActorSchema = z.object({
   handle: z.string(),
@@ -77,6 +78,7 @@ export const UpdateProfileSchema = z.object({
   displayName: z.string().max(50).optional(),
   bio: z.string().max(4000).optional(),
   customCss: z.string().optional(),
+  profileFields: z.array(ProfileFieldSchema).max(4).optional(),
 });
 
 export const SearchResultsSchema = z.object({
