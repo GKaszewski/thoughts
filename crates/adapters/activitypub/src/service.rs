@@ -136,8 +136,6 @@ fn k_ap_actor_to_domain(a: k_ap::RemoteActor) -> DomainRemoteActor {
     }
 }
 
-// TODO: these fetches are unsigned — fails on instances with authorized-fetch (Secure Mode).
-// Fix requires exposing k-ap's signed HTTP client.
 async fn resolve_actor_profiles_from_urls(
     urls: Vec<String>,
 ) -> Vec<domain::models::actor_connection_summary::ActorConnectionSummary> {
