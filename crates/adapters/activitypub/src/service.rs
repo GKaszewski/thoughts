@@ -124,7 +124,7 @@ fn k_ap_actor_to_domain(a: k_ap::RemoteActor) -> DomainRemoteActor {
         display_name: a.display_name,
         avatar_url: a.avatar_url,
         outbox_url: a.outbox_url,
-        last_fetched_at: chrono::Utc::now(),
+        last_fetched_at: a.fetched_at.unwrap_or_else(chrono::Utc::now),
         bio: a.bio,
         banner_url: a.banner_url,
         also_known_as: a.also_known_as,

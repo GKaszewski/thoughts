@@ -59,6 +59,7 @@ struct RemoteActorRow {
     followers_url: Option<String>,
     following_url: Option<String>,
     also_known_as: Option<Vec<String>>,
+    last_fetched_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 fn map_remote_actor(r: RemoteActorRow) -> RemoteActor {
@@ -75,6 +76,7 @@ fn map_remote_actor(r: RemoteActorRow) -> RemoteActor {
         followers_url: r.followers_url,
         following_url: r.following_url,
         also_known_as: r.also_known_as.unwrap_or_default(),
+        fetched_at: r.last_fetched_at,
     }
 }
 
@@ -174,7 +176,7 @@ impl FollowRepository for PgFederationRepository {
             "SELECT f.remote_actor_url AS url, f.status,
              COALESCE(r.handle,'') AS handle, COALESCE(r.inbox_url,'') AS inbox_url,
              r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'",
@@ -209,7 +211,7 @@ impl FollowRepository for PgFederationRepository {
             "SELECT f.remote_actor_url AS url, f.status,
              COALESCE(r.handle,'') AS handle, COALESCE(r.inbox_url,'') AS inbox_url,
              r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'
@@ -261,7 +263,7 @@ impl FollowRepository for PgFederationRepository {
         sqlx::query_as::<_, RemoteActorRow>(
             "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='accepted'
@@ -305,7 +307,7 @@ impl FollowRepository for PgFederationRepository {
         sqlx::query_as::<_, RemoteActorRow>(
             "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_followers f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1 AND f.status='pending'",
@@ -389,7 +391,7 @@ impl FollowRepository for PgFederationRepository {
         sqlx::query_as::<_, RemoteActorRow>(
             "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1",
@@ -410,7 +412,7 @@ impl FollowRepository for PgFederationRepository {
         sqlx::query_as::<_, RemoteActorRow>(
             "SELECT f.remote_actor_url AS url, COALESCE(r.handle,'') AS handle,
              COALESCE(r.inbox_url,'') AS inbox_url, r.shared_inbox_url, r.display_name, r.avatar_url, r.outbox_url,
-             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as
+             r.bio, r.banner_url, r.followers_url, r.following_url, r.also_known_as, r.last_fetched_at
              FROM federation_following f
              LEFT JOIN remote_actors r ON r.url=f.remote_actor_url
              WHERE f.local_user_id=$1
@@ -585,7 +587,7 @@ impl ActorRepository for PgFederationRepository {
     async fn get_remote_actor(&self, actor_url: &str) -> Result<Option<RemoteActor>> {
         sqlx::query_as::<_, RemoteActorRow>(
             "SELECT url, handle, inbox_url, shared_inbox_url, display_name, avatar_url, outbox_url,
-             bio, banner_url, followers_url, following_url, also_known_as
+             bio, banner_url, followers_url, following_url, also_known_as, last_fetched_at
              FROM remote_actors WHERE url=$1",
         )
         .bind(actor_url)
