@@ -1,9 +1,11 @@
 pub mod handler;
-pub mod instance_actor;
 pub mod note;
 pub mod port;
 pub mod service;
 pub mod urls;
+
+pub const INSTANCE_ACTOR_ID: uuid::Uuid =
+    uuid::Uuid::from_bytes([0, 0, 0, 0, 0, 0, 0x40, 0, 0x80, 0, 0, 0, 0, 0, 0, 0]);
 
 pub use handler::ThoughtsObjectHandler;
 pub use note::ThoughtNote;
@@ -34,22 +36,18 @@ pub struct ApServiceConfig {
 pub async fn build_ap_service(
     cfg: ApServiceConfig,
 ) -> (Arc<ActivityPubService>, Arc<ApFederationAdapter>) {
-    let user_repo = Arc::new(instance_actor::InstanceActorUserRepo::new(
-        cfg.user_repo,
-        cfg.base_url.clone(),
-    ));
     let mut builder = ActivityPubService::builder(cfg.base_url)
         .activity_repo(cfg.activity_repo)
         .follow_repo(cfg.follow_repo)
         .actor_repo(cfg.actor_repo)
         .blocklist_repo(cfg.blocklist_repo)
-        .user_repo(user_repo)
+        .user_repo(cfg.user_repo)
         .content_reader(cfg.ap_handler.clone())
         .object_handler(cfg.ap_handler)
         .allow_registration(cfg.allow_registration)
         .software_name("thoughts")
         .debug(cfg.debug)
-        .signed_fetch_actor_id(instance_actor::INSTANCE_ACTOR_ID);
+        .signed_fetch_actor_id(INSTANCE_ACTOR_ID);
     if let Some(publisher) = cfg.event_publisher {
         builder = builder.event_publisher(publisher);
     }
