@@ -2,110 +2,153 @@
 
 Hexagonal (ports & adapters) architecture. Dependencies point inward — adapters implement domain ports, application orchestrates use cases, presentation handles HTTP.
 
+## Crate dependency graph
+
+```mermaid
+graph TD
+    subgraph Entry Points
+        bootstrap["bootstrap<br/><small>HTTP server, DI wiring</small>"]
+        worker["worker<br/><small>background job consumer</small>"]
+    end
+
+    subgraph Interface Layer
+        presentation["presentation<br/><small>axum handlers, extractors, AppState</small>"]
+        api_types["api-types<br/><small>DTOs, OpenAPI</small>"]
+    end
+
+    subgraph Application Layer
+        application["application<br/><small>use cases, FederationEventService</small>"]
+    end
+
+    subgraph Domain Layer
+        domain["domain<br/><small>models, value objects, events, port traits</small>"]
+    end
+
+    subgraph Adapters
+        postgres["postgres<br/><small>UserRepo, ThoughtRepo, LikeRepo,<br/>BoostRepo, FollowRepo, BlockRepo,<br/>TagRepo, FeedRepo, FederationContentRepo, ...</small>"]
+        activitypub["activitypub<br/><small>FederationActionPort,<br/>FederationBroadcastPort,<br/>FederationSchedulerPort<br/>(wraps k-ap)</small>"]
+        postgres_fed["postgres-federation<br/><small>k-ap DB traits</small>"]
+        postgres_search["postgres-search<br/><small>SearchPort</small>"]
+        auth["auth<br/><small>AuthService, ApiKeyService</small>"]
+        nats["nats<br/><small>EventPublisher, EventConsumer</small>"]
+        storage["storage<br/><small>MediaStore</small>"]
+        event_transport["event-transport<br/><small>event delivery</small>"]
+        event_payload["event-payload<br/><small>event serialization</small>"]
+    end
+
+    bootstrap --> presentation
+    bootstrap --> application
+    bootstrap --> postgres
+    bootstrap --> postgres_fed
+    bootstrap --> postgres_search
+    bootstrap --> activitypub
+    bootstrap --> auth
+    bootstrap --> nats
+    bootstrap --> storage
+    bootstrap --> event_transport
+    bootstrap --> event_payload
+
+    worker --> application
+    worker --> activitypub
+    worker --> postgres
+    worker --> postgres_fed
+    worker --> nats
+    worker --> event_transport
+    worker --> event_payload
+
+    presentation --> application
+    presentation --> api_types
+    presentation --> domain
+
+    application --> domain
+
+    postgres --> domain
+    activitypub --> domain
+    postgres_fed -.-> domain
+    postgres_search --> domain
+    postgres_search --> postgres
+    auth --> domain
+    nats --> domain
+    storage --> domain
+    event_transport --> domain
+    event_payload --> domain
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         ENTRY POINTS                                    │
-│                                                                         │
-│  ┌─────────────┐          ┌──────────┐                                  │
-│  │  bootstrap   │          │  worker   │                                 │
-│  │  (HTTP srv)  │          │ (bg jobs) │                                 │
-│  └──────┬───────┘          └─────┬─────┘                                │
-│         │ wires all deps         │ consumes events                      │
-└─────────┼────────────────────────┼──────────────────────────────────────┘
-          │                        │
-          ▼                        ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      INTERFACE LAYER                                    │
-│                                                                         │
-│  ┌──────────────────┐    ┌────────────┐                                 │
-│  │  presentation     │    │  api-types  │                                │
-│  │  (axum handlers,  │◄───│  (DTOs,     │                                │
-│  │   extractors,     │    │   OpenAPI)  │                                │
-│  │   AppState)       │    └────────────┘                                 │
-│  └────────┬──────────┘                                                  │
-│           │ calls use cases                                             │
-└───────────┼─────────────────────────────────────────────────────────────┘
-            │
-            ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     APPLICATION LAYER                                   │
-│                                                                         │
-│  ┌─────────────────────────────────────────────┐                        │
-│  │  application                                 │                       │
-│  │                                              │                       │
-│  │  use_cases/                                  │                       │
-│  │    thoughts, social, profile,                │                       │
-│  │    federation_management                     │                       │
-│  │                                              │                       │
-│  │  services/                                   │                       │
-│  │    FederationEventService                    │                       │
-│  │    (processes domain events → broadcasts)    │                       │
-│  └──────────────────┬──────────────────────────┘                        │
-│                     │ depends only on domain ports                      │
-└─────────────────────┼───────────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       DOMAIN LAYER (core)                               │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │  domain                                                         │    │
-│  │                                                                 │    │
-│  │  models/         value_objects/       events/        errors/    │    │
-│  │   Thought         UserId              DomainEvent    DomainErr │    │
-│  │   User            ThoughtId           EventEnvelope            │    │
-│  │   RemoteActor     Username                                     │    │
-│  │   Follow,Like     Content                                      │    │
-│  │   Boost,Block     Email                                        │    │
-│  │   Notification    PasswordHash                                 │    │
-│  │   Tag,FeedEntry                                                │    │
-│  │                                                                 │    │
-│  │  ports/ (trait interfaces)                                      │    │
-│  │   UserRepository          FederationContentRepository           │    │
-│  │   ThoughtRepository       FederationBroadcastPort               │    │
-│  │   LikeRepository          FederationLookupPort                  │    │
-│  │   BoostRepository         FederationFollowPort                  │    │
-│  │   FollowRepository        FederationFollowRequestPort           │    │
-│  │   BlockRepository         FederationFetchPort                   │    │
-│  │   TagRepository           FederationBlockPort                   │    │
-│  │   NotificationRepository  FederationSchedulerPort               │    │
-│  │   FeedRepository          FederationActionPort (supertrait)     │    │
-│  │   SearchPort              EventPublisher / EventConsumer        │    │
-│  │   AuthService             MediaStore / OutboxWriter             │    │
-│  │   PasswordHasher          RemoteActorConnectionRepository       │    │
-│  │   ApiKeyRepository        EngagementRepository                  │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────────┘
-                      ▲
-                      │ implements ports
-                      │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      ADAPTER LAYER                                      │
-│                                                                         │
-│  ┌──────────────────┐  ┌─────────────────────┐  ┌──────────────────┐   │
-│  │  postgres         │  │  activitypub         │  │  auth             │  │
-│  │                   │  │                      │  │                   │  │
-│  │  UserRepository   │  │  FederationActionPort│  │  AuthService      │  │
-│  │  ThoughtRepo      │  │  FederationBroadcast │  │  ApiKeyService    │  │
-│  │  LikeRepo         │  │  FederationContent.. │  └──────────────────┘  │
-│  │  BoostRepo        │  │  FederationScheduler │                        │
-│  │  FollowRepo       │  │                      │  ┌──────────────────┐  │
-│  │  BlockRepo        │  │  (wraps k-ap lib)    │  │  storage          │  │
-│  │  TagRepo          │  └─────────────────────┘  │  MediaStore       │  │
-│  │  NotificationRepo │                            └──────────────────┘  │
-│  │  ApiKeyRepo       │  ┌─────────────────────┐                        │
-│  │  TopFriendRepo    │  │  postgres-federation │  ┌──────────────────┐  │
-│  │  FeedRepo         │  │  (k-ap DB traits)    │  │  nats             │  │
-│  │  EngagementRepo   │  └─────────────────────┘  │  EventPublisher   │  │
-│  │  FederationContent│                            │  EventConsumer    │  │
-│  │  OutboxWriter     │  ┌─────────────────────┐  └──────────────────┘  │
-│  │  RemoteActorRepo  │  │  postgres-search     │                        │
-│  │  RemoteActorConn  │  │  SearchPort          │  ┌──────────────────┐  │
-│  └──────────────────┘  └─────────────────────┘  │  event-transport   │  │
-│                                                   │  event-payload    │  │
-│                                                   │  (serialization)  │  │
-│                                                   └──────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+
+## Domain ports
+
+```mermaid
+classDiagram
+    class domain {
+        <<core>>
+    }
+
+    namespace Data Ports {
+        class UserRepository {
+            <<trait>>
+            find_by_id()
+            find_by_username()
+            save()
+            update_profile()
+        }
+        class ThoughtRepository {
+            <<trait>>
+            save()
+            find_by_id()
+            delete()
+            update_content()
+        }
+        class LikeRepository { <<trait>> }
+        class BoostRepository { <<trait>> }
+        class FollowRepository { <<trait>> }
+        class BlockRepository { <<trait>> }
+        class TagRepository { <<trait>> }
+        class FeedRepository { <<trait>> }
+        class NotificationRepository { <<trait>> }
+        class EngagementRepository { <<trait>> }
+        class SearchPort { <<trait>> }
+    }
+
+    namespace Federation Ports {
+        class FederationContentRepository {
+            <<trait>>
+            outbox_entries_for_actor()
+            find_remote_actor_id()
+            intern_remote_actor()
+            accept_note()
+            retract_note()
+        }
+        class FederationBroadcastPort {
+            <<trait>>
+            broadcast_create()
+            broadcast_delete()
+            broadcast_update()
+            broadcast_announce()
+            broadcast_like()
+        }
+        class FederationActionPort {
+            <<supertrait>>
+        }
+        class FederationLookupPort { <<trait>> }
+        class FederationFollowPort { <<trait>> }
+        class FederationFollowRequestPort { <<trait>> }
+        class FederationFetchPort { <<trait>> }
+        class FederationBlockPort { <<trait>> }
+        class FederationSchedulerPort { <<trait>> }
+    }
+
+    namespace Infra Ports {
+        class EventPublisher { <<trait>> }
+        class EventConsumer { <<trait>> }
+        class AuthService { <<trait>> }
+        class PasswordHasher { <<trait>> }
+        class MediaStore { <<trait>> }
+    }
+
+    FederationActionPort --|> FederationLookupPort
+    FederationActionPort --|> FederationFollowPort
+    FederationActionPort --|> FederationFollowRequestPort
+    FederationActionPort --|> FederationFetchPort
+    FederationActionPort --|> FederationBlockPort
 ```
 
 ## Dependency rule
