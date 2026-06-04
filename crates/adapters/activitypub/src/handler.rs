@@ -210,11 +210,11 @@ impl ApObjectHandler for ThoughtsObjectHandler {
         let obj_type = object.get("type").and_then(|v| v.as_str()).unwrap_or("");
         match obj_type {
             "Note" | "Article" | "Page" => {
-                let Some((note, _)) = ThoughtNote::try_from_ap(object) else {
+                let Some((note, note_extensions)) = ThoughtNote::try_from_ap(object) else {
                     return Ok(());
                 };
                 self.repo
-                    .apply_note_update(ap_id.as_str(), &note.content)
+                    .apply_note_update(ap_id.as_str(), &note.content, note_extensions)
                     .await
                     .map_err(|e| anyhow!("{e}"))
             }

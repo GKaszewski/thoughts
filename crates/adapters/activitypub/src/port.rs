@@ -76,7 +76,12 @@ pub trait ActivityPubRepository: Send + Sync {
     async fn accept_note(&self, input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError>;
 
     /// Apply an Update to a previously accepted remote Note.
-    async fn apply_note_update(&self, ap_id: &str, new_content: &str) -> Result<(), DomainError>;
+    async fn apply_note_update(
+        &self,
+        ap_id: &str,
+        new_content: &str,
+        note_extensions: Option<serde_json::Value>,
+    ) -> Result<(), DomainError>;
 
     /// Remove a specific remote Note (Delete activity). Only touches
     /// remotely-originated thoughts.

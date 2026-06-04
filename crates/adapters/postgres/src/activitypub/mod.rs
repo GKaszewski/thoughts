@@ -270,13 +270,19 @@ impl ActivityPubRepository for PgActivityPubRepository {
         Ok(ThoughtId::from_uuid(row.0))
     }
 
-    async fn apply_note_update(&self, ap_id: &str, new_content: &str) -> Result<(), DomainError> {
+    async fn apply_note_update(
+        &self,
+        ap_id: &str,
+        new_content: &str,
+        note_extensions: Option<serde_json::Value>,
+    ) -> Result<(), DomainError> {
         let capped: String = new_content.chars().take(MAX_REMOTE_CONTENT_CHARS).collect();
         sqlx::query(
-            "UPDATE thoughts SET content=$2,updated_at=NOW() WHERE ap_id=$1 AND local=false",
+            "UPDATE thoughts SET content=$2,note_extensions=$3,updated_at=NOW() WHERE ap_id=$1 AND local=false",
         )
         .bind(ap_id)
         .bind(&capped)
+        .bind(&note_extensions)
         .execute(&self.pool)
         .await
         .into_domain()

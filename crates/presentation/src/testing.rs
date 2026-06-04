@@ -66,7 +66,7 @@ impl ActivityPubRepository for NoOpApRepo {
     ) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }
-    async fn apply_note_update(&self, _: &str, _: &str) -> Result<(), DomainError> {
+    async fn apply_note_update(&self, _: &str, _: &str, _: Option<serde_json::Value>) -> Result<(), DomainError> {
         Ok(())
     }
     async fn retract_note(&self, _: &str) -> Result<(), DomainError> {

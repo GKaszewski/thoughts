@@ -19,5 +19,6 @@ bytes       = { workspace = true }
 futures     = { workspace = true }
 
 [dev-dependencies]
-tokio  = { workspace = true, features = ["full"] }
-domain = { workspace = true, features = ["test-helpers"] }
+tokio      = { workspace = true, features = ["full"] }
+domain     = { workspace = true, features = ["test-helpers"] }
+serde_json = { workspace = true }
