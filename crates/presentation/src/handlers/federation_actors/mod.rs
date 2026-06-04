@@ -4,7 +4,6 @@ use crate::{
     handlers::feed::to_thought_response,
     state::AppState,
 };
-use activitypub::ActivityPubRepository;
 use api_types::{
     requests::PaginationQuery,
     responses::{
@@ -18,6 +17,7 @@ use axum::{
     extract::{Path, Query},
     Json,
 };
+use domain::ports::FederationContentRepository;
 use domain::{
     models::feed::PageParams,
     ports::{
@@ -29,7 +29,7 @@ use std::sync::Arc;
 
 pub struct FederationActorsDeps {
     pub federation: Arc<dyn FederationActionPort>,
-    pub ap_repo: Arc<dyn ActivityPubRepository>,
+    pub ap_repo: Arc<dyn FederationContentRepository>,
     pub feed: Arc<dyn FeedRepository>,
     pub federation_scheduler: Arc<dyn FederationSchedulerPort>,
     pub remote_actor_connections: Arc<dyn RemoteActorConnectionRepository>,

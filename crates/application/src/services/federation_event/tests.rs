@@ -1,7 +1,7 @@
 use super::*;
 use crate::testing::TestApRepo;
-use activitypub::{ActorApUrls, OutboundFederationPort};
 use async_trait::async_trait;
+use domain::ports::{ActorFederationUrls, FederationBroadcastPort};
 use domain::{
     errors::DomainError,
     events::DomainEvent,
@@ -27,7 +27,7 @@ struct SpyPort {
 }
 
 #[async_trait]
-impl OutboundFederationPort for SpyPort {
+impl FederationBroadcastPort for SpyPort {
     async fn broadcast_create(
         &self,
         _: &UserId,
@@ -482,7 +482,7 @@ async fn like_added_local_user_remote_thought_broadcasts_like() {
     let ap_repo = TestApRepo::new(store.clone());
     ap_repo.actor_ap_urls.lock().unwrap().insert(
         author.id.clone(),
-        ActorApUrls {
+        ActorFederationUrls {
             ap_id: "https://mastodon.social/users/author".into(),
             inbox_url: "https://mastodon.social/users/author/inbox".into(),
         },

@@ -511,3 +511,136 @@ pub trait FederationSchedulerPort: Send + Sync {
         page: u32,
     ) -> Result<(), DomainError>;
 }
+
+// ── Federation content & broadcast ports ────────────────────────────────
+
+pub struct AcceptNoteInput<'a> {
+    pub ap_id: &'a str,
+    pub author_id: &'a UserId,
+    pub content: &'a str,
+    pub published: chrono::DateTime<chrono::Utc>,
+    pub sensitive: bool,
+    pub content_warning: Option<String>,
+    pub visibility: &'a str,
+    pub in_reply_to: Option<&'a str>,
+    pub note_extensions: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActorFederationUrls {
+    pub ap_id: String,
+    pub inbox_url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct OutboxEntry {
+    pub thought: Thought,
+    pub author_username: Username,
+}
+
+#[async_trait]
+pub trait FederationContentRepository: Send + Sync {
+    async fn outbox_entries_for_actor(
+        &self,
+        user_id: &UserId,
+    ) -> Result<Vec<OutboxEntry>, DomainError>;
+
+    async fn outbox_page_for_actor(
+        &self,
+        user_id: &UserId,
+        before: Option<chrono::DateTime<chrono::Utc>>,
+        limit: usize,
+    ) -> Result<Vec<OutboxEntry>, DomainError>;
+
+    async fn find_remote_actor_id(&self, actor_ap_url: &str)
+        -> Result<Option<UserId>, DomainError>;
+
+    async fn intern_remote_actor(&self, actor_ap_url: &str) -> Result<UserId, DomainError>;
+
+    async fn update_remote_actor_display(
+        &self,
+        user_id: &UserId,
+        display_name: Option<&str>,
+        avatar_url: Option<&str>,
+    ) -> Result<(), DomainError>;
+
+    async fn accept_note(&self, input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError>;
+
+    async fn apply_note_update(
+        &self,
+        ap_id: &str,
+        new_content: &str,
+        note_extensions: Option<serde_json::Value>,
+    ) -> Result<(), DomainError>;
+
+    async fn retract_note(&self, ap_id: &str) -> Result<(), DomainError>;
+
+    async fn retract_actor_notes(&self, actor_ap_url: &str) -> Result<(), DomainError>;
+
+    async fn count_local_notes(&self) -> Result<u64, DomainError>;
+
+    async fn get_thought_ap_id(
+        &self,
+        thought_id: &ThoughtId,
+    ) -> Result<Option<String>, DomainError>;
+
+    async fn get_actor_ap_urls(
+        &self,
+        user_id: &UserId,
+    ) -> Result<Option<ActorFederationUrls>, DomainError>;
+
+    async fn sync_remote_actor_to_user(&self, actor_ap_url: &str) -> Result<(), DomainError>;
+}
+
+#[async_trait]
+pub trait FederationBroadcastPort: Send + Sync {
+    async fn broadcast_create(
+        &self,
+        author_user_id: &UserId,
+        thought: &Thought,
+        author_username: &str,
+        in_reply_to_url: Option<&str>,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_delete(
+        &self,
+        author_user_id: &UserId,
+        thought_ap_id: &str,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_update(
+        &self,
+        author_user_id: &UserId,
+        thought: &Thought,
+        author_username: &str,
+        in_reply_to_url: Option<&str>,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_announce(
+        &self,
+        booster_user_id: &UserId,
+        object_ap_id: &str,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_undo_announce(
+        &self,
+        booster_user_id: &UserId,
+        object_ap_id: &str,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_like(
+        &self,
+        liker_user_id: &UserId,
+        object_ap_id: &str,
+        author_inbox_url: &str,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_undo_like(
+        &self,
+        liker_user_id: &UserId,
+        object_ap_id: &str,
+        author_inbox_url: &str,
+    ) -> Result<(), DomainError>;
+
+    async fn broadcast_actor_update(&self, user_id: &UserId) -> Result<(), DomainError>;
+}

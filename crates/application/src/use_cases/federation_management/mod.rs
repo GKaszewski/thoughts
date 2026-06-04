@@ -1,4 +1,3 @@
-use activitypub::ActivityPubRepository;
 use domain::{
     errors::DomainError,
     events::DomainEvent,
@@ -8,9 +7,10 @@ use domain::{
         remote_actor::RemoteActor,
     },
     ports::{
-        EventPublisher, FederationActionPort, FederationFollowPort, FederationFollowRequestPort,
-        FederationSchedulerPort, FeedOptions, FeedQuery, FeedRepository, FeedRequest,
-        FollowRepository, RemoteActorConnectionRepository, UserReader, UserWriter,
+        EventPublisher, FederationActionPort, FederationContentRepository, FederationFollowPort,
+        FederationFollowRequestPort, FederationSchedulerPort, FeedOptions, FeedQuery,
+        FeedRepository, FeedRequest, FollowRepository, RemoteActorConnectionRepository, UserReader,
+        UserWriter,
     },
     value_objects::UserId,
 };
@@ -119,7 +119,7 @@ pub async fn remove_remote_following(
 
 pub async fn get_remote_actor_posts(
     federation: &dyn FederationActionPort,
-    ap_repo: &dyn ActivityPubRepository,
+    ap_repo: &dyn FederationContentRepository,
     feed: &dyn FeedRepository,
     scheduler: &dyn FederationSchedulerPort,
     handle: &str,

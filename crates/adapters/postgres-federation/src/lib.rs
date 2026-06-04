@@ -919,6 +919,7 @@ mod tests {
         .unwrap();
 
         let repo = PgApUserRepository::new(pool, "https://example.com".into());
-        assert_eq!(repo.count_users().await.unwrap(), 2);
+        // 2 seeded local users + 1 instance actor from migration 022
+        assert_eq!(repo.count_users().await.unwrap(), 3);
     }
 }

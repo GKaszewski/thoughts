@@ -273,7 +273,6 @@ dependencies = [
 name = "application"
 version = "0.1.0"
 dependencies = [
- "activitypub",
  "async-trait",
  "bytes",
  "chrono",
@@ -2605,7 +2604,6 @@ dependencies = [
 name = "presentation"
 version = "0.1.0"
 dependencies = [
- "activitypub",
  "api-types",
  "application",
  "async-trait",

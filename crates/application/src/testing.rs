@@ -1,9 +1,8 @@
-/// Test helpers for application-layer tests that need activitypub traits.
-use activitypub::{ActivityPubRepository, ActorApUrls, OutboxEntry};
 use async_trait::async_trait;
 use domain::{
     errors::DomainError,
     models::user::User,
+    ports::{AcceptNoteInput, ActorFederationUrls, FederationContentRepository, OutboxEntry},
     testing::TestStore,
     value_objects::{Email, ThoughtId, UserId, Username},
 };
@@ -14,8 +13,8 @@ use std::sync::{Arc, Mutex};
 #[derive(Default, Clone)]
 pub struct TestApRepo {
     pub inner: TestStore,
-    /// UserId → ActorApUrls (for get_actor_ap_urls)
-    pub actor_ap_urls: Arc<Mutex<HashMap<UserId, ActorApUrls>>>,
+    /// UserId → ActorFederationUrls (for get_actor_ap_urls)
+    pub actor_ap_urls: Arc<Mutex<HashMap<UserId, ActorFederationUrls>>>,
 }
 
 impl TestApRepo {
@@ -28,7 +27,7 @@ impl TestApRepo {
 }
 
 #[async_trait]
-impl ActivityPubRepository for TestApRepo {
+impl FederationContentRepository for TestApRepo {
     async fn outbox_entries_for_actor(
         &self,
         _uid: &UserId,
@@ -84,13 +83,15 @@ impl ActivityPubRepository for TestApRepo {
     ) -> Result<(), DomainError> {
         Ok(())
     }
-    async fn accept_note(
-        &self,
-        _input: activitypub::AcceptNoteInput<'_>,
-    ) -> Result<ThoughtId, DomainError> {
+    async fn accept_note(&self, _input: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }
-    async fn apply_note_update(&self, _ap_id: &str, _new_content: &str, _: Option<serde_json::Value>) -> Result<(), DomainError> {
+    async fn apply_note_update(
+        &self,
+        _ap_id: &str,
+        _new_content: &str,
+        _: Option<serde_json::Value>,
+    ) -> Result<(), DomainError> {
         Ok(())
     }
     async fn retract_note(&self, _ap_id: &str) -> Result<(), DomainError> {
@@ -124,7 +125,7 @@ impl ActivityPubRepository for TestApRepo {
     async fn get_actor_ap_urls(
         &self,
         user_id: &UserId,
-    ) -> Result<Option<ActorApUrls>, DomainError> {
+    ) -> Result<Option<ActorFederationUrls>, DomainError> {
         Ok(self.actor_ap_urls.lock().unwrap().get(user_id).cloned())
     }
     async fn sync_remote_actor_to_user(&self, _actor_ap_url: &str) -> Result<(), DomainError> {

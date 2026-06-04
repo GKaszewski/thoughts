@@ -1,7 +1,9 @@
 use crate::state::AppState;
-use activitypub::{ActivityPubRepository, ActorApUrls, OutboxEntry};
 use application::use_cases::profile::UploadConfig;
 use async_trait::async_trait;
+use domain::ports::{
+    AcceptNoteInput, ActorFederationUrls, FederationContentRepository, OutboxEntry,
+};
 use domain::{
     errors::DomainError,
     ports::{AuthService, DataStream, GeneratedToken, MediaStore, PasswordHasher},
@@ -34,7 +36,7 @@ impl PasswordHasher for NoOpHasher {
 pub struct NoOpApRepo;
 
 #[async_trait]
-impl ActivityPubRepository for NoOpApRepo {
+impl FederationContentRepository for NoOpApRepo {
     async fn outbox_entries_for_actor(&self, _: &UserId) -> Result<Vec<OutboxEntry>, DomainError> {
         Ok(vec![])
     }
@@ -60,13 +62,15 @@ impl ActivityPubRepository for NoOpApRepo {
     ) -> Result<(), DomainError> {
         Ok(())
     }
-    async fn accept_note(
-        &self,
-        _: activitypub::AcceptNoteInput<'_>,
-    ) -> Result<ThoughtId, DomainError> {
+    async fn accept_note(&self, _: AcceptNoteInput<'_>) -> Result<ThoughtId, DomainError> {
         Ok(ThoughtId::from_uuid(uuid::Uuid::new_v4()))
     }
-    async fn apply_note_update(&self, _: &str, _: &str, _: Option<serde_json::Value>) -> Result<(), DomainError> {
+    async fn apply_note_update(
+        &self,
+        _: &str,
+        _: &str,
+        _: Option<serde_json::Value>,
+    ) -> Result<(), DomainError> {
         Ok(())
     }
     async fn retract_note(&self, _: &str) -> Result<(), DomainError> {
@@ -81,7 +85,10 @@ impl ActivityPubRepository for NoOpApRepo {
     async fn get_thought_ap_id(&self, _: &ThoughtId) -> Result<Option<String>, DomainError> {
         Ok(None)
     }
-    async fn get_actor_ap_urls(&self, _: &UserId) -> Result<Option<ActorApUrls>, DomainError> {
+    async fn get_actor_ap_urls(
+        &self,
+        _: &UserId,
+    ) -> Result<Option<ActorFederationUrls>, DomainError> {
         Ok(None)
     }
     async fn sync_remote_actor_to_user(&self, _: &str) -> Result<(), DomainError> {

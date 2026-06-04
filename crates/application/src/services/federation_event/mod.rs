@@ -1,9 +1,8 @@
-use activitypub::{ActivityPubRepository, OutboundFederationPort};
 use domain::{
     errors::DomainError,
     events::DomainEvent,
     models::thought::Visibility,
-    ports::{ThoughtRepository, UserReader},
+    ports::{FederationBroadcastPort, FederationContentRepository, ThoughtRepository, UserReader},
     value_objects::ThoughtId,
 };
 use std::sync::Arc;
@@ -15,9 +14,9 @@ fn should_broadcast(t: &domain::models::thought::Thought) -> bool {
 pub struct FederationEventService {
     pub thoughts: Arc<dyn ThoughtRepository>,
     pub users: Arc<dyn UserReader>,
-    pub ap: Arc<dyn OutboundFederationPort>,
+    pub ap: Arc<dyn FederationBroadcastPort>,
     pub base_url: String,
-    pub ap_repo: Arc<dyn ActivityPubRepository>,
+    pub ap_repo: Arc<dyn FederationContentRepository>,
 }
 
 impl FederationEventService {
