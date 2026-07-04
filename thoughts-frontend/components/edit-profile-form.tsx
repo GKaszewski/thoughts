@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Me, UpdateProfileSchema, uploadAvatar, uploadBanner } from "@/lib/api";
-import { updateProfile } from "@/app/actions/profile";
+import { Me, UpdateProfileSchema, updateProfile, uploadAvatar, uploadBanner } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -83,9 +82,11 @@ export function EditProfileForm({ currentUser, token }: EditProfileFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof UpdateProfileSchema>) {
+    if (!token) return;
     toast.info("Updating your profile...");
     try {
-      await updateProfile(currentUser.username, values);
+      await updateProfile(values, token);
+      router.refresh();
       toast.success("Profile updated successfully!");
     } catch (err) {
       toast.error(`Failed to update profile. ${err}`);

@@ -20,13 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreateThoughtSchema, type Me } from "@/lib/api";
+import { CreateThoughtSchema, createThought, type Me } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Globe, Lock, Users } from "lucide-react";
 import { useState } from "react";
 import { Confetti } from "./confetti";
-import { createThought } from "@/app/actions/thoughts";
 
 const DEFAULT_MOODS = [
   "relaxed 😌",
@@ -68,6 +68,7 @@ export function ThoughtForm({
   currentUser,
 }: ThoughtFormProps) {
   const { token } = useAuth();
+  const router = useRouter();
   const [showConfetti, setShowConfetti] = useState(false);
 
   const allMoods = [
@@ -97,7 +98,8 @@ export function ThoughtForm({
       return;
     }
     try {
-      await createThought(values);
+      await createThought(values, token);
+      router.refresh();
       toast.success(replyToId ? "Reply posted!" : "Thought posted!");
       setShowConfetti(true);
       form.reset();

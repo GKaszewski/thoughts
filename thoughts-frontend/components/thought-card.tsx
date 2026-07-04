@@ -7,10 +7,10 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { UserAvatar } from "./user-avatar";
-import { Me, Thought } from "@/lib/api";
-import { deleteThought } from "@/app/actions/thoughts";
+import { Me, Thought, deleteThought } from "@/lib/api";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -69,6 +69,7 @@ export function ThoughtCard({
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [deletingState, setDeletingState] = useState<"idle" | "shaking" | "fading">("idle");
   const { token } = useAuth();
+  const router = useRouter();
   const timeAgo = formatDistanceToNow(new Date(thought.createdAt), {
     addSuffix: true,
   });
@@ -93,7 +94,9 @@ export function ThoughtCard({
     setDeletingState("fading");
     await new Promise((r) => setTimeout(r, 300));
     try {
-      await deleteThought(thought.id);
+      if (!token) throw new Error("not authenticated");
+      await deleteThought(thought.id, token);
+      router.refresh();
       toast.success("Thought deleted.");
     } catch (error) {
       console.error("Failed to delete thought:", error);
