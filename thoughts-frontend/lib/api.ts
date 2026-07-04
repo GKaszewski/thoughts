@@ -455,7 +455,7 @@ export const search = (query: string, token: string | null) =>
 // ── API Keys ──────────────────────────────────────────────────────────────
 
 export const getApiKeys = (token: string) =>
-  apiFetch("/api-keys", { next: { tags: ['api-keys'] } }, z.object({ keys: z.array(ApiKeySchema) }), token);
+  apiFetch("/api-keys", { next: { tags: ['api-keys'] } }, z.array(ApiKeySchema), token);
 
 export const createApiKey = (data: z.infer<typeof CreateApiKeySchema>, token: string) =>
   apiFetch("/api-keys", { method: "POST", body: JSON.stringify(data) }, ApiKeyResponseSchema, token);

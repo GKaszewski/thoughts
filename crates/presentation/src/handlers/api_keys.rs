@@ -42,6 +42,7 @@ pub async fn post_api_key(
     Ok(Json(CreatedApiKeyResponse {
         id: key.id.as_uuid(),
         name: key.name,
+        created_at: key.created_at,
         key: raw,
     }))
 }

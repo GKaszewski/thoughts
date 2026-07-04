@@ -1,7 +1,9 @@
 "use client"
 
 import { useOptimistic, useRef } from "react"
-import { followUser, unfollowUser } from "@/app/actions/social"
+import { useRouter } from "next/navigation"
+import { followUser, unfollowUser } from "@/lib/api"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { UserPlus, UserMinus } from "lucide-react"
@@ -68,8 +70,11 @@ function burstParticles(canvas: HTMLCanvasElement) {
 export function FollowButton({ username, isInitiallyFollowing }: FollowButtonProps) {
   const [optimisticFollowing, setOptimisticFollowing] = useOptimistic(isInitiallyFollowing)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { token } = useAuth()
+  const router = useRouter()
 
   async function handleClick() {
+    if (!token) return
     const next = !optimisticFollowing
     setOptimisticFollowing(next)
 
@@ -78,7 +83,8 @@ export function FollowButton({ username, isInitiallyFollowing }: FollowButtonPro
     }
 
     try {
-      await (next ? followUser(username) : unfollowUser(username))
+      await (next ? followUser(username, token) : unfollowUser(username, token))
+      router.refresh()
     } catch {
       setOptimisticFollowing(!next)
       toast.error(`Failed to ${next ? "follow" : "unfollow"} user.`)

@@ -9,9 +9,7 @@ export default async function ApiKeysPage() {
     redirect("/login");
   }
 
-  const initialApiKeys = await getApiKeys(token).catch(() => ({
-    keys: [],
-  }));
+  const initialApiKeys = await getApiKeys(token).catch(() => []);
 
   return (
     <div className="space-y-6">
@@ -21,7 +19,7 @@ export default async function ApiKeysPage() {
           Manage API keys for third-party applications.
         </p>
       </div>
-      <ApiKeyList initialApiKeys={initialApiKeys.keys} />
+      <ApiKeyList initialApiKeys={initialApiKeys} />
     </div>
   );
 }

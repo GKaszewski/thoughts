@@ -190,13 +190,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div id="profile-card__info" className="mt-4">
-                <h1 id="profile-card__name" className="text-2xl font-bold">
+              <div id="profile-card__info" className="mt-4 min-w-0">
+                <h1 id="profile-card__name" className="text-2xl font-bold break-words">
                   {user.displayName || user.username}
                 </h1>
                 <p
                   id="profile-card__username"
-                  className="text-sm text-muted-foreground"
+                  className="text-sm text-muted-foreground break-all"
                 >
                   @{user.username}
                 </p>

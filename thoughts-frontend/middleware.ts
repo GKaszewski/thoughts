@@ -15,6 +15,24 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const parts = pathname.split("/");
 
+  if (parts[1] === "media") {
+    const apiBase =
+      process.env.NEXT_PUBLIC_SERVER_SIDE_API_URL ?? "http://api:8000";
+    const forwardHeaders: Record<string, string> = {};
+    for (const [key, value] of request.headers.entries()) {
+      if (key.toLowerCase() !== "host") forwardHeaders[key] = value;
+    }
+    const res = await fetch(`${apiBase}${pathname}`, { headers: forwardHeaders });
+    const body = await res.arrayBuffer();
+    return new NextResponse(body, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") ?? "application/octet-stream",
+        "cache-control": res.headers.get("cache-control") ?? "public, max-age=31536000, immutable",
+      },
+    });
+  }
+
   if (parts.length >= 3 && parts[1] === "users") {
     const segment = decodeURIComponent(parts[2]);
     const accept = request.headers.get("accept") ?? "";
@@ -71,5 +89,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/users/:path*",
+  matcher: ["/users/:path*", "/media/:path*"],
 };

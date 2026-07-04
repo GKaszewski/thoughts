@@ -105,6 +105,7 @@ pub struct ErrorResponse {
 pub struct CreatedApiKeyResponse {
     pub id: Uuid,
     pub name: String,
+    pub created_at: DateTime<Utc>,
     /// Raw API key — shown only once at creation
     pub key: String,
 }
