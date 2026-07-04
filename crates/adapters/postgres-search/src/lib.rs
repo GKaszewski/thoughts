@@ -29,6 +29,7 @@ struct FeedRow {
     t_user_id: uuid::Uuid,
     content: String,
     in_reply_to_id: Option<uuid::Uuid>,
+    in_reply_to_url: Option<String>,
     visibility: String,
     content_warning: Option<String>,
     sensitive: bool,
@@ -57,7 +58,7 @@ fn feed_select(viewer: Option<uuid::Uuid>) -> String {
     format!(
         "\n    SELECT\n\
          t.id AS thought_id, t.user_id AS t_user_id, t.content,\n\
-         t.in_reply_to_id,\n\
+         t.in_reply_to_id, t.in_reply_to_url,\n\
          t.visibility, t.content_warning, t.sensitive, t.local AS t_local,\n\
          t.created_at AS thought_created_at, t.updated_at AS thought_updated_at, t.note_extensions, t.mood,\n\
          u.id, u.username, u.email, u.password_hash,\n\
@@ -78,6 +79,7 @@ fn row_to_entry(r: FeedRow, viewer: Option<uuid::Uuid>) -> Result<FeedEntry, Dom
         user_id: UserId::from_uuid(r.t_user_id),
         content: Content::new_remote(r.content),
         in_reply_to_id: r.in_reply_to_id.map(ThoughtId::from_uuid),
+        in_reply_to_url: r.in_reply_to_url,
         visibility: Visibility::from_db_str(&r.visibility)?,
         content_warning: r.content_warning,
         sensitive: r.sensitive,

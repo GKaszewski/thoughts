@@ -34,6 +34,7 @@ impl OutboxRow {
                 user_id: UserId::from_uuid(self.user_id),
                 content: Content::new_remote(self.content),
                 in_reply_to_id: self.in_reply_to_id.map(ThoughtId::from_uuid),
+                in_reply_to_url: None,
                 visibility: Visibility::Public,
                 content_warning: self.content_warning,
                 sensitive: self.sensitive,

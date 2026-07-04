@@ -97,7 +97,7 @@ pub fn to_thought_response(e: &domain::models::feed::FeedEntry) -> ThoughtRespon
         content: e.thought.content.as_str().to_string(),
         author: to_user_response(&e.author),
         in_reply_to_id: e.thought.in_reply_to_id.as_ref().map(|id| id.as_uuid()),
-        in_reply_to_url: None,
+        in_reply_to_url: e.thought.in_reply_to_url.clone(),
         visibility: e.thought.visibility.as_str().to_string(),
         content_warning: e.thought.content_warning.clone(),
         sensitive: e.thought.sensitive,

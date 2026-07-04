@@ -28,6 +28,7 @@ pub(crate) struct ThoughtRow {
     pub user_id: uuid::Uuid,
     pub content: String,
     pub in_reply_to_id: Option<uuid::Uuid>,
+    pub in_reply_to_url: Option<String>,
     pub visibility: String,
     pub content_warning: Option<String>,
     pub sensitive: bool,
@@ -46,6 +47,7 @@ impl TryFrom<ThoughtRow> for Thought {
             user_id: UserId::from_uuid(r.user_id),
             content: Content::new_remote(r.content),
             in_reply_to_id: r.in_reply_to_id.map(ThoughtId::from_uuid),
+            in_reply_to_url: r.in_reply_to_url,
             visibility: Visibility::from_db_str(&r.visibility)?,
             content_warning: r.content_warning,
             sensitive: r.sensitive,
@@ -59,7 +61,7 @@ impl TryFrom<ThoughtRow> for Thought {
 }
 
 const THOUGHT_SELECT: &str =
-    "SELECT id,user_id,content,in_reply_to_id,visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions,mood FROM thoughts";
+    "SELECT id,user_id,content,in_reply_to_id,in_reply_to_url,visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions,mood FROM thoughts";
 
 #[async_trait]
 impl ThoughtRepository for PgThoughtRepository {
@@ -121,11 +123,11 @@ impl ThoughtRepository for PgThoughtRepository {
         // Recursive CTE: fetches the root thought and all nested replies at any depth.
         sqlx::query_as::<_, ThoughtRow>(
             "WITH RECURSIVE thread AS (
-                SELECT id,user_id,content,in_reply_to_id,
+                SELECT id,user_id,content,in_reply_to_id,in_reply_to_url,
                        visibility,content_warning,sensitive,local,created_at,updated_at,note_extensions,mood
                 FROM thoughts WHERE id = $1
                 UNION ALL
-                SELECT t.id,t.user_id,t.content,t.in_reply_to_id,
+                SELECT t.id,t.user_id,t.content,t.in_reply_to_id,t.in_reply_to_url,
                        t.visibility,t.content_warning,t.sensitive,t.local,t.created_at,t.updated_at,t.note_extensions,t.mood
                 FROM thoughts t JOIN thread ON t.in_reply_to_id = thread.id
             )

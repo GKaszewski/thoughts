@@ -101,9 +101,6 @@ export const ApiKeyResponseSchema = ApiKeySchema.extend({
   key: z.string().optional(),
 });
 
-export const ApiKeyListSchema = z.object({
-  keys: z.array(ApiKeySchema),
-});
 
 export const CreateApiKeySchema = z.object({
   name: z.string().min(1, "Key name cannot be empty."),
