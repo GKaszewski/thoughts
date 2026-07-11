@@ -104,6 +104,22 @@ async fn main() {
                         .await;
                         result
                     }
+                    EventPayload::FederationOutboundFollowAccepted {
+                        remote_actor_url,
+                        outbox_url,
+                        ..
+                    } => {
+                        if let Some(outbox) = outbox_url {
+                            infra
+                                .raw_ap_service
+                                .import_remote_outbox(&outbox, &remote_actor_url)
+                                .await
+                                .map_err(|e| DomainError::Internal(e.to_string()))
+                        } else {
+                            tracing::info!(%remote_actor_url, "outbound follow accepted but no outbox URL — skipping backfill");
+                            Ok(())
+                        }
+                    }
 
                     // ── domain events ──────────────────────────────────────
                     p => match DomainEvent::try_from(p) {

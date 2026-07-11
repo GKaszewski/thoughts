@@ -97,6 +97,11 @@ pub enum EventPayload {
         owner_user_id: String,
         follower_inbox_url: String,
     },
+    FederationOutboundFollowAccepted {
+        local_user_id: String,
+        remote_actor_url: String,
+        outbox_url: Option<String>,
+    },
 }
 
 impl EventPayload {
@@ -124,6 +129,7 @@ impl EventPayload {
             Self::MentionReceived { .. } => "mentions.received",
             Self::FederationDeliveryRequested { .. } => "federation.delivery.requested",
             Self::FederationBackfillRequested { .. } => "federation.backfill.requested",
+            Self::FederationOutboundFollowAccepted { .. } => "federation.outbound_follow.accepted",
         }
     }
 }
@@ -421,7 +427,8 @@ impl TryFrom<EventPayload> for DomainEvent {
                 author_user_id: UserId::from_uuid(parse_uuid(&author_user_id, "author_user_id")?),
             },
             EventPayload::FederationDeliveryRequested { .. }
-            | EventPayload::FederationBackfillRequested { .. } => {
+            | EventPayload::FederationBackfillRequested { .. }
+            | EventPayload::FederationOutboundFollowAccepted { .. } => {
                 return Err(DomainError::Internal(
                     "federation infrastructure event — not a domain event".into(),
                 ));

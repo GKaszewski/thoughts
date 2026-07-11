@@ -70,6 +70,20 @@ impl k_ap::data::EventPublisher for KapPublisher {
                     follower_inbox_url,
                 })?,
             ),
+            FederationEvent::OutboundFollowAccepted {
+                local_user_id,
+                remote_actor_url,
+                outbox_url,
+            } => (
+                "federation.outbound_follow.accepted",
+                serde_json::to_vec(
+                    &event_payload::EventPayload::FederationOutboundFollowAccepted {
+                        local_user_id: local_user_id.to_string(),
+                        remote_actor_url,
+                        outbox_url,
+                    },
+                )?,
+            ),
             FederationEvent::DeliveryFailed { inbox, error, .. } => {
                 tracing::warn!(%inbox, %error, "AP delivery failed permanently");
                 return Ok(());
